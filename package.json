@@ -1,5 +1,19 @@
 {
   "name": "md-studio-svelte",
+  "description": "High-performance Markdown editor and live preview studio built with Svelte 5, CodeMirror 6, KaTeX, and Mermaid.",
+  "keywords": [
+    "markdown",
+    "mark-down",
+    "markdown-preview",
+    "markdown-editor",
+    "markdown-viewer",
+    "markdown-live-preview",
+    "svelte",
+    "svelte5",
+    "codemirror",
+    "katex",
+    "mermaid"
+  ],
   "private": true,
   "version": "0.0.0",
   "type": "module",

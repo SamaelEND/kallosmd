@@ -1,6 +1,6 @@
-# MD Studio — Mesa de Lectura
+# MD Studio — Markdown Editor & Live Preview
 
-> **MD Studio** es un entorno de escritura y lectura de Markdown de alto rendimiento, enfocado en la claridad tipográfica, la ausencia de distracciones, la soberanía de los datos del usuario y la experiencia visual tipo "Mesa de Lectura".
+> **MD Studio** es un entorno moderno de escritura y previsualización en vivo de **Markdown** (*live preview / viewer*), enfocado en la claridad tipográfica, la ausencia de distracciones, la soberanía de los datos del usuario y la experiencia visual tipo "Mesa de Lectura".
 
 Construido con **Svelte 5** (Runas), **TypeScript**, **Vite** y **CodeMirror 6**, ofrece una arquitectura modular, reactiva y extensible que integra renderizado matemático con **KaTeX**, diagramas dinámicos con **Mermaid**, resaltado de sintaxis multi-lenguaje estilo VS Code, persistencia en **IndexedDB** y diseño responsivo adaptativo en 3 niveles (**Escritorio**, **Tablet** y **Móvil**).
 
