@@ -8,17 +8,19 @@
    * - Exportación inteligente a PDF con adaptación de diagramas y estilos limpios.
    * - Persistencia y sincronización completa con el sistema de diseño original.
    */
-  import { onMount } from 'svelte';
-  import { documentStore } from './stores/documents.svelte';
-  import Sidebar from './components/Sidebar.svelte';
-  import Toolbar from './components/Toolbar.svelte';
-  import Editor from './components/Editor.svelte';
-  import Resizer from './components/Resizer.svelte';
-  import Preview from './components/Preview.svelte';
-  import DropOverlay from './components/DropOverlay.svelte';
-  import { CheckCircle2, Sparkles } from 'lucide-svelte';
+  import { onMount, tick } from "svelte";
+  import { documentStore } from "./stores/documents.svelte";
+  import Sidebar from "./components/Sidebar.svelte";
+  import Toolbar from "./components/Toolbar.svelte";
+  import Editor from "./components/Editor.svelte";
+  import Resizer from "./components/Resizer.svelte";
+  import Preview from "./components/Preview.svelte";
+  import DropOverlay from "./components/DropOverlay.svelte";
+  import { CheckCircle2, Sparkles } from "lucide-svelte";
 
-  let sidebarOpen = $state(typeof window !== 'undefined' ? window.innerWidth > 768 : true);
+  let sidebarOpen = $state(
+    typeof window !== "undefined" ? window.innerWidth > 768 : true,
+  );
   let editorComponent = $state<ReturnType<typeof Editor> | null>(null);
   let previewComponent = $state<ReturnType<typeof Preview> | null>(null);
 
@@ -26,7 +28,7 @@
   let saveNoticeVisible = $state(false);
 
   const activeDoc = $derived(documentStore.activeDocument);
-  const activeContent = $derived(activeDoc?.content || '');
+  const activeContent = $derived(activeDoc?.content || "");
   const isDark = $derived(documentStore.isDark);
   const settings = $derived(documentStore.settings);
   const splitRatio = $derived(settings.splitRatio);
@@ -35,7 +37,7 @@
   // Estadísticas del documento para la barra inferior
   const stats = $derived.by(() => {
     const text = activeContent;
-    const lines = text ? text.split('\n').length : 0;
+    const lines = text ? text.split("\n").length : 0;
     const words = text.trim() ? text.trim().split(/\s+/).length : 0;
     const readingTime = words ? Math.max(1, Math.round(words / 200)) : 0;
     return { lines, words, readingTime };
@@ -43,25 +45,52 @@
 
   // Sincronización del atributo data-theme y clase dark en <html>
   $effect(() => {
-    if (typeof document !== 'undefined') {
-      const themeName = isDark ? 'dark' : 'light';
-      document.documentElement.setAttribute('data-theme', themeName);
+    if (typeof document !== "undefined") {
+      const themeName = isDark ? "dark" : "light";
+      document.documentElement.setAttribute("data-theme", themeName);
       if (isDark) {
-        document.documentElement.classList.add('dark');
-        document.documentElement.classList.remove('light');
+        document.documentElement.classList.add("dark");
+        document.documentElement.classList.remove("light");
       } else {
-        document.documentElement.classList.add('light');
-        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add("light");
+        document.documentElement.classList.remove("dark");
       }
     }
   });
 
+  // Sincronización dinámica de opciones de página en PDF (URL en pie de página)
+  $effect(() => {
+    if (typeof document === "undefined") return;
+    let styleEl = document.getElementById("md-studio-print-page-style") as HTMLStyleElement | null;
+    if (!styleEl) {
+      styleEl = document.createElement("style");
+      styleEl.id = "md-studio-print-page-style";
+      document.head.appendChild(styleEl);
+    }
+
+    const currentUrl = typeof window !== "undefined" ? window.location.href : "https://samaelend.github.io/md-studio-svelte/";
+    const urlContent = settings.includePdfUrl ? JSON.stringify(currentUrl) : '""';
+
+    styleEl.textContent = `
+      @media print {
+        @page {
+          @bottom-left {
+            content: ${urlContent};
+            font-size: 8.5pt;
+            font-family: inherit;
+            color: rgba(110, 119, 129, 0.65);
+          }
+        }
+      }
+    `;
+  });
+
   // --- Sincronización de Scroll Proporcional ---
-  let activeScrollSource: 'editor' | 'preview' | null = null;
+  let activeScrollSource: "editor" | "preview" | null = null;
   let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
 
-  function syncScroll(source: 'editor' | 'preview'): void {
-    if (!settings.syncScroll || viewMode !== 'split') return;
+  function syncScroll(source: "editor" | "preview"): void {
+    if (!settings.syncScroll || viewMode !== "split") return;
     if (activeScrollSource && activeScrollSource !== source) return;
 
     const editorEl = editorComponent?.getScrollerElement();
@@ -70,7 +99,7 @@
 
     activeScrollSource = source;
 
-    if (source === 'editor') {
+    if (source === "editor") {
       const maxEditor = editorEl.scrollHeight - editorEl.clientHeight;
       const maxPreview = previewEl.scrollHeight - previewEl.clientHeight;
       if (maxEditor > 0 && maxPreview > 0) {
@@ -93,18 +122,22 @@
   }
 
   function handleEditorScroll(): void {
-    syncScroll('editor');
+    syncScroll("editor");
   }
 
   function handlePreviewScroll(): void {
-    syncScroll('preview');
+    syncScroll("preview");
   }
 
   function handleContentChange(newContent: string): void {
     documentStore.updateActiveContent(newContent);
   }
 
-  function handleInsertSnippet(prefix: string, suffix = '', placeholder = ''): void {
+  function handleInsertSnippet(
+    prefix: string,
+    suffix = "",
+    placeholder = "",
+  ): void {
     if (editorComponent?.insertSnippet) {
       editorComponent.insertSnippet(prefix, suffix, placeholder);
     }
@@ -122,16 +155,42 @@
    * Exportación limpia a PDF con preparación de página y temas.
    */
   async function handleExportPdf(): Promise<void> {
-    // Si la vista actual es solo editor, pasar a split o preview temporalmente para imprimir
+    const originalTitle = typeof document !== "undefined" ? document.title : "";
+    const docTitle = activeDoc?.title
+      ? activeDoc.title.replace(/\.md$/i, "")
+      : "documento";
+    if (typeof document !== "undefined") {
+      document.title = docTitle;
+    }
+
     const previousMode = viewMode;
-    if (previousMode === 'editor') {
-      documentStore.setViewMode('preview');
+    if (previousMode === "editor") {
+      documentStore.setViewMode("preview");
+      await tick();
+      // Retardo breve para asegurar que el navegador procese el renderizado y diagramas
+      await new Promise((resolve) => setTimeout(resolve, 60));
+    }
+
+    // Si la aplicación está en modo oscuro, convertir diagramas al tema claro estándar para el PDF
+    if (previewComponent?.prepareForPrint) {
+      await previewComponent.prepareForPrint();
+      await tick();
+      // Pausa breve para garantizar que el DOM y los SVG se asienten antes del diálogo de impresión
+      await new Promise((resolve) => setTimeout(resolve, 80));
     }
 
     window.print();
 
-    if (previousMode === 'editor') {
-      documentStore.setViewMode('editor');
+    // Restaurar los diagramas al tema activo de la interfaz tras cerrar el diálogo de impresión
+    if (previewComponent?.restoreAfterPrint) {
+      await previewComponent.restoreAfterPrint();
+    }
+
+    if (previousMode === "editor") {
+      documentStore.setViewMode("editor");
+    }
+    if (typeof document !== "undefined") {
+      document.title = originalTitle;
     }
   }
 
@@ -143,7 +202,12 @@
 
   function handleDragLeave(e: DragEvent): void {
     // Solo ocultar si se sale de la ventana del navegador
-    if (e.clientX <= 0 || e.clientY <= 0 || e.clientX >= window.innerWidth || e.clientY >= window.innerHeight) {
+    if (
+      e.clientX <= 0 ||
+      e.clientY <= 0 ||
+      e.clientX >= window.innerWidth ||
+      e.clientY >= window.innerHeight
+    ) {
       isDraggingFile = false;
     }
   }
@@ -157,7 +221,7 @@
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      const content = String(event.target?.result || '');
+      const content = String(event.target?.result || "");
       documentStore.importDocument(file.name, content);
     };
     reader.readAsText(file);
@@ -167,12 +231,12 @@
   function handleGlobalKeyDown(event: KeyboardEvent): void {
     const isMeta = event.ctrlKey || event.metaKey;
 
-    if (isMeta && event.key.toLowerCase() === 'b') {
+    if (isMeta && event.key.toLowerCase() === "b") {
       event.preventDefault();
       sidebarOpen = !sidebarOpen;
     }
 
-    if (isMeta && event.key.toLowerCase() === 's') {
+    if (isMeta && event.key.toLowerCase() === "s") {
       event.preventDefault();
       saveNoticeVisible = true;
       setTimeout(() => {
@@ -180,7 +244,7 @@
       }, 1800);
     }
 
-    if (isMeta && event.key.toLowerCase() === 'p') {
+    if (isMeta && event.key.toLowerCase() === "p") {
       event.preventDefault();
       handleExportPdf();
     }
@@ -218,15 +282,12 @@
     />
 
     <!-- Contenedor de paneles según ViewMode (editor, split, preview) -->
-    <div
-      class="workspace-container mode-{viewMode}"
-      id="workspace"
-    >
+    <div class="workspace-container mode-{viewMode}" id="workspace">
       <!-- Panel Editor -->
       <section
         class="pane editor-pane no-print"
         style="width: {viewMode === 'split' ? splitRatio + '%' : '100%'};"
-        class:hidden-pane={viewMode === 'preview'}
+        class:hidden-pane={viewMode === "preview"}
         aria-label="Editor Markdown"
       >
         {#key documentStore.activeId}
@@ -245,7 +306,7 @@
       </section>
 
       <!-- Divisor interactivo con doble clic 50/50 (Solo en modo split) -->
-      {#if viewMode === 'split'}
+      {#if viewMode === "split"}
         <Resizer
           {splitRatio}
           min={18}
@@ -258,8 +319,8 @@
       <!-- Panel de Lectura / Vista Previa -->
       <section
         class="pane preview-pane"
-        style="width: {viewMode === 'split' ? (100 - splitRatio) + '%' : '100%'};"
-        class:hidden-pane={viewMode === 'editor'}
+        style="width: {viewMode === 'split' ? 100 - splitRatio + '%' : '100%'};"
+        class:hidden-pane={viewMode === "editor"}
         aria-label="Vista previa de lectura"
       >
         <Preview
@@ -277,7 +338,8 @@
     <footer class="studio-statusbar no-print">
       <div class="status-left">
         <span class="editor-stats">
-          {stats.lines} líneas · {stats.words} palabras · {stats.readingTime} min de lectura
+          {stats.lines} líneas · {stats.words} palabras · {stats.readingTime} min
+          de lectura
         </span>
         {#if saveNoticeVisible}
           <span class="save-toast">

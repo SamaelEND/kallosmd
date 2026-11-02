@@ -33,6 +33,7 @@ export interface Settings {
   lineNumbers: boolean;
   splitRatio: number; // Porcentaje del panel izquierdo (Editor), por defecto 50
   wordWrap: boolean;
+  includePdfUrl?: boolean;
 }
 
 /**

@@ -25,6 +25,7 @@ const STORAGE_KEYS = {
   LINE_NUMBERS: 'md_studio_line_numbers_v1',
   MINIMAP: 'md_studio_minimap_v1',
   SPLIT_RATIO: 'md_studio_split_ratio_v1',
+  INCLUDE_PDF_URL: 'md_studio_include_pdf_url_v1',
   // Clave transicional para migración suave
   TRANSITIONAL_DOCS: 'md_studio_documents_v1',
   TRANSITIONAL_SETTINGS: 'md_studio_settings_v1',
@@ -154,6 +155,7 @@ const DEFAULT_SETTINGS: Settings = {
   lineNumbers: true,
   splitRatio: 50,
   wordWrap: true,
+  includePdfUrl: true,
 };
 
 function generateId(): string {
@@ -252,6 +254,8 @@ class DocumentStore {
       const savedLineNumbers = localStorage.getItem(STORAGE_KEYS.LINE_NUMBERS) !== 'false';
       const savedMinimap = localStorage.getItem(STORAGE_KEYS.MINIMAP) !== 'false';
       const savedSplitRatio = parseFloat(localStorage.getItem(STORAGE_KEYS.SPLIT_RATIO) || '50') || 50;
+      const rawPdfUrl = localStorage.getItem(STORAGE_KEYS.INCLUDE_PDF_URL);
+      const savedIncludePdfUrl = rawPdfUrl !== null ? rawPdfUrl === 'true' : true;
 
       this.settings = {
         theme: savedTheme,
@@ -262,6 +266,7 @@ class DocumentStore {
         minimap: savedMinimap,
         splitRatio: Math.max(15, Math.min(85, savedSplitRatio)),
         wordWrap: true,
+        includePdfUrl: savedIncludePdfUrl,
       };
 
       const isCleanInitialized = localStorage.getItem(STORAGE_KEYS.CLEAN_INIT_FLAG) === 'true';
@@ -451,6 +456,7 @@ class DocumentStore {
       localStorage.setItem(STORAGE_KEYS.LINE_NUMBERS, String(this.settings.lineNumbers));
       localStorage.setItem(STORAGE_KEYS.MINIMAP, String(this.settings.minimap));
       localStorage.setItem(STORAGE_KEYS.SPLIT_RATIO, String(this.settings.splitRatio));
+      localStorage.setItem(STORAGE_KEYS.INCLUDE_PDF_URL, String(Boolean(this.settings.includePdfUrl)));
     } catch (error) {
       console.error('Error al guardar configuración en localStorage:', error);
     }

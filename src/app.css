@@ -164,6 +164,7 @@ button,
 
 /* Prevenir que iOS Safari haga zoom forzado en inputs con tamaño inferior a 16px */
 @media (pointer: coarse) {
+
   input,
   textarea,
   select {
@@ -211,50 +212,119 @@ button,
    ========================================================= */
 @media print {
   @page {
-    margin: 15mm;
     size: auto;
+    margin-top: 20mm;
+    margin-bottom: 20mm;
+    margin-left: 25mm;
+    margin-right: 25mm;
+
+    /* Suprimir encabezados superiores nativos (fecha, hora, título) */
+    @top-left {
+      content: "";
+    }
+
+    @top-center {
+      content: "";
+    }
+
+    @top-right {
+      content: "";
+    }
+
+    /* Pie de página con numeración por defecto en la esquina inferior derecha */
+    @bottom-right {
+      content: "Página " counter(page) " de " counter(pages);
+      font-size: 8.5pt;
+      font-family: inherit;
+      color: rgba(110, 119, 129, 0.75);
+    }
+
+    /* Pie de página izquierdo: controlado dinámicamente según configuración */
+    @bottom-left {
+      content: "";
+    }
   }
 
-  body {
+  html,
+  body,
+  #app {
     background: #ffffff !important;
     color: #1f2328 !important;
     height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
     overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+    position: static !important;
   }
 
-  /* Ocultar elementos de UI interactivos durante la impresión/PDF */
+  /* Ocultar elementos de UI interactivos y editor durante la impresión/PDF */
   .no-print,
+  .editor-pane,
+  .pane.editor-pane,
+  .editor-pane *,
+  .cm-editor,
+  .cm-editor *,
   .studio-toolbar,
   .studio-sidebar,
   .studio-statusbar,
   .resizer-gutter,
-  .editor-pane,
+  .resizer-divider,
   .code-header-bar,
   .mermaid-header-bar,
   .mermaid-zoom-controls,
   .delete-doc-btn,
   .metrics-pill {
     display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    max-height: 0 !important;
+    width: 0 !important;
+    max-width: 0 !important;
+    overflow: hidden !important;
+    position: absolute !important;
+    left: -99999px !important;
   }
 
+  /* Asegurar que la vista previa siempre sea la ÚNICA que se muestre en el PDF */
+  .preview-pane,
+  .pane.preview-pane,
+  .preview-pane.hidden-pane {
+    display: block !important;
+    visibility: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    position: static !important;
+  }
+
+  /* Permitir flujo normal y natural de página en los contenedores del preview */
   .studio-root,
   .studio-main,
   .workspace-container,
+  .pane.preview-pane,
   .preview-pane,
   .preview-scroll-container,
   .reading-table-content {
     display: block !important;
     position: static !important;
     width: 100% !important;
+    min-width: 0 !important;
     max-width: 100% !important;
     height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
     overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
     padding: 0 !important;
     margin: 0 !important;
     background: #ffffff !important;
     color: #1f2328 !important;
     border: none !important;
     box-shadow: none !important;
+    transform: none !important;
+    filter: none !important;
   }
 
   .reading-table-content {
@@ -263,21 +333,287 @@ button,
     color: #1f2328 !important;
   }
 
-  /* Evitar saltos de página partidos a la mitad en bloques clave */
-  .reading-table-content pre,
-  .reading-table-content blockquote,
-  .reading-table-content table,
-  .reading-table-content .mermaid-container,
-  .reading-table-content .katex-display-wrapper {
-    page-break-inside: avoid;
+  /* Encabezados legibles y sin cortes de página huérfanos */
+  .reading-table-content h1,
+  .reading-table-content h2,
+  .reading-table-content h3,
+  .reading-table-content h4,
+  .reading-table-content h5,
+  .reading-table-content h6 {
+    color: #1f2328 !important;
+    page-break-after: avoid;
+    break-after: avoid;
     break-inside: avoid;
-    border-color: #d0d7de !important;
-    background-color: #f6f8fa !important;
+  }
+
+  .reading-table-content h1 {
+    border-bottom: 1px solid #d0d7de !important;
+    margin-top: 1.5rem !important;
+  }
+
+  .reading-table-content h2 {
+    border-bottom: 1px solid #eae8e1 !important;
+    margin-top: 1.25rem !important;
+  }
+
+  .reading-table-content p,
+  .reading-table-content li,
+  .reading-table-content ul,
+  .reading-table-content ol {
     color: #1f2328 !important;
   }
 
-  .reading-table-content code {
+  .reading-table-content a {
+    color: #0969da !important;
+    text-decoration: underline !important;
+  }
+
+  .reading-table-content hr {
+    border: none !important;
+    border-top: 1px solid #d0d7de !important;
+    margin: 1.5rem 0 !important;
+  }
+
+  /* Bloques de código con ajuste de línea para no desbordar en papel */
+  .reading-table-content .code-block-wrapper {
+    overflow: visible !important;
+    border: 1px solid #d0d7de !important;
+    background-color: #f6f8fa !important;
+    margin: 1rem 0 !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .reading-table-content pre {
+    overflow: visible !important;
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    background-color: transparent !important;
+    color: #1f2328 !important;
+    padding: 0.8rem 1rem !important;
+    border: none !important;
+  }
+
+  .reading-table-content pre code,
+  .reading-table-content pre code.hljs {
+    overflow: visible !important;
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    background: transparent !important;
+    color: #1f2328 !important;
+    font-size: 9.5pt !important;
+  }
+
+  .reading-table-content :not(pre)>code {
     background-color: #eceff2 !important;
     color: #1f2328 !important;
+    border: 1px solid #d0d7de !important;
+  }
+
+  /* Citas / Blockquotes */
+  .reading-table-content blockquote {
+    border-left: 3.5px solid #0969da !important;
+    background-color: #f6f8fa !important;
+    color: #57606a !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Tablas multipágina estructuradas */
+  .reading-table-content table {
+    display: table !important;
+    width: 100% !important;
+    overflow: visible !important;
+    border-collapse: collapse !important;
+    margin: 1rem 0 !important;
+    page-break-inside: auto;
+    break-inside: auto;
+  }
+
+  .reading-table-content tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .reading-table-content th {
+    background-color: #f6f8fa !important;
+    color: #1f2328 !important;
+    border: 1px solid #d0d7de !important;
+    font-weight: 600 !important;
+  }
+
+  .reading-table-content td {
+    color: #1f2328 !important;
+    border: 1px solid #d0d7de !important;
+  }
+
+  .reading-table-content tr:nth-child(even) {
+    background-color: #fcfcfc !important;
+  }
+
+  /* KaTeX Fórmulas Matemáticas */
+  .reading-table-content .katex-display-wrapper {
+    overflow: visible !important;
+    border: 1px solid #d0d7de !important;
+    background-color: #f6f8fa !important;
+    color: #1f2328 !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .reading-table-content .katex {
+    color: #1f2328 !important;
+  }
+
+  /* =========================================================
+     Diagramas Mermaid en Impresión / PDF: Tema Claro Estándar
+     Evita el consumo excesivo de tinta forzando fondos claros y bordes limpios
+     ========================================================= */
+  .reading-table-content .mermaid-container,
+  .reading-table-content .mermaid-container * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .reading-table-content .mermaid-container {
+    overflow: visible !important;
+    border: 1px solid #d0d7de !important;
+    border-radius: 6px !important;
+    background-color: #ffffff !important;
+    margin: 1.25rem 0 !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .reading-table-content .mermaid-svg-viewport {
+    display: block !important;
+    text-align: center !important;
+    overflow: visible !important;
+    padding: 0.75rem !important;
+    margin: 0 auto !important;
+    background-color: #ffffff !important;
+  }
+
+  .reading-table-content .mermaid-svg-viewport svg {
+    display: inline-block !important;
+    max-width: 100% !important;
+    max-height: 215mm !important;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 auto !important;
+    background-color: transparent !important;
+    background: transparent !important;
+  }
+
+  /* Fondo transparente para el lienzo base del SVG */
+  .reading-table-content .mermaid-container svg>rect:first-child,
+  .reading-table-content .mermaid-container svg .background {
+    fill: transparent !important;
+    background: transparent !important;
+  }
+
+  /* Nodos y cajas principales (Flowcharts, Estado, Clases, ER) */
+  .reading-table-content .mermaid-container svg .node rect,
+  .reading-table-content .mermaid-container svg .node circle,
+  .reading-table-content .mermaid-container svg .node ellipse,
+  .reading-table-content .mermaid-container svg .node polygon,
+  .reading-table-content .mermaid-container svg .node path,
+  .reading-table-content .mermaid-container svg .node .label-container,
+  .reading-table-content .mermaid-container svg .node .basic {
+    fill: #ffffff !important;
+    stroke: #1f7a6d !important;
+    stroke-width: 1.5px !important;
+  }
+
+  /* Textos dentro de nodos y etiquetas */
+  .reading-table-content .mermaid-container svg .node text,
+  .reading-table-content .mermaid-container svg .node .label,
+  .reading-table-content .mermaid-container svg .node .nodeLabel,
+  .reading-table-content .mermaid-container svg .node span,
+  .reading-table-content .mermaid-container svg .node p,
+  .reading-table-content .mermaid-container svg .node div,
+  .reading-table-content .mermaid-container svg .label text,
+  .reading-table-content .mermaid-container svg .label span {
+    fill: #1f2328 !important;
+    color: #1f2328 !important;
+    font-weight: 500 !important;
+  }
+
+  /* Subgraphs, clusters y grupos contenedores */
+  .reading-table-content .mermaid-container svg .cluster rect {
+    fill: rgba(31, 122, 109, 0.04) !important;
+    stroke: #1f7a6d !important;
+    stroke-width: 1.2px !important;
+  }
+
+  .reading-table-content .mermaid-container svg .cluster-label text,
+  .reading-table-content .mermaid-container svg .cluster-label span,
+  .reading-table-content .mermaid-container svg .cluster text {
+    fill: #1f7a6d !important;
+    color: #1f7a6d !important;
+    font-weight: 600 !important;
+  }
+
+  /* Conectores, flechas y líneas */
+  .reading-table-content .mermaid-container svg .edgePath .path,
+  .reading-table-content .mermaid-container svg .flowchart-link,
+  .reading-table-content .mermaid-container svg path.link,
+  .reading-table-content .mermaid-container svg .connection,
+  .reading-table-content .mermaid-container svg line.actor-line {
+    stroke: #1f7a6d !important;
+    stroke-width: 1.5px !important;
+  }
+
+  .reading-table-content .mermaid-container svg .marker,
+  .reading-table-content .mermaid-container svg marker path,
+  .reading-table-content .mermaid-container svg .arrowheadPath {
+    fill: #1f7a6d !important;
+    stroke: #1f7a6d !important;
+  }
+
+  /* Etiquetas sobre líneas con fondo blanco limpio */
+  .reading-table-content .mermaid-container svg .edgeLabel,
+  .reading-table-content .mermaid-container svg .edgeLabel rect,
+  .reading-table-content .mermaid-container svg .edgeLabel .label-container {
+    background-color: #ffffff !important;
+    fill: #ffffff !important;
+    opacity: 1 !important;
+  }
+
+  .reading-table-content .mermaid-container svg .edgeLabel text,
+  .reading-table-content .mermaid-container svg .edgeLabel span,
+  .reading-table-content .mermaid-container svg .edgeLabel p {
+    fill: #1f2328 !important;
+    color: #1f2328 !important;
+  }
+
+  /* Diagramas de secuencia */
+  .reading-table-content .mermaid-container svg .actor,
+  .reading-table-content .mermaid-container svg .actor rect {
+    fill: #f6f8fa !important;
+    stroke: #1f7a6d !important;
+    stroke-width: 1.5px !important;
+  }
+
+  .reading-table-content .mermaid-container svg text.actor,
+  .reading-table-content .mermaid-container svg .actor text,
+  .reading-table-content .mermaid-container svg .actor span {
+    fill: #1f2328 !important;
+    color: #1f2328 !important;
+  }
+
+  .reading-table-content .mermaid-container svg .messageLine0,
+  .reading-table-content .mermaid-container svg .messageLine1 {
+    stroke: #1f7a6d !important;
+    stroke-width: 1.5px !important;
+  }
+
+  .reading-table-content .mermaid-container svg .messageText {
+    fill: #1f2328 !important;
+    stroke: none !important;
+  }
+
+  .reading-table-content .task-checkbox {
+    accent-color: #0969da !important;
   }
 }

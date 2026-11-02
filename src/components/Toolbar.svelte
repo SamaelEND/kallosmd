@@ -443,22 +443,45 @@
       type="button"
       class="toolbar-btn desktop-only"
       onclick={exportMarkdown}
-      title="Descargar como archivo .md"
+      title="Descargar archivo Markdown (.md)"
     >
       <Download size={15} />
-      <span class="btn-label">Guardar</span>
+      <span class="btn-label">Guardar .md</span>
     </button>
 
-    <!-- Exportar a PDF (Visible directamente en Tablet y Escritorio) -->
-    <button
-      type="button"
-      class="toolbar-btn btn-primary tablet-and-desktop"
-      onclick={onExportPdf}
-      title="Exportar a PDF con estilos limpios sin cortes de página"
-    >
-      <Printer size={15} />
-      <span class="btn-label">PDF</span>
-    </button>
+    <!-- Grupo Exportar a PDF (Visible directamente en Tablet y Escritorio) -->
+    <div class="pdf-action-group tablet-and-desktop">
+      <button
+        type="button"
+        class="toolbar-btn btn-primary"
+        onclick={onExportPdf}
+        title="Exportar únicamente la vista previa a PDF"
+      >
+        <Printer size={15} />
+        <span class="btn-label">PDF</span>
+      </button>
+
+      <!-- Botón casi discreto para agregar/quitar URL en el pie de página (Solo pantalla grande) -->
+      <button
+        type="button"
+        class="toolbar-btn icon-only pdf-url-btn desktop-only"
+        class:active={documentStore.settings.includePdfUrl}
+        onclick={() =>
+          documentStore.updateSettings({
+            includePdfUrl: !documentStore.settings.includePdfUrl,
+          })}
+        title={documentStore.settings.includePdfUrl
+          ? "URL en pie de página del PDF: Activada (haz clic para ocultar)"
+          : "URL en pie de página del PDF: Desactivada (haz clic para incluir)"}
+        aria-label="Alternar URL en pie de página del PDF"
+      >
+        <Link size={13} />
+        <span
+          class="url-status-dot"
+          class:on={documentStore.settings.includePdfUrl}
+        ></span>
+      </button>
+    </div>
 
     <!-- Menú Más Opciones (Tablets y Móviles: Formato, Herramientas y Exportación) -->
     <div class="more-menu-wrap">
@@ -505,6 +528,33 @@
             <Download size={15} />
             <span>Descargar archivo .md</span>
           </button>
+
+          <div class="menu-divider"></div>
+
+          <!-- Sección Opciones de Exportación PDF -->
+          <div class="menu-section">
+            <span class="menu-section-title">Opciones de PDF</span>
+            <button
+              type="button"
+              class="menu-tool-toggle"
+              onclick={() =>
+                documentStore.updateSettings({
+                  includePdfUrl: !documentStore.settings.includePdfUrl,
+                })}
+              title="Incluir u ocultar la URL en el pie de página del PDF"
+            >
+              <div class="menu-tool-info">
+                <Link size={15} />
+                <span>URL en pie de página</span>
+              </div>
+              <span
+                class="toggle-pill"
+                class:on={documentStore.settings.includePdfUrl}
+              >
+                {documentStore.settings.includePdfUrl ? "ON" : "OFF"}
+              </span>
+            </button>
+          </div>
 
           <div class="menu-divider"></div>
 
@@ -891,6 +941,54 @@
 
   .toolbar-btn.btn-primary:hover {
     background-color: var(--accent-hover, #7cc9bb);
+  }
+
+  /* Grupo de acción PDF y botón discreto de URL */
+  .pdf-action-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .pdf-url-btn {
+    width: 26px !important;
+    height: 32px !important;
+    padding: 0 !important;
+    position: relative;
+    border: 1px solid var(--border-color, #2b2d31);
+    background-color: var(--bg-surface, #1a1b1d);
+    border-radius: 6px;
+    color: var(--text-secondary, #9b9a94);
+    transition: all 0.15s ease;
+  }
+
+  .pdf-url-btn:hover {
+    background-color: var(--bg-hover, #2e3034);
+    color: var(--text-primary, #e8e6e1);
+    border-color: var(--border-subtle, #36393e);
+  }
+
+  .pdf-url-btn.active {
+    color: var(--accent-color, #5fb3a3);
+    border-color: rgba(95, 179, 163, 0.4);
+    background-color: var(--accent-soft, rgba(95, 179, 163, 0.08));
+  }
+
+  .url-status-dot {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background-color: var(--text-faint, #6f6e69);
+    transition: background-color 0.15s ease;
+  }
+
+  .url-status-dot.on {
+    background-color: var(--accent-color, #5fb3a3);
+    box-shadow: 0 0 4px rgba(95, 179, 163, 0.6);
   }
 
   .badge {

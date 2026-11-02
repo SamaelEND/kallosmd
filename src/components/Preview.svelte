@@ -4,14 +4,14 @@
    * Renderizado reactivo de Markdown, KaTeX, Mermaid con zoom y caché,
    * bloques de código con botón de copiar y checkboxes interactivos.
    */
-  import { onMount, tick } from 'svelte';
-  import { Marked } from 'marked';
-  import DOMPurify from 'dompurify';
-  import katex from 'katex';
-  import mermaid from 'mermaid';
-  import hljs from 'highlight.js';
-  import { documentStore } from '../stores/documents.svelte';
-  import type { FontSize } from '../types';
+  import DOMPurify from "dompurify";
+  import hljs from "highlight.js";
+  import katex from "katex";
+  import { Marked } from "marked";
+  import mermaid from "mermaid";
+  import { onMount, tick } from "svelte";
+  import { documentStore } from "../stores/documents.svelte";
+  import type { FontSize } from "../types";
 
   interface Props {
     documentId?: string;
@@ -22,18 +22,18 @@
   }
 
   let {
-    documentId = '',
-    content = '',
+    documentId = "",
+    content = "",
     isDark = false,
-    fontSize = 'medium',
+    fontSize = "medium",
     onContainerScroll,
   }: Props = $props();
 
   let scrollContainer = $state<HTMLDivElement | null>(null);
-  let renderedHtml = $state<string>('');
+  let renderedHtml = $state<string>("");
   let previousScrollTop = $state<number>(0);
   let isLocalTaskToggle = $state<boolean>(false);
-  let lastDocumentId = $state<string>('');
+  let lastDocumentId = $state<string>("");
 
   // Caché de diagramas por tema y niveles de zoom por índice
   const mermaidCache = new Map<string, string>();
@@ -46,34 +46,39 @@
     breaks: true,
     renderer: {
       heading({ depth, text }) {
-        const plainText = text.replace(/<[^>]+>/g, '').replace(/[*_`~[\]]/g, '');
+        const plainText = text
+          .replace(/<[^>]+>/g, "")
+          .replace(/[*_`~[\]]/g, "");
         const slug = plainText
           .toLowerCase()
-          .replace(/[^\p{L}\p{N}\s\-_]/gu, '')
+          .replace(/[^\p{L}\p{N}\s\-_]/gu, "")
           .trim()
-          .replace(/\s+/g, '-');
-        return `<h${depth} id="${slug || 'seccion'}">${text}</h${depth}>\n`;
+          .replace(/\s+/g, "-");
+        return `<h${depth} id="${slug || "seccion"}">${text}</h${depth}>\n`;
       },
       code({ text, lang }) {
-        if (lang === 'mermaid') {
+        if (lang === "mermaid") {
           return `<div class="mermaid-container" data-mermaid-code="${encodeURIComponent(text)}"></div>\n`;
         }
 
-        const rawLang = lang ? lang.trim().toLowerCase().split(/\s+/)[0] : '';
-        const displayLang = rawLang || 'code';
+        const rawLang = lang ? lang.trim().toLowerCase().split(/\s+/)[0] : "";
+        const displayLang = rawLang || "code";
 
-        let highlightedCode = '';
+        let highlightedCode = "";
         try {
           if (rawLang && hljs.getLanguage(rawLang)) {
-            highlightedCode = hljs.highlight(text, { language: rawLang, ignoreIllegals: true }).value;
+            highlightedCode = hljs.highlight(text, {
+              language: rawLang,
+              ignoreIllegals: true,
+            }).value;
           } else {
             highlightedCode = hljs.highlightAuto(text).value;
           }
         } catch {
           highlightedCode = text
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;');
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
         }
 
         return `
@@ -106,31 +111,43 @@
           displayMode: true,
           throwOnError: false,
         });
-        mathPlaceholders.push({ id, html: `<div class="katex-display-wrapper">${rendered}</div>` });
+        mathPlaceholders.push({
+          id,
+          html: `<div class="katex-display-wrapper">${rendered}</div>`,
+        });
       } catch (e) {
-        mathPlaceholders.push({ id, html: `<div class="katex-error">$$${math}$$</div>` });
+        mathPlaceholders.push({
+          id,
+          html: `<div class="katex-error">$$${math}$$</div>`,
+        });
       }
       return id;
     });
 
     // 2. Proteger fórmulas en línea ($ ... $) evitando precios como $10.00
-    processed = processed.replace(/(^|[^\\])\$([^\$\s\n\r](?:[^\$\n\r]*?[^\$\s\n\r])?)\$/g, (match, prefix, math) => {
-      if (/^\s*\d+([.,]\d{1,2})?\s*$/.test(math)) {
-        return match;
-      }
+    processed = processed.replace(
+      /(^|[^\\])\$([^\$\s\n\r](?:[^\$\n\r]*?[^\$\s\n\r])?)\$/g,
+      (match, prefix, math) => {
+        if (/^\s*\d+([.,]\d{1,2})?\s*$/.test(math)) {
+          return match;
+        }
 
-      const id = `%%KATEX_INLINE_${mathPlaceholders.length}%%`;
-      try {
-        const rendered = katex.renderToString(math.trim(), {
-          displayMode: false,
-          throwOnError: false,
-        });
-        mathPlaceholders.push({ id, html: rendered });
-      } catch (e) {
-        mathPlaceholders.push({ id, html: `<span class="katex-error">$${math}$</span>` });
-      }
-      return prefix + id;
-    });
+        const id = `%%KATEX_INLINE_${mathPlaceholders.length}%%`;
+        try {
+          const rendered = katex.renderToString(math.trim(), {
+            displayMode: false,
+            throwOnError: false,
+          });
+          mathPlaceholders.push({ id, html: rendered });
+        } catch (e) {
+          mathPlaceholders.push({
+            id,
+            html: `<span class="katex-error">$${math}$</span>`,
+          });
+        }
+        return prefix + id;
+      },
+    );
 
     // 3. Parsear Markdown
     let html = markedInstance.parse(processed) as string;
@@ -143,32 +160,32 @@
     // 5. Sanitizar con DOMPurify
     return DOMPurify.sanitize(html, {
       ADD_TAGS: [
-        'input',
-        'math',
-        'annotation',
-        'semantics',
-        'mrow',
-        'mi',
-        'mo',
-        'mn',
-        'msup',
-        'msub',
-        'mfrac',
-        'msqrt',
-        'mtable',
-        'mtr',
-        'mtd',
+        "input",
+        "math",
+        "annotation",
+        "semantics",
+        "mrow",
+        "mi",
+        "mo",
+        "mn",
+        "msup",
+        "msub",
+        "mfrac",
+        "msqrt",
+        "mtable",
+        "mtr",
+        "mtd",
       ],
       ADD_ATTR: [
-        'class',
-        'data-mermaid-code',
-        'data-task-index',
-        'type',
-        'checked',
-        'id',
-        'target',
-        'rel',
-        'aria-hidden',
+        "class",
+        "data-mermaid-code",
+        "data-task-index",
+        "type",
+        "checked",
+        "id",
+        "target",
+        "rel",
+        "aria-hidden",
       ],
     });
   }
@@ -224,29 +241,30 @@
   function setupCopyButtons(): void {
     if (!scrollContainer) return;
 
-    const copyButtons = scrollContainer.querySelectorAll<HTMLButtonElement>('.code-copy-btn');
+    const copyButtons =
+      scrollContainer.querySelectorAll<HTMLButtonElement>(".code-copy-btn");
     copyButtons.forEach((btn) => {
       // Evitar re-enlazar listeners
-      if (btn.dataset.bound === 'true') return;
-      btn.dataset.bound = 'true';
+      if (btn.dataset.bound === "true") return;
+      btn.dataset.bound = "true";
 
-      btn.addEventListener('click', async () => {
-        const pre = btn.closest('.code-block-wrapper')?.querySelector('pre');
-        const codeText = pre?.textContent || '';
+      btn.addEventListener("click", async () => {
+        const pre = btn.closest(".code-block-wrapper")?.querySelector("pre");
+        const codeText = pre?.textContent || "";
         if (!codeText) return;
 
         try {
           await navigator.clipboard.writeText(codeText);
-          const label = btn.querySelector('.copy-text');
-          if (label) label.textContent = '✓ Copiado';
-          btn.classList.add('copied');
+          const label = btn.querySelector(".copy-text");
+          if (label) label.textContent = "✓ Copiado";
+          btn.classList.add("copied");
 
           setTimeout(() => {
-            if (label) label.textContent = 'Copiar';
-            btn.classList.remove('copied');
+            if (label) label.textContent = "Copiar";
+            btn.classList.remove("copied");
           }, 2000);
         } catch (e) {
-          console.error('Error al copiar código:', e);
+          console.error("Error al copiar código:", e);
         }
       });
     });
@@ -258,15 +276,17 @@
   function setupCheckboxes(): void {
     if (!scrollContainer) return;
 
-    const checkboxes = scrollContainer.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
+    const checkboxes = scrollContainer.querySelectorAll<HTMLInputElement>(
+      'input[type="checkbox"]',
+    );
     checkboxes.forEach((cb, idx) => {
-      cb.removeAttribute('disabled');
+      cb.removeAttribute("disabled");
       cb.dataset.taskIndex = String(idx);
-      cb.classList.add('task-checkbox');
+      cb.classList.add("task-checkbox");
 
-      if (cb.dataset.bound !== 'true') {
-        cb.dataset.bound = 'true';
-        cb.addEventListener('change', () => {
+      if (cb.dataset.bound !== "true") {
+        cb.dataset.bound = "true";
+        cb.addEventListener("change", () => {
           isLocalTaskToggle = true;
           if (scrollContainer) {
             previousScrollTop = scrollContainer.scrollTop;
@@ -283,9 +303,10 @@
   function configureMermaid(dark: boolean): void {
     mermaid.initialize({
       startOnLoad: false,
-      securityLevel: 'strict',
-      theme: 'base',
-      fontFamily: '"Inter", ui-sans-serif, system-ui, -apple-system, sans-serif',
+      securityLevel: "strict",
+      theme: "base",
+      fontFamily:
+        '"Inter", ui-sans-serif, system-ui, -apple-system, sans-serif',
       flowchart: {
         htmlLabels: true,
         useMaxWidth: false,
@@ -297,23 +318,25 @@
       },
       themeVariables: {
         darkMode: dark,
-        fontSize: '13px',
-        background: 'transparent',
-        mainBkg: dark ? '#1a1b1d' : '#ffffff',
-        nodeBorder: dark ? '#5fb3a3' : '#1f7a6d',
-        nodeTextColor: dark ? '#f0f6fc' : '#1f2328',
-        lineColor: dark ? '#7cc9bb' : '#1f7a6d',
-        textColor: dark ? '#e6edf3' : '#1f2328',
-        clusterBkg: dark ? 'rgba(95, 179, 163, 0.06)' : 'rgba(31, 122, 109, 0.05)',
-        clusterBorder: dark ? '#4fa89b' : '#1f7a6d',
-        titleColor: dark ? '#5fb3a3' : '#1f7a6d',
-        edgeLabelBackground: dark ? '#26282b' : '#ffffff',
-        actorBkg: dark ? '#26282b' : '#f6f8fa',
-        actorBorder: dark ? '#5fb3a3' : '#1f7a6d',
-        actorTextColor: dark ? '#f0f6fc' : '#1f2328',
-        actorLineColor: dark ? '#5fb3a3' : '#1f7a6d',
-        signalColor: dark ? '#7cc9bb' : '#1f7a6d',
-        signalTextColor: dark ? '#e6edf3' : '#1f2328',
+        fontSize: "13px",
+        background: "transparent",
+        mainBkg: dark ? "#1a1b1d" : "#ffffff",
+        nodeBorder: dark ? "#5fb3a3" : "#1f7a6d",
+        nodeTextColor: dark ? "#f0f6fc" : "#1f2328",
+        lineColor: dark ? "#7cc9bb" : "#1f7a6d",
+        textColor: dark ? "#e6edf3" : "#1f2328",
+        clusterBkg: dark
+          ? "rgba(95, 179, 163, 0.06)"
+          : "rgba(31, 122, 109, 0.05)",
+        clusterBorder: dark ? "#4fa89b" : "#1f7a6d",
+        titleColor: dark ? "#5fb3a3" : "#1f7a6d",
+        edgeLabelBackground: dark ? "#26282b" : "#ffffff",
+        actorBkg: dark ? "#26282b" : "#f6f8fa",
+        actorBorder: dark ? "#5fb3a3" : "#1f7a6d",
+        actorTextColor: dark ? "#f0f6fc" : "#1f2328",
+        actorLineColor: dark ? "#5fb3a3" : "#1f7a6d",
+        signalColor: dark ? "#7cc9bb" : "#1f7a6d",
+        signalTextColor: dark ? "#e6edf3" : "#1f2328",
       },
     });
   }
@@ -324,17 +347,20 @@
   async function renderMermaidBlocks(dark: boolean): Promise<void> {
     if (!scrollContainer) return;
 
-    const containers = scrollContainer.querySelectorAll<HTMLDivElement>('.mermaid-container');
+    const containers =
+      scrollContainer.querySelectorAll<HTMLDivElement>(".mermaid-container");
     if (containers.length === 0) return;
 
     configureMermaid(dark);
 
     for (let index = 0; index < containers.length; index++) {
       const container = containers[index];
-      const rawCode = decodeURIComponent(container.getAttribute('data-mermaid-code') || '').trim();
+      const rawCode = decodeURIComponent(
+        container.getAttribute("data-mermaid-code") || "",
+      ).trim();
       if (!rawCode) continue;
 
-      const cacheKey = `${dark ? 'dark' : 'light'}_${rawCode}`;
+      const cacheKey = `${dark ? "dark" : "light"}_${rawCode}`;
       const cachedSvg = mermaidCache.get(cacheKey);
 
       // Si ya está en caché para este tema, aplicar de inmediato sin parpadeo
@@ -368,18 +394,25 @@
   /**
    * Monta el diagrama con sus controles de zoom interactivo (+, -, ↺) de manera atómica sin parpadeos.
    */
-  function mountDiagram(container: HTMLDivElement, rawSvg: string, index: number, isCachedNotice: boolean): void {
+  function mountDiagram(
+    container: HTMLDivElement,
+    rawSvg: string,
+    index: number,
+    isCachedNotice: boolean,
+  ): void {
     const currentZoom = diagramZoomLevels.get(index) || 1.0;
-    const viewport = container.querySelector<HTMLDivElement>('.mermaid-svg-viewport');
+    const viewport = container.querySelector<HTMLDivElement>(
+      ".mermaid-svg-viewport",
+    );
 
     // Si la estructura ya existe, actualizar únicamente el SVG para evitar parpadeos visuales
-    if (viewport && container.querySelector('.mermaid-header-bar')) {
+    if (viewport && container.querySelector(".mermaid-header-bar")) {
       viewport.innerHTML = rawSvg;
-      const svgEl = viewport.querySelector<SVGElement>('svg');
+      const svgEl = viewport.querySelector<SVGElement>("svg");
       if (svgEl) {
-        svgEl.removeAttribute('height');
+        svgEl.removeAttribute("height");
         let viewBoxWidth = 600;
-        const vb = svgEl.getAttribute('viewBox');
+        const vb = svgEl.getAttribute("viewBox");
         if (vb) {
           const parts = vb.trim().split(/\s+/);
           if (parts.length === 4) {
@@ -405,15 +438,15 @@
       <div class="mermaid-svg-viewport">
         ${rawSvg}
       </div>
-      ${isCachedNotice ? '<span class="mermaid-syntax-notice">⏳ Editando sintaxis (mostrando versión previa)...</span>' : ''}
+      ${isCachedNotice ? '<span class="mermaid-syntax-notice">⏳ Editando sintaxis (mostrando versión previa)...</span>' : ""}
     `;
 
-    const svgEl = container.querySelector<SVGElement>('svg');
+    const svgEl = container.querySelector<SVGElement>("svg");
     if (svgEl) {
-      svgEl.removeAttribute('height');
+      svgEl.removeAttribute("height");
 
       let viewBoxWidth = 600;
-      const vb = svgEl.getAttribute('viewBox');
+      const vb = svgEl.getAttribute("viewBox");
       if (vb) {
         const parts = vb.trim().split(/\s+/);
         if (parts.length === 4) {
@@ -425,35 +458,41 @@
       const baseWidth = Math.min(Math.max(viewBoxWidth * 1.15, 540), 980);
       applyDiagramWidth(svgEl, currentZoom, baseWidth);
 
-      const btnIn = container.querySelector<HTMLButtonElement>('.btn-zoom-in');
-      const btnOut = container.querySelector<HTMLButtonElement>('.btn-zoom-out');
-      const btnReset = container.querySelector<HTMLButtonElement>('.btn-zoom-reset');
+      const btnIn = container.querySelector<HTMLButtonElement>(".btn-zoom-in");
+      const btnOut =
+        container.querySelector<HTMLButtonElement>(".btn-zoom-out");
+      const btnReset =
+        container.querySelector<HTMLButtonElement>(".btn-zoom-reset");
 
-      btnIn?.addEventListener('click', () => {
+      btnIn?.addEventListener("click", () => {
         let zoom = diagramZoomLevels.get(index) || 1.0;
         zoom = Math.min(zoom + 0.2, 2.4);
         diagramZoomLevels.set(index, zoom);
         applyDiagramWidth(svgEl, zoom, baseWidth);
       });
 
-      btnOut?.addEventListener('click', () => {
+      btnOut?.addEventListener("click", () => {
         let zoom = diagramZoomLevels.get(index) || 1.0;
         zoom = Math.max(zoom - 0.2, 0.6);
         diagramZoomLevels.set(index, zoom);
         applyDiagramWidth(svgEl, zoom, baseWidth);
       });
 
-      btnReset?.addEventListener('click', () => {
+      btnReset?.addEventListener("click", () => {
         diagramZoomLevels.set(index, 1.0);
         applyDiagramWidth(svgEl, 1.0, baseWidth);
       });
     }
   }
 
-  function applyDiagramWidth(svgEl: SVGElement, zoom: number, baseWidth: number): void {
+  function applyDiagramWidth(
+    svgEl: SVGElement,
+    zoom: number,
+    baseWidth: number,
+  ): void {
     const targetWidth = Math.round(baseWidth * zoom);
     svgEl.style.width = `${targetWidth}px`;
-    svgEl.style.maxWidth = zoom > 1.0 ? 'none' : '100%';
+    svgEl.style.maxWidth = zoom > 1.0 ? "none" : "100%";
   }
 
   /**
@@ -461,13 +500,13 @@
    */
   function handleContainerClick(event: MouseEvent): void {
     const target = event.target as HTMLElement;
-    const link = target.closest('a');
+    const link = target.closest("a");
     if (!link) return;
 
-    const href = link.getAttribute('href');
+    const href = link.getAttribute("href");
     if (!href) return;
 
-    if (href.startsWith('#')) {
+    if (href.startsWith("#")) {
       event.preventDefault();
       const targetId = decodeURIComponent(href.slice(1)).trim();
       if (!targetId || !scrollContainer) return;
@@ -480,16 +519,16 @@
 
         scrollContainer.scrollTo({
           top: Math.max(0, offsetTop - 18),
-          behavior: 'smooth',
+          behavior: "smooth",
         });
 
-        targetEl.classList.remove('highlight-anchor-target');
+        targetEl.classList.remove("highlight-anchor-target");
         void targetEl.offsetWidth; // Forzar reflow
-        targetEl.classList.add('highlight-anchor-target');
+        targetEl.classList.add("highlight-anchor-target");
       }
-    } else if (href.startsWith('http://') || href.startsWith('https://')) {
-      link.setAttribute('target', '_blank');
-      link.setAttribute('rel', 'noopener noreferrer');
+    } else if (href.startsWith("http://") || href.startsWith("https://")) {
+      link.setAttribute("target", "_blank");
+      link.setAttribute("rel", "noopener noreferrer");
     }
   }
 
@@ -506,8 +545,42 @@
     return scrollContainer;
   }
 
+  /**
+   * Prepara los diagramas para exportación limpia a PDF con colores claros estándar.
+   */
+  export async function prepareForPrint(): Promise<void> {
+    if (isDark) {
+      await renderMermaidBlocks(false);
+    }
+  }
+
+  /**
+   * Restaura los diagramas al tema actual tras cerrar el diálogo de impresión.
+   */
+  export async function restoreAfterPrint(): Promise<void> {
+    if (isDark) {
+      await renderMermaidBlocks(true);
+    }
+  }
+
   onMount(() => {
     renderMermaidBlocks(isDark);
+
+    const handleBeforePrint = () => {
+      prepareForPrint();
+    };
+
+    const handleAfterPrint = () => {
+      restoreAfterPrint();
+    };
+
+    window.addEventListener("beforeprint", handleBeforePrint);
+    window.addEventListener("afterprint", handleAfterPrint);
+
+    return () => {
+      window.removeEventListener("beforeprint", handleBeforePrint);
+      window.removeEventListener("afterprint", handleAfterPrint);
+    };
   });
 </script>
 
@@ -537,7 +610,7 @@
   .reading-table-content {
     max-width: 820px;
     margin: 0 auto;
-    padding: 3rem 2.5rem 8rem;
+    padding: 1.5rem 2.5rem 8rem;
     font-family: inherit;
     word-break: break-word;
   }
@@ -654,7 +727,9 @@
     font-size: 0.75rem;
     padding: 3px 8px;
     border-radius: 4px;
-    transition: background-color 0.15s ease, color 0.15s ease;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
   }
 
   :global(.reading-table-content .code-copy-btn:hover) {
@@ -681,7 +756,8 @@
   :global(.reading-table-content pre code.hljs) {
     display: block;
     overflow-x: auto;
-    font-family: "JetBrains Mono", ui-monospace, Menlo, Monaco, Consolas, monospace;
+    font-family: "JetBrains Mono", ui-monospace, Menlo, Monaco, Consolas,
+      monospace;
     font-size: 0.9em;
     line-height: 1.68;
     background: transparent;
@@ -732,7 +808,9 @@
   }
 
   :global(html[data-theme="dark"] .reading-table-content .hljs-meta),
-  :global(html[data-theme="dark"] .reading-table-content .hljs-meta .hljs-keyword) {
+  :global(
+      html[data-theme="dark"] .reading-table-content .hljs-meta .hljs-keyword
+    ) {
     color: #4ec9b0;
   }
 
@@ -756,7 +834,9 @@
     color: #267f99;
   }
 
-  :global(html[data-theme="light"] .reading-table-content .hljs-title.function_),
+  :global(
+      html[data-theme="light"] .reading-table-content .hljs-title.function_
+    ),
   :global(html[data-theme="light"] .reading-table-content .hljs-function) {
     color: #795e26;
   }
