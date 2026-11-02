@@ -1,0 +1,58 @@
+# Dependencias y artefactos de compilación
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Cachés y datos de compiladores
+.cache/
+.vite/
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Variables de entorno y credenciales (NUNCA comitear)
+.env
+.env.*
+!.env.example
+
+# Reportes de pruebas y cobertura
+coverage/
+*.lcov
+.nyc_output/
+
+# Archivos temporales y de respaldo
+*.tmp
+*.temp
+*.bak
+*~
+
+# Editores e IDEs
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.sublime-project
+*.sublime-workspace
+
+# Archivos de Sistema Operativo
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

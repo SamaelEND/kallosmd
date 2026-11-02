@@ -1,0 +1,283 @@
+/* =========================================================
+   MD Studio — Sistema de Diseño "Mesa de Lectura"
+   Paleta original de tokens de color, superficies y exportación PDF
+   ========================================================= */
+
+:root,
+html[data-theme="dark"],
+html.dark {
+  /* Tokens originales en modo oscuro (Por defecto) */
+  --bg-app: #151617;
+  --bg-surface: #1a1b1d;
+  --bg-reader: #1e1f22;
+  --bg-elevated: #26282b;
+  --bg-hover: #2e3034;
+  --border-color: #2b2d31;
+  --border-subtle: #232427;
+  --text-primary: #e8e6e1;
+  --text-secondary: #9b9a94;
+  --text-faint: #6f6e69;
+  --accent-color: #5fb3a3;
+  --accent-hover: #7cc9bb;
+  --accent-ink: #0e1a18;
+  --accent-soft: rgba(95, 179, 163, 0.15);
+  --danger-color: #e5736a;
+  --warn-color: #d9a441;
+  --code-bg: #121315;
+  --code-border: #2b2d31;
+  --code-text: #7cc9bb;
+  --blockquote-bg: rgba(95, 179, 163, 0.07);
+  --diagram-bg: #1a1b1d;
+  --diagram-border: #2b2d31;
+
+  --editor-bg: #1e1e1e;
+  --editor-gutter-bg: #1e1e1e;
+  --editor-gutter-border: #282828;
+  --editor-text: #d4d4d4;
+  --editor-caret: #4fc1ff;
+  --editor-selection: rgba(38, 79, 120, 0.65);
+
+  /* Aliases para compatibilidad total con componentes */
+  --reading-bg: var(--bg-reader);
+  --reading-sidebar-bg: var(--bg-surface);
+  --reading-toolbar-bg: var(--bg-surface);
+  --reading-statusbar-bg: var(--bg-app);
+  --reading-text: var(--text-primary);
+  --reading-heading: #f5f4ef;
+  --reading-muted: var(--text-secondary);
+  --reading-border: var(--border-color);
+  --reading-border-subtle: var(--border-subtle);
+  --reading-accent: var(--accent-color);
+  --reading-accent-hover: var(--accent-hover);
+  --reading-btn-bg: var(--bg-elevated);
+  --reading-hover: var(--bg-hover);
+  --reading-input-bg: #161719;
+  --reading-quote-bg: var(--blockquote-bg);
+  --reading-quote-text: #c9c7bf;
+  --reading-code-bg: var(--code-bg);
+  --reading-code-text: var(--code-text);
+  --reading-pre-bg: #141517;
+  --reading-table-stripe: #1b1c1f;
+  --reading-link: var(--accent-color);
+  --reading-link-hover: var(--accent-hover);
+  --reading-math-bg: #18191c;
+  --reading-diagram-bg: var(--diagram-bg);
+
+  color-scheme: dark;
+}
+
+html[data-theme="light"],
+html.light {
+  /* Tokens originales en modo claro */
+  --bg-app: #f0efea;
+  --bg-surface: #f7f6f2;
+  --bg-reader: #fcfbf8;
+  --bg-elevated: #e8e6df;
+  --bg-hover: #deddd5;
+  --border-color: #dcdad2;
+  --border-subtle: #eae8e1;
+  --text-primary: #25241f;
+  --text-secondary: #6b6a63;
+  --text-faint: #98968d;
+  --accent-color: #1f7a6d;
+  --accent-hover: #17625a;
+  --accent-ink: #ffffff;
+  --accent-soft: rgba(31, 122, 109, 0.12);
+  --danger-color: #c8372d;
+  --warn-color: #a8730f;
+  --code-bg: #f4f2eb;
+  --code-border: #dcdad2;
+  --code-text: #1f7a6d;
+  --blockquote-bg: rgba(31, 122, 109, 0.06);
+  --diagram-bg: #fcfbf8;
+  --diagram-border: #dcdad2;
+
+  --editor-bg: #ffffff;
+  --editor-gutter-bg: #f8f9fa;
+  --editor-gutter-border: #e1e4e8;
+  --editor-text: #24292e;
+  --editor-caret: #0066b8;
+  --editor-selection: rgba(173, 214, 255, 0.65);
+
+  /* Aliases para compatibilidad total con componentes */
+  --reading-bg: var(--bg-reader);
+  --reading-sidebar-bg: var(--bg-surface);
+  --reading-toolbar-bg: var(--bg-surface);
+  --reading-statusbar-bg: var(--bg-app);
+  --reading-text: var(--text-primary);
+  --reading-heading: var(--text-primary);
+  --reading-muted: var(--text-secondary);
+  --reading-border: var(--border-color);
+  --reading-border-subtle: var(--border-subtle);
+  --reading-accent: var(--accent-color);
+  --reading-accent-hover: var(--accent-hover);
+  --reading-btn-bg: var(--bg-elevated);
+  --reading-hover: var(--bg-hover);
+  --reading-input-bg: #ffffff;
+  --reading-quote-bg: var(--blockquote-bg);
+  --reading-quote-text: #413f38;
+  --reading-code-bg: var(--code-bg);
+  --reading-code-text: var(--code-text);
+  --reading-pre-bg: #f3efe6;
+  --reading-table-stripe: #f8f6f0;
+  --reading-link: var(--accent-color);
+  --reading-link-hover: var(--accent-hover);
+  --reading-math-bg: #f7f5ed;
+  --reading-diagram-bg: var(--diagram-bg);
+
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Evitar retraso de 300ms en taps y deshabilitar selección accidental en controles táctiles */
+button,
+[role="button"],
+.tappable {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Prevenir que iOS Safari haga zoom forzado en inputs con tamaño inferior a 16px */
+@media (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* Modificadores de tamaño de texto para el panel de lectura */
+.font-size-small {
+  font-size: 0.9375rem !important;
+  line-height: 1.68 !important;
+}
+
+.font-size-medium {
+  font-size: 1.0625rem !important;
+  line-height: 1.8 !important;
+}
+
+.font-size-large {
+  font-size: 1.25rem !important;
+  line-height: 1.85 !important;
+}
+
+/* Scrollbars discretos estilo mesa de lectura */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color, #2b2d31);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary, #9b9a94);
+}
+
+/* =========================================================
+   Reglas de Exportación a PDF e Impresión Limpia
+   ========================================================= */
+@media print {
+  @page {
+    margin: 15mm;
+    size: auto;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #1f2328 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Ocultar elementos de UI interactivos durante la impresión/PDF */
+  .no-print,
+  .studio-toolbar,
+  .studio-sidebar,
+  .studio-statusbar,
+  .resizer-gutter,
+  .editor-pane,
+  .code-header-bar,
+  .mermaid-header-bar,
+  .mermaid-zoom-controls,
+  .delete-doc-btn,
+  .metrics-pill {
+    display: none !important;
+  }
+
+  .studio-root,
+  .studio-main,
+  .workspace-container,
+  .preview-pane,
+  .preview-scroll-container,
+  .reading-table-content {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+    color: #1f2328 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .reading-table-content {
+    font-size: 11pt !important;
+    line-height: 1.6 !important;
+    color: #1f2328 !important;
+  }
+
+  /* Evitar saltos de página partidos a la mitad en bloques clave */
+  .reading-table-content pre,
+  .reading-table-content blockquote,
+  .reading-table-content table,
+  .reading-table-content .mermaid-container,
+  .reading-table-content .katex-display-wrapper {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    border-color: #d0d7de !important;
+    background-color: #f6f8fa !important;
+    color: #1f2328 !important;
+  }
+
+  .reading-table-content code {
+    background-color: #eceff2 !important;
+    color: #1f2328 !important;
+  }
+}
