@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://samaelend.github.io/md-studio-svelte/sitemap.xml
+

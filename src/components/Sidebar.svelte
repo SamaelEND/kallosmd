@@ -5,16 +5,16 @@
    * y navegación por Tabla de Contenidos (TOC).
    */
   import {
-    Plus,
+    FileText,
     FolderOpen,
+    List,
+    Plus,
     Search,
     Trash2,
-    List,
-    FileText,
     X,
-  } from 'lucide-svelte';
-  import { documentStore } from '../stores/documents.svelte';
-  import type { TocHeading } from '../types';
+  } from "lucide-svelte";
+  import { documentStore } from "../stores/documents.svelte";
+  import type { TocHeading } from "../types";
 
   interface Props {
     isOpen: boolean;
@@ -23,30 +23,35 @@
 
   let { isOpen, onClose }: Props = $props();
 
-  let activeTab = $state<'docs' | 'toc'>('docs');
-  let searchQuery = $state('');
+  let activeTab = $state<"docs" | "toc">("docs");
+  let searchQuery = $state("");
   let fileInputElement = $state<HTMLInputElement | null>(null);
 
   const filteredDocs = $derived.by(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return documentStore.documents;
     return documentStore.documents.filter(
-      (d) => d.title.toLowerCase().includes(q) || d.content.toLowerCase().includes(q)
+      (d) =>
+        d.title.toLowerCase().includes(q) ||
+        d.content.toLowerCase().includes(q),
     );
   });
 
   const tocHeadings = $derived(documentStore.tocHeadings);
 
   function closeIfMobile(): void {
-    if (typeof window !== 'undefined' && window.innerWidth <= 768 && onClose) {
+    if (typeof window !== "undefined" && window.innerWidth <= 768 && onClose) {
       onClose();
     }
   }
 
   function handleCreateDoc(): void {
     const count = documentStore.documents.length + 1;
-    documentStore.createDocument(`documento-${count}.md`, `# Documento ${count}\n\n`);
-    activeTab = 'docs';
+    documentStore.createDocument(
+      `documento-${count}.md`,
+      `# Documento ${count}\n\n`,
+    );
+    activeTab = "docs";
     closeIfMobile();
   }
 
@@ -61,9 +66,9 @@
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      const content = String(event.target?.result || '');
+      const content = String(event.target?.result || "");
       documentStore.importDocument(file.name, content);
-      input.value = '';
+      input.value = "";
       closeIfMobile();
     };
     reader.readAsText(file);
@@ -81,7 +86,9 @@
   }
 
   function handleClearAll(): void {
-    const confirmed = confirm('¿Deseas vaciar todo el historial? Se cerrarán todos los archivos y se creará uno nuevo en blanco.');
+    const confirmed = confirm(
+      "¿Deseas vaciar todo el historial? Se cerrarán todos los archivos y se creará uno nuevo en blanco.",
+    );
     if (confirmed) {
       documentStore.clearAllDocuments();
     }
@@ -90,17 +97,17 @@
   function scrollToHeading(heading: TocHeading): void {
     const target = document.getElementById(heading.id);
     if (target) {
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
     }
     closeIfMobile();
   }
 
   function formatMeta(doc: { updatedAt: number; content: string }): string {
-    const dateStr = new Date(doc.updatedAt).toLocaleString('es-MX', {
-      day: '2-digit',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
+    const dateStr = new Date(doc.updatedAt).toLocaleString("es-MX", {
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
     });
     const sizeKb = (new Blob([doc.content]).size / 1024).toFixed(1);
     return `${dateStr} · ${sizeKb} KB`;
@@ -137,7 +144,7 @@
         width="22"
         height="22"
       />
-      <span class="brand-name">MD Studio</span>
+      <span class="brand-name">Markdown Studio</span>
     </div>
     {#if onClose}
       <button
@@ -157,8 +164,8 @@
     <button
       type="button"
       class="tab-btn"
-      class:active={activeTab === 'docs'}
-      onclick={() => (activeTab = 'docs')}
+      class:active={activeTab === "docs"}
+      onclick={() => (activeTab = "docs")}
       role="tab"
     >
       <FileText size={14} />
@@ -167,8 +174,8 @@
     <button
       type="button"
       class="tab-btn"
-      class:active={activeTab === 'toc'}
-      onclick={() => (activeTab = 'toc')}
+      class:active={activeTab === "toc"}
+      onclick={() => (activeTab = "toc")}
       role="tab"
     >
       <List size={14} />
@@ -176,7 +183,7 @@
     </button>
   </div>
 
-  {#if activeTab === 'docs'}
+  {#if activeTab === "docs"}
     <div class="tab-panel">
       <!-- Acciones: Nuevo y Abrir -->
       <div class="side-actions-row">
@@ -213,7 +220,7 @@
           <button
             type="button"
             class="clear-btn"
-            onclick={() => (searchQuery = '')}
+            onclick={() => (searchQuery = "")}
             aria-label="Limpiar búsqueda"
           >
             <X size={12} />
@@ -237,7 +244,7 @@
               role="button"
               tabindex="0"
               onkeydown={(e) => {
-                if (e.key === 'Enter') {
+                if (e.key === "Enter") {
                   documentStore.selectDocument(doc.id);
                   closeIfMobile();
                 }
@@ -278,7 +285,9 @@
     <div class="tab-panel">
       <div class="toc-list">
         {#if tocHeadings.length === 0}
-          <p class="empty-hint">Los encabezados (#, ##) de tu documento aparecerán aquí.</p>
+          <p class="empty-hint">
+            Los encabezados (#, ##) de tu documento aparecerán aquí.
+          </p>
         {:else}
           {#each tocHeadings as heading (heading.id)}
             <button
@@ -385,7 +394,9 @@
     font-size: 0.775rem;
     font-weight: 500;
     cursor: pointer;
-    transition: background-color 0.15s ease, color 0.15s ease;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
   }
 
   .tab-btn:hover {
@@ -493,7 +504,9 @@
     border-radius: 6px;
     cursor: pointer;
     border: 1px solid transparent;
-    transition: background-color 0.15s ease, border-color 0.15s ease;
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease;
   }
 
   .doc-item:hover {
@@ -537,7 +550,9 @@
     cursor: pointer;
     padding: 4px;
     border-radius: 4px;
-    transition: opacity 0.15s ease, color 0.15s ease;
+    transition:
+      opacity 0.15s ease,
+      color 0.15s ease;
   }
 
   .doc-item:hover .delete-btn {
@@ -594,7 +609,9 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    transition: background-color 0.15s ease, color 0.15s ease;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
   }
 
   .toc-item:hover {
