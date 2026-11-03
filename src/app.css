@@ -118,7 +118,7 @@ html.light {
   --reading-quote-text: #413f38;
   --reading-code-bg: var(--code-bg);
   --reading-code-text: var(--code-text);
-  --reading-pre-bg: #f3efe6;
+  --reading-pre-bg: #ffffff;
   --reading-table-stripe: #f8f6f0;
   --reading-link: var(--accent-color);
   --reading-link-hover: var(--accent-hover);
@@ -126,6 +126,19 @@ html.light {
   --reading-diagram-bg: var(--diagram-bg);
 
   color-scheme: light;
+}
+
+/* =========================================================
+   Control de Transiciones:
+   Neutraliza transiciones durante el cambio de tema para evitar
+   parpadeos visuales y desfases entre el canvas y los controles.
+   ========================================================= */
+html.no-transitions,
+html.no-transitions *,
+html.no-transitions *::before,
+html.no-transitions *::after {
+  transition: none !important;
+  animation-duration: 0s !important;
 }
 
 * {

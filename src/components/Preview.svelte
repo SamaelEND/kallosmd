@@ -11,13 +11,16 @@
   import mermaid from "mermaid";
   import { onMount, tick } from "svelte";
   import { documentStore } from "../stores/documents.svelte";
-  import type { FontSize } from "../types";
+  import type { CodeThemeId, FontSize } from "../types";
+  import { getPalette, paletteToCssText } from "../lib/codeThemes";
+  import { cleanPreviewHtml } from "../lib/htmlExport";
 
   interface Props {
     documentId?: string;
     content: string;
     isDark?: boolean;
     fontSize?: FontSize;
+    codeTheme?: CodeThemeId;
     onContainerScroll?: (e: Event) => void;
   }
 
@@ -26,8 +29,12 @@
     content = "",
     isDark = false,
     fontSize = "medium",
+    codeTheme = "vscode",
     onContainerScroll,
   }: Props = $props();
+
+  // Variables CSS de la paleta de código activa
+  const codeVars = $derived(paletteToCssText(getPalette(codeTheme, isDark)));
 
   let scrollContainer = $state<HTMLDivElement | null>(null);
   let renderedHtml = $state<string>("");
@@ -555,6 +562,20 @@
   }
 
   /**
+   * Devuelve el HTML renderizado (con diagramas en tema claro) listo para exportar.
+   */
+  export async function getExportHtml(): Promise<string> {
+    await prepareForPrint();
+    await tick();
+    const article = scrollContainer?.querySelector<HTMLElement>(
+      ".reading-table-content",
+    );
+    const html = article ? cleanPreviewHtml(article) : "";
+    await restoreAfterPrint();
+    return html;
+  }
+
+  /**
    * Restaura los diagramas al tema actual tras cerrar el diálogo de impresión.
    */
   export async function restoreAfterPrint(): Promise<void> {
@@ -592,7 +613,7 @@
   onscroll={handleScroll}
   onclick={handleContainerClick}
 >
-  <article class="reading-table-content">
+  <article class="reading-table-content" style={codeVars}>
     {@html renderedHtml}
   </article>
 </div>
@@ -696,10 +717,10 @@
   /* Bloques de código con barra superior y botón de copiar */
   :global(.reading-table-content .code-block-wrapper) {
     margin: 1.75rem 0;
-    border: 1px solid var(--reading-border, #2b2d31);
+    border: 1px solid var(--code-border, var(--reading-border, #2b2d31));
     border-radius: 8px;
     overflow: hidden;
-    background-color: var(--reading-pre-bg, #141517);
+    background-color: var(--code-bg, var(--reading-pre-bg, #141517));
   }
 
   :global(.reading-table-content .code-header-bar) {
@@ -707,8 +728,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 6px 12px;
-    background-color: var(--bg-surface, #1a1b1d);
-    border-bottom: 1px solid var(--reading-border, #2b2d31);
+    background-color: color-mix(in srgb, var(--code-bg, #1a1b1d) 94%, var(--code-fg, #888));
+    border-bottom: 1px solid var(--code-border, var(--reading-border, #2b2d31));
     font-size: 0.75rem;
   }
 
@@ -764,107 +785,90 @@
     padding: 0;
   }
 
-  /* Modo Oscuro: Tokens VS Code Dark+ con excelente ergonomía visual */
-  :global(html[data-theme="dark"] .reading-table-content .hljs) {
-    color: #d4d4d4;
+  /* Los colores de tokens vienen de la paleta activa (--tok-*, --code-*) */
+  :global(.reading-table-content .hljs) {
+    color: var(--tok-base);
   }
 
-  :global(html[data-theme="dark"] .reading-table-content .hljs-keyword),
-  :global(html[data-theme="dark"] .reading-table-content .hljs-selector-tag) {
-    color: #569cd6;
+  :global(.reading-table-content .hljs-keyword),
+  :global(.reading-table-content .hljs-selector-tag),
+  :global(.reading-table-content .hljs-literal),
+  :global(.reading-table-content .hljs-doctag) {
+    color: var(--tok-keyword);
   }
 
-  :global(html[data-theme="dark"] .reading-table-content .hljs-built_in),
-  :global(html[data-theme="dark"] .reading-table-content .hljs-type),
-  :global(html[data-theme="dark"] .reading-table-content .hljs-title.class_) {
-    color: #4ec9b0;
+  :global(.reading-table-content .hljs-built_in),
+  :global(.reading-table-content .hljs-type),
+  :global(.reading-table-content .hljs-class .hljs-title),
+  :global(.reading-table-content .hljs-title.class_),
+  :global(.reading-table-content .hljs-meta),
+  :global(.reading-table-content .hljs-meta .hljs-keyword) {
+    color: var(--tok-type);
   }
 
-  :global(html[data-theme="dark"] .reading-table-content .hljs-title.function_),
-  :global(html[data-theme="dark"] .reading-table-content .hljs-function) {
-    color: #dcdcaa;
+  :global(.reading-table-content .hljs-title),
+  :global(.reading-table-content .hljs-title.function_),
+  :global(.reading-table-content .hljs-function),
+  :global(.reading-table-content .hljs-section) {
+    color: var(--tok-function);
   }
 
-  :global(html[data-theme="dark"] .reading-table-content .hljs-variable),
-  :global(html[data-theme="dark"] .reading-table-content .hljs-params),
-  :global(html[data-theme="dark"] .reading-table-content .hljs-attr),
-  :global(html[data-theme="dark"] .reading-table-content .hljs-property) {
-    color: #9cdcfe;
+  :global(.reading-table-content .hljs-variable),
+  :global(.reading-table-content .hljs-template-variable),
+  :global(.reading-table-content .hljs-params),
+  :global(.reading-table-content .hljs-property),
+  :global(.reading-table-content .hljs-symbol),
+  :global(.reading-table-content .hljs-selector-id),
+  :global(.reading-table-content .hljs-selector-class),
+  :global(.reading-table-content .hljs-selector-attr) {
+    color: var(--tok-variable);
   }
 
-  :global(html[data-theme="dark"] .reading-table-content .hljs-string) {
-    color: #ce9178;
+  :global(.reading-table-content .hljs-attr),
+  :global(.reading-table-content .hljs-attribute),
+  :global(.reading-table-content .hljs-name) {
+    color: var(--tok-attr);
   }
 
-  :global(html[data-theme="dark"] .reading-table-content .hljs-number),
-  :global(html[data-theme="dark"] .reading-table-content .hljs-literal) {
-    color: #b5cea8;
+  :global(.reading-table-content .hljs-tag) {
+    color: var(--tok-tag);
   }
 
-  :global(html[data-theme="dark"] .reading-table-content .hljs-comment),
-  :global(html[data-theme="dark"] .reading-table-content .hljs-quote) {
-    color: #6a9955;
+  :global(.reading-table-content .hljs-string),
+  :global(.reading-table-content .hljs-meta .hljs-string) {
+    color: var(--tok-string);
+  }
+
+  :global(.reading-table-content .hljs-number),
+  :global(.reading-table-content .hljs-bullet) {
+    color: var(--tok-number);
+  }
+
+  :global(.reading-table-content .hljs-regexp),
+  :global(.reading-table-content .hljs-link) {
+    color: var(--tok-regexp);
+  }
+
+  :global(.reading-table-content .hljs-comment),
+  :global(.reading-table-content .hljs-quote) {
+    color: var(--tok-comment);
     font-style: italic;
   }
 
-  :global(html[data-theme="dark"] .reading-table-content .hljs-meta),
-  :global(
-      html[data-theme="dark"] .reading-table-content .hljs-meta .hljs-keyword
-    ) {
-    color: #4ec9b0;
+  :global(.reading-table-content .hljs-addition) {
+    color: var(--tok-add);
   }
 
-  :global(html[data-theme="dark"] .reading-table-content .hljs-tag) {
-    color: #569cd6;
+  :global(.reading-table-content .hljs-deletion) {
+    color: var(--tok-del);
   }
 
-  /* Modo Claro: Tokens VS Code Light+ armónicos sin saturación agresiva */
-  :global(html[data-theme="light"] .reading-table-content .hljs) {
-    color: #24292e;
-  }
-
-  :global(html[data-theme="light"] .reading-table-content .hljs-keyword),
-  :global(html[data-theme="light"] .reading-table-content .hljs-selector-tag) {
-    color: #0000ff;
-  }
-
-  :global(html[data-theme="light"] .reading-table-content .hljs-built_in),
-  :global(html[data-theme="light"] .reading-table-content .hljs-type),
-  :global(html[data-theme="light"] .reading-table-content .hljs-title.class_) {
-    color: #267f99;
-  }
-
-  :global(
-      html[data-theme="light"] .reading-table-content .hljs-title.function_
-    ),
-  :global(html[data-theme="light"] .reading-table-content .hljs-function) {
-    color: #795e26;
-  }
-
-  :global(html[data-theme="light"] .reading-table-content .hljs-variable),
-  :global(html[data-theme="light"] .reading-table-content .hljs-params),
-  :global(html[data-theme="light"] .reading-table-content .hljs-attr),
-  :global(html[data-theme="light"] .reading-table-content .hljs-property) {
-    color: #001080;
-  }
-
-  :global(html[data-theme="light"] .reading-table-content .hljs-string) {
-    color: #a31515;
-  }
-
-  :global(html[data-theme="light"] .reading-table-content .hljs-number),
-  :global(html[data-theme="light"] .reading-table-content .hljs-literal) {
-    color: #098658;
-  }
-
-  :global(html[data-theme="light"] .reading-table-content .hljs-comment),
-  :global(html[data-theme="light"] .reading-table-content .hljs-quote) {
-    color: #008000;
+  :global(.reading-table-content .hljs-emphasis) {
     font-style: italic;
   }
 
-  :global(html[data-theme="light"] .reading-table-content .hljs-meta) {
-    color: #267f99;
+  :global(.reading-table-content .hljs-strong) {
+    font-weight: 700;
   }
 
   :global(.reading-table-content :not(pre) > code) {

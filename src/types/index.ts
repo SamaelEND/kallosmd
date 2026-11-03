@@ -5,6 +5,8 @@
 
 export type ThemeMode = 'dark' | 'light';
 export type ViewMode = 'editor' | 'split' | 'preview';
+export type CodeThemeId = 'vscode' | 'solarized' | 'one' | 'github';
+
 export type FontSize = 'small' | 'medium' | 'large';
 
 /**
@@ -28,6 +30,7 @@ export interface Settings {
   theme: ThemeMode;
   viewMode: ViewMode;
   fontSize: FontSize;
+  codeTheme: CodeThemeId;
   syncScroll: boolean;
   minimap: boolean;
   lineNumbers: boolean;

@@ -15,6 +15,7 @@
   import Editor from "./components/Editor.svelte";
   import Resizer from "./components/Resizer.svelte";
   import Preview from "./components/Preview.svelte";
+  import { buildHtmlDocument, downloadTextFile } from "./lib/htmlExport";
   import DropOverlay from "./components/DropOverlay.svelte";
   import { CheckCircle2, Sparkles } from "lucide-svelte";
 
@@ -46,15 +47,7 @@
   // Sincronización del atributo data-theme y clase dark en <html>
   $effect(() => {
     if (typeof document !== "undefined") {
-      const themeName = isDark ? "dark" : "light";
-      document.documentElement.setAttribute("data-theme", themeName);
-      if (isDark) {
-        document.documentElement.classList.add("dark");
-        document.documentElement.classList.remove("light");
-      } else {
-        document.documentElement.classList.add("light");
-        document.documentElement.classList.remove("dark");
-      }
+      documentStore.applyTheme(isDark ? "dark" : "light");
     }
   });
 
@@ -194,6 +187,34 @@
     }
   }
 
+  /**
+   * Exporta la vista previa como documento HTML5 autónomo.
+   */
+  async function handleExportHtml(): Promise<void> {
+    if (!previewComponent) return;
+    const title = activeDoc?.title
+      ? activeDoc.title.replace(/\.md$/i, "")
+      : "documento";
+
+    const previousMode = viewMode;
+    if (previousMode === "editor") {
+      documentStore.setViewMode("preview");
+      await tick();
+      await new Promise((resolve) => setTimeout(resolve, 60));
+    }
+
+    const body = await previewComponent.getExportHtml();
+    downloadTextFile(
+      `${title}.html`,
+      await buildHtmlDocument(title, body, settings.codeTheme),
+      "text/html",
+    );
+
+    if (previousMode === "editor") {
+      documentStore.setViewMode("editor");
+    }
+  }
+
   // --- Manejo Global de Drag & Drop de Archivos .md ---
   function handleDragOver(e: DragEvent): void {
     e.preventDefault();
@@ -279,6 +300,7 @@
       onToggleSidebar={() => (sidebarOpen = !sidebarOpen)}
       onInsertSnippet={handleInsertSnippet}
       onExportPdf={handleExportPdf}
+      onExportHtml={handleExportHtml}
     />
 
     <!-- Contenedor de paneles según ViewMode (editor, split, preview) -->
@@ -296,6 +318,7 @@
             documentId={documentStore.activeId}
             value={activeContent}
             {isDark}
+            codeTheme={settings.codeTheme}
             showMinimapEnabled={settings.minimap}
             showLineNumbersEnabled={settings.lineNumbers}
             wordWrapEnabled={settings.wordWrap}
@@ -328,6 +351,7 @@
           documentId={documentStore.activeId}
           content={activeContent}
           {isDark}
+          codeTheme={settings.codeTheme}
           fontSize={settings.fontSize}
           onContainerScroll={handlePreviewScroll}
         />

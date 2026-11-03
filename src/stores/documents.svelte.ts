@@ -11,6 +11,7 @@ import {
   deleteDocumentFromDb,
   clearAllDocumentsFromDb,
 } from '../lib/db';
+import { DEFAULT_CODE_THEME, isCodeThemeId } from '../lib/codeThemes';
 
 /**
  * Claves estándar de almacenamiento en localStorage para MD Studio (preferencias y caché de UI).
@@ -22,6 +23,7 @@ const STORAGE_KEYS = {
   SYNC_SCROLL: 'md_studio_sync_scroll_v1',
   VIEW_MODE: 'md_studio_view_mode_v1',
   FONT_SIZE: 'md_studio_font_size_v1',
+  CODE_THEME: 'md_studio_code_theme_v1',
   LINE_NUMBERS: 'md_studio_line_numbers_v1',
   MINIMAP: 'md_studio_minimap_v1',
   SPLIT_RATIO: 'md_studio_split_ratio_v1',
@@ -150,6 +152,7 @@ const DEFAULT_SETTINGS: Settings = {
   theme: 'dark',
   viewMode: 'split',
   fontSize: 'medium',
+  codeTheme: DEFAULT_CODE_THEME,
   syncScroll: true,
   minimap: true,
   lineNumbers: true,
@@ -250,6 +253,8 @@ class DocumentStore {
       const savedTheme: ThemeMode = rawTheme === 'light' ? 'light' : 'dark';
       const savedViewMode = (localStorage.getItem(STORAGE_KEYS.VIEW_MODE) as ViewMode) || 'split';
       const savedFontSize = (localStorage.getItem(STORAGE_KEYS.FONT_SIZE) as FontSize) || 'medium';
+      const rawCodeTheme = localStorage.getItem(STORAGE_KEYS.CODE_THEME);
+      const savedCodeTheme = isCodeThemeId(rawCodeTheme) ? rawCodeTheme : DEFAULT_CODE_THEME;
       const savedSyncScroll = localStorage.getItem(STORAGE_KEYS.SYNC_SCROLL) !== 'false';
       const savedLineNumbers = localStorage.getItem(STORAGE_KEYS.LINE_NUMBERS) !== 'false';
       const savedMinimap = localStorage.getItem(STORAGE_KEYS.MINIMAP) !== 'false';
@@ -261,6 +266,7 @@ class DocumentStore {
         theme: savedTheme,
         viewMode: savedViewMode,
         fontSize: savedFontSize,
+        codeTheme: savedCodeTheme,
         syncScroll: savedSyncScroll,
         lineNumbers: savedLineNumbers,
         minimap: savedMinimap,
@@ -268,6 +274,8 @@ class DocumentStore {
         wordWrap: true,
         includePdfUrl: savedIncludePdfUrl,
       };
+
+      this.applyTheme(savedTheme);
 
       const isCleanInitialized = localStorage.getItem(STORAGE_KEYS.CLEAN_INIT_FLAG) === 'true';
 
@@ -452,6 +460,7 @@ class DocumentStore {
       localStorage.setItem(STORAGE_KEYS.THEME, this.settings.theme);
       localStorage.setItem(STORAGE_KEYS.VIEW_MODE, this.settings.viewMode);
       localStorage.setItem(STORAGE_KEYS.FONT_SIZE, this.settings.fontSize);
+      localStorage.setItem(STORAGE_KEYS.CODE_THEME, this.settings.codeTheme);
       localStorage.setItem(STORAGE_KEYS.SYNC_SCROLL, String(this.settings.syncScroll));
       localStorage.setItem(STORAGE_KEYS.LINE_NUMBERS, String(this.settings.lineNumbers));
       localStorage.setItem(STORAGE_KEYS.MINIMAP, String(this.settings.minimap));
@@ -653,8 +662,47 @@ class DocumentStore {
 
   // --- Operaciones de Configuración ---
 
+  /**
+   * Aplica el tema (claro/oscuro) directamente en el DOM de forma síncrona y atómica,
+   * neutralizando temporalmente las transiciones CSS para prevenir cualquier parpadeo.
+   */
+  applyTheme(theme: ThemeMode): void {
+    if (typeof document === 'undefined') return;
+    const root = document.documentElement;
+    const isDark = theme === 'dark';
+
+    const currentTheme = root.getAttribute('data-theme');
+    const hasCorrectClass = isDark ? root.classList.contains('dark') : root.classList.contains('light');
+    if (currentTheme === theme && hasCorrectClass) return;
+
+    // Desactivar temporalmente transiciones durante el cambio de variables
+    root.classList.add('no-transitions');
+
+    root.setAttribute('data-theme', theme);
+    if (isDark) {
+      root.classList.add('dark');
+      root.classList.remove('light');
+    } else {
+      root.classList.add('light');
+      root.classList.remove('dark');
+    }
+
+    // Forzar reflow síncrono para que todos los estilos cambien en este mismo fotograma
+    void root.offsetHeight;
+
+    // Reactivar transiciones en el siguiente frame
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        root.classList.remove('no-transitions');
+      });
+    });
+  }
+
   updateSettings(partial: Partial<Settings>): void {
     this.settings = { ...this.settings, ...partial };
+    if (partial.theme) {
+      this.applyTheme(partial.theme);
+    }
     this.persistSettings();
   }
 
@@ -668,6 +716,7 @@ class DocumentStore {
 
   toggleTheme(): ThemeMode {
     const nextMode: ThemeMode = this.settings.theme === 'dark' ? 'light' : 'dark';
+    this.applyTheme(nextMode);
     this.updateSettings({ theme: nextMode });
     return nextMode;
   }

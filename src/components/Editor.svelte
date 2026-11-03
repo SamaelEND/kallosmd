@@ -18,23 +18,20 @@
     highlightActiveLine,
     keymap,
   } from '@codemirror/view';
-  import { EditorState, Compartment } from '@codemirror/state';
+  import { EditorState, Compartment, type Extension } from '@codemirror/state';
   import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
   import { markdown } from '@codemirror/lang-markdown';
   import { languages } from '@codemirror/language-data';
-  import {
-    foldGutter,
-    syntaxHighlighting,
-    HighlightStyle,
-    bracketMatching,
-  } from '@codemirror/language';
-  import { tags } from '@lezer/highlight';
+  import { foldGutter, bracketMatching } from '@codemirror/language';
+  import { buildEditorExtensions, getPalette } from '../lib/codeThemes';
+  import type { CodeThemeId } from '../types';
   import { showMinimap } from '@replit/codemirror-minimap';
 
   interface Props {
     documentId?: string;
     value: string;
     isDark?: boolean;
+    codeTheme?: CodeThemeId;
     showMinimapEnabled?: boolean;
     showLineNumbersEnabled?: boolean;
     wordWrapEnabled?: boolean;
@@ -46,6 +43,7 @@
     documentId = '',
     value = '',
     isDark = true,
+    codeTheme = 'vscode',
     showMinimapEnabled = true,
     showLineNumbersEnabled = true,
     wordWrapEnabled = true,
@@ -62,134 +60,10 @@
   const lineNumbersCompartment = new Compartment();
   const wordWrapCompartment = new Compartment();
 
-  // Temas exactos inspirados en VS Code y la paleta de md-studio original
-  const lightEditorTheme = EditorView.theme({
-    '&': {
-      color: '#24292e',
-      backgroundColor: '#ffffff',
-      height: '100%',
-      fontFamily: '"JetBrains Mono", ui-monospace, Menlo, Monaco, Consolas, monospace',
-      fontSize: '15px',
-    },
-    '.cm-content': {
-      caretColor: '#0066b8',
-      padding: '20px 24px',
-      lineHeight: '1.65',
-    },
-    '.cm-cursor, .cm-dropCursor': {
-      borderLeftColor: '#0066b8',
-      borderLeftWidth: '2px',
-    },
-    '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection': {
-      backgroundColor: 'rgba(173, 214, 255, 0.65) !important',
-    },
-    '.cm-panels': {
-      backgroundColor: '#f8f9fa',
-      color: '#24292e',
-    },
-    '.cm-gutters': {
-      backgroundColor: '#f8f9fa',
-      color: '#959da5',
-      borderRight: '1px solid #e1e4e8',
-      paddingLeft: '8px',
-      paddingRight: '8px',
-    },
-    '.cm-activeLine': {
-      backgroundColor: 'rgba(235, 238, 242, 0.4)',
-    },
-    '.cm-activeLineGutter': {
-      backgroundColor: '#eef1f5',
-      color: '#1f7a6d',
-      fontWeight: '600',
-    },
-    '.cm-foldGutter span': {
-      color: '#959da5',
-    },
-  });
-
-  const darkEditorTheme = EditorView.theme({
-    '&': {
-      color: '#d4d4d4',
-      backgroundColor: '#1e1e1e',
-      height: '100%',
-      fontFamily: '"JetBrains Mono", ui-monospace, Menlo, Monaco, Consolas, monospace',
-      fontSize: '15px',
-    },
-    '.cm-content': {
-      caretColor: '#4fc1ff',
-      padding: '20px 24px',
-      lineHeight: '1.65',
-    },
-    '.cm-cursor, .cm-dropCursor': {
-      borderLeftColor: '#4fc1ff',
-      borderLeftWidth: '2px',
-    },
-    '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection': {
-      backgroundColor: 'rgba(38, 79, 120, 0.65) !important',
-    },
-    '.cm-gutters': {
-      backgroundColor: '#1e1e1e',
-      color: '#6e7681',
-      borderRight: '1px solid #2b2d31',
-      paddingLeft: '8px',
-      paddingRight: '8px',
-    },
-    '.cm-activeLine': {
-      backgroundColor: 'rgba(46, 48, 52, 0.35)',
-    },
-    '.cm-activeLineGutter': {
-      backgroundColor: '#26282b',
-      color: '#5fb3a3',
-      fontWeight: '600',
-    },
-    '.cm-foldGutter span': {
-      color: '#6e7681',
-    },
-  }, { dark: true });
-
-  // HighlightStyle inspirado fielmente en VS Code Dark+ con excelente ergonomía visual
-  const vsCodeDarkHighlightStyle = HighlightStyle.define([
-    { tag: [tags.keyword, tags.controlKeyword, tags.moduleKeyword], color: '#569cd6' },
-    { tag: [tags.typeName, tags.className, tags.namespace], color: '#4ec9b0' },
-    { tag: [tags.function(tags.variableName), tags.function(tags.propertyName)], color: '#dcdcaa' },
-    { tag: [tags.definition(tags.variableName), tags.variableName, tags.propertyName], color: '#9cdcfe' },
-    { tag: [tags.string, tags.special(tags.string)], color: '#ce9178' },
-    { tag: [tags.number, tags.integer, tags.float], color: '#b5cea8' },
-    { tag: [tags.bool, tags.null], color: '#569cd6' },
-    { tag: [tags.comment, tags.lineComment, tags.blockComment, tags.docComment], color: '#6a9955', fontStyle: 'italic' },
-    { tag: [tags.meta, tags.annotation, tags.modifier], color: '#4ec9b0' },
-    { tag: [tags.operator, tags.punctuation], color: '#d4d4d4' },
-    { tag: tags.heading, color: '#569cd6', fontWeight: '600' },
-    { tag: tags.heading1, color: '#569cd6', fontWeight: 'bold' },
-    { tag: tags.heading2, color: '#569cd6', fontWeight: '600' },
-    { tag: tags.heading3, color: '#569cd6', fontWeight: '600' },
-    { tag: tags.strong, color: '#569cd6', fontWeight: 'bold' },
-    { tag: tags.emphasis, color: '#d4d4d4', fontStyle: 'italic' },
-    { tag: tags.link, color: '#9cdcfe', textDecoration: 'underline' },
-    { tag: tags.url, color: '#9cdcfe' },
-  ]);
-
-  // HighlightStyle inspirado en VS Code Light+
-  const vsCodeLightHighlightStyle = HighlightStyle.define([
-    { tag: [tags.keyword, tags.controlKeyword, tags.moduleKeyword], color: '#0000ff' },
-    { tag: [tags.typeName, tags.className, tags.namespace], color: '#267f99' },
-    { tag: [tags.function(tags.variableName), tags.function(tags.propertyName)], color: '#795e26' },
-    { tag: [tags.definition(tags.variableName), tags.variableName, tags.propertyName], color: '#001080' },
-    { tag: [tags.string, tags.special(tags.string)], color: '#a31515' },
-    { tag: [tags.number, tags.integer, tags.float], color: '#098658' },
-    { tag: [tags.bool, tags.null], color: '#0000ff' },
-    { tag: [tags.comment, tags.lineComment, tags.blockComment, tags.docComment], color: '#008000', fontStyle: 'italic' },
-    { tag: [tags.meta, tags.annotation, tags.modifier], color: '#267f99' },
-    { tag: [tags.operator, tags.punctuation], color: '#24292e' },
-    { tag: tags.heading, color: '#800000', fontWeight: '600' },
-    { tag: tags.heading1, color: '#800000', fontWeight: 'bold' },
-    { tag: tags.heading2, color: '#800000', fontWeight: '600' },
-    { tag: tags.heading3, color: '#800000', fontWeight: '600' },
-    { tag: tags.strong, color: '#800000', fontWeight: 'bold' },
-    { tag: tags.emphasis, color: '#24292e', fontStyle: 'italic' },
-    { tag: tags.link, color: '#001080', textDecoration: 'underline' },
-    { tag: tags.url, color: '#001080' },
-  ]);
+  // Tema y resaltado de sintaxis según la paleta de código seleccionada
+  function themeExtensions(): Extension {
+    return buildEditorExtensions(getPalette(codeTheme, isDark), isDark);
+  }
 
   function createMinimapExtension() {
     return showMinimap.compute(['doc'], () => ({
@@ -202,9 +76,7 @@
   function initEditor(): void {
     if (!editorContainer) return;
 
-    const currentThemeExt = isDark
-      ? [darkEditorTheme, syntaxHighlighting(vsCodeDarkHighlightStyle)]
-      : [lightEditorTheme, syntaxHighlighting(vsCodeLightHighlightStyle)];
+    const currentThemeExt = themeExtensions();
     const minimapExt = showMinimapEnabled ? createMinimapExtension() : [];
     const lineNumbersExt = showLineNumbersEnabled
       ? [lineNumbers(), highlightActiveLineGutter(), foldGutter()]
@@ -291,13 +163,10 @@
     }
   });
 
-  // Sincronización reactiva del tema oscuro/claro
+  // Sincronización reactiva del tema (claro/oscuro y paleta de código)
   $effect(() => {
-    const activeIsDark = isDark;
+    const themeExt = themeExtensions();
     if (!view) return;
-    const themeExt = activeIsDark
-      ? [darkEditorTheme, syntaxHighlighting(vsCodeDarkHighlightStyle)]
-      : [lightEditorTheme, syntaxHighlighting(vsCodeLightHighlightStyle)];
     view.dispatch({
       effects: themeCompartment.reconfigure(themeExt),
     });
