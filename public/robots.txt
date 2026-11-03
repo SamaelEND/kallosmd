@@ -1,5 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://samaelend.github.io/md-studio-svelte/sitemap.xml
-
+Sitemap: https://samaelend.github.io/markdown-studio/sitemap.xml

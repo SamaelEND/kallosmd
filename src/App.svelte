@@ -68,7 +68,7 @@
       document.head.appendChild(styleEl);
     }
 
-    const currentUrl = typeof window !== "undefined" ? window.location.href : "https://samaelend.github.io/md-studio-svelte/";
+    const currentUrl = typeof window !== "undefined" ? window.location.href : "https://samaelend.github.io/markdown-studio/";
     const urlContent = settings.includePdfUrl ? JSON.stringify(currentUrl) : '""';
 
     styleEl.textContent = `

@@ -1,6 +1,6 @@
-# MD Studio — Markdown Editor & Live Preview
+# Markdown Studio — Markdown Editor & Live Preview
 
-> **MD Studio** es un entorno moderno de escritura y previsualización en vivo de **Markdown** (*live preview / viewer*), enfocado en la claridad tipográfica, la ausencia de distracciones, la soberanía de los datos del usuario y la experiencia visual tipo "Mesa de Lectura".
+> **Markdown Studio** es un entorno moderno de escritura y previsualización en vivo de **Markdown** (*live preview / viewer*), enfocado en la claridad tipográfica, la ausencia de distracciones, la soberanía de los datos del usuario y la experiencia visual tipo "Mesa de Lectura".
 
 Construido con **Svelte 5** (Runas), **TypeScript**, **Vite** y **CodeMirror 6**, ofrece una arquitectura modular, reactiva y extensible que integra renderizado matemático con **KaTeX**, diagramas dinámicos con **Mermaid**, resaltado de sintaxis multi-lenguaje estilo VS Code, persistencia en **IndexedDB** y diseño responsivo adaptativo en 3 niveles (**Escritorio**, **Tablet** y **Móvil**).
 
@@ -184,7 +184,7 @@ Toda la gestión de documentos se realiza directamente en la base de datos local
 ### Pasos
 1. Clona el repositorio o accede a la carpeta del proyecto:
    ```bash
-   cd md-studio-svelte
+   cd markdown-studio
    ```
 
 2. Instala las dependencias del proyecto:
