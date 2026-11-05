@@ -3,6 +3,7 @@
    * Botón y menú desplegable de exportación (.md, PDF, HTML5 y configuración de URL en pie de PDF).
    */
   import { Code, Download, FileText, Link, Printer } from "lucide-svelte";
+  import { i18n } from "../../stores/i18n.svelte";
   import Button from "../ui/Button.svelte";
   import DropdownMenu from "../ui/DropdownMenu.svelte";
   import ToggleSwitchItem from "../ui/ToggleSwitchItem.svelte";
@@ -26,6 +27,8 @@
     onExportHtml,
     onTogglePdfUrl,
   }: Props = $props();
+
+  const t = $derived(i18n.current);
 </script>
 
 <div class="export-menu-wrap">
@@ -35,38 +38,38 @@
     active={isOpen}
     class="btn-export-responsive"
     onclick={onToggleOpen}
-    title="Exportar documento"
+    title={t.toolbar.exportTitle}
     ariaHaspopup="true"
     ariaExpanded={isOpen}
   >
     <Download size={15} />
-    <span class="btn-export-label">Exportar</span>
+    <span class="btn-export-label">{t.toolbar.export}</span>
   </Button>
 
   {#if isOpen}
     <DropdownMenu>
       <Button variant="menu-item" role="menuitem" onclick={onExportMarkdown}>
         <FileText size={15} />
-        <span>Exportar Markdown (.md)</span>
+        <span>{t.export.markdown}</span>
       </Button>
 
       <Button variant="menu-item" role="menuitem" onclick={onExportPdf}>
         <Printer size={15} />
-        <span>Exportar PDF</span>
+        <span>{t.export.pdf}</span>
       </Button>
 
       <Button variant="menu-item" role="menuitem" onclick={onExportHtml}>
         <Code size={15} />
-        <span>Exportar HTML5</span>
+        <span>{t.export.html}</span>
       </Button>
 
       <div class="menu-divider"></div>
 
       <ToggleSwitchItem
-        label="URL en pie del PDF"
+        label={t.export.pdfUrlToggle}
         checked={includePdfUrl}
         onToggle={onTogglePdfUrl}
-        title="Incluir u ocultar la URL en el pie de página del PDF"
+        title={t.export.pdfUrlToggleTitle}
       >
         {#snippet icon()}
           <Link size={14} />

@@ -1,20 +1,20 @@
 <script lang="ts">
   /**
-   * Componente principal de MD Studio.
+   * Componente principal de Markdown Studio.
    * Orquesta los módulos principales (Sidebar, Toolbar, Editor, Preview, Resizer, StatusBar),
    * la sincronización proporcional de scroll, la exportación a PDF/HTML y atajos globales.
    */
   import { onMount, tick } from "svelte";
-  import { documentStore } from "./stores/documents.svelte";
-  import Sidebar from "./components/sidebar/Sidebar.svelte";
-  import Toolbar from "./components/toolbar/Toolbar.svelte";
   import Editor from "./components/editor/Editor.svelte";
   import Preview from "./components/preview/Preview.svelte";
-  import Resizer from "./components/workspace/Resizer.svelte";
+  import Sidebar from "./components/sidebar/Sidebar.svelte";
+  import Toolbar from "./components/toolbar/Toolbar.svelte";
   import DropOverlay from "./components/workspace/DropOverlay.svelte";
+  import Resizer from "./components/workspace/Resizer.svelte";
   import StatusBar from "./components/workspace/StatusBar.svelte";
   import { buildHtmlDocument, downloadTextFile } from "./lib/htmlExport";
   import { computeDocumentStats, readTextFile } from "./lib/utils/formatters";
+  import { documentStore } from "./stores/documents.svelte";
 
   let sidebarOpen = $state(
     typeof window !== "undefined" ? window.innerWidth > 768 : true,

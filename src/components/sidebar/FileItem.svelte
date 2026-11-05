@@ -5,6 +5,7 @@
    * Incluye edición de nombre en línea, metadatos de tamaño/fecha, Drag & Drop y menú contextual.
    */
   import { FileText, MoreVertical } from "lucide-svelte";
+  import { i18n } from "../../stores/i18n.svelte";
   import type { DocumentItem, FolderItem } from "../../types";
   import { formatFileMeta } from "../../lib/utils/formatters";
   import InlineRenameInput from "../ui/InlineRenameInput.svelte";
@@ -58,6 +59,7 @@
   });
 
   const docSize = $derived(new Blob([doc.content]).size);
+  const t = $derived(i18n.current);
 </script>
 
 <div
@@ -83,7 +85,7 @@
     {#if isEditing}
       <InlineRenameInput
         bind:value={draftTitle}
-        ariaLabel="Renombrar documento"
+        ariaLabel={t.sidebar.renameDocAria}
         onCommit={(val) => onCommitRename(doc.id, val)}
         onCancel={onCancelRename}
       />
@@ -103,7 +105,7 @@
         {doc.title}
       </span>
       <div class="doc-meta">
-        <span>{formatFileMeta(doc.updatedAt, docSize)}</span>
+        <span>{formatFileMeta(doc.updatedAt, docSize, i18n.locale)}</span>
       </div>
     {/if}
   </div>
@@ -117,8 +119,8 @@
     <Button
       variant="ghost"
       size="icon-xs"
-      title="Opciones del archivo"
-      ariaLabel="Opciones del archivo"
+      title={t.contextMenu.fileOptions}
+      ariaLabel={t.contextMenu.fileOptions}
       onclick={(e) => onToggleMenu(doc.id, e)}
     >
       <MoreVertical size={14} />

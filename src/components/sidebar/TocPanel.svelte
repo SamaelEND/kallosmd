@@ -3,6 +3,7 @@
    * Panel de Tabla de Contenidos (TOC) que muestra los encabezados del documento activo.
    */
   import { FileText } from "lucide-svelte";
+  import { i18n } from "../../stores/i18n.svelte";
   import type { TocHeading } from "../../types";
 
   interface Props {
@@ -11,20 +12,21 @@
   }
 
   let { headings, onSelectHeading }: Props = $props();
+
+  const t = $derived(i18n.current);
 </script>
 
 <div class="sidebar-section toc-section">
   {#if headings.length === 0}
     <div class="empty-toc">
       <FileText size={28} class="empty-icon" />
-      <p class="empty-title">Sin encabezados</p>
+      <p class="empty-title">{t.toc.emptyTitle}</p>
       <p class="empty-desc">
-        Agrega títulos (# H1, ## H2) en el editor para generar el índice
-        automático.
+        {t.toc.emptyDesc}
       </p>
     </div>
   {:else}
-    <nav class="toc-list" aria-label="Tabla de contenidos del documento">
+    <nav class="toc-list" aria-label={t.toc.navAria}>
       {#each headings as heading}
         <button
           type="button"

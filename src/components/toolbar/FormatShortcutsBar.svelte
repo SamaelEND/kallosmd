@@ -13,6 +13,7 @@
     Table,
     Workflow,
   } from "lucide-svelte";
+  import { i18n } from "../../stores/i18n.svelte";
   import Button from "../ui/Button.svelte";
 
   interface Props {
@@ -24,6 +25,8 @@
   }
 
   let { onInsertSnippet }: Props = $props();
+
+  const t = $derived(i18n.current);
 
   function insert(prefix: string, suffix = "", placeholder = ""): void {
     onInsertSnippet?.(prefix, suffix, placeholder);
@@ -48,56 +51,56 @@
   }
 </script>
 
-<div class="toolbar-format-row" role="toolbar" aria-label="Atajos de formato">
+<div class="toolbar-format-row" role="toolbar" aria-label={t.format.barAria}>
   <Button
     variant="format"
-    onclick={() => insert("**", "**", "negrita")}
-    title="Negrita (**)"
+    onclick={() => insert("**", "**", t.format.boldPlaceholder)}
+    title={t.format.bold}
   >
     <Bold size={14} />
   </Button>
 
   <Button
     variant="format"
-    onclick={() => insert("*", "*", "cursiva")}
-    title="Cursiva (*)"
+    onclick={() => insert("*", "*", t.format.italicPlaceholder)}
+    title={t.format.italic}
   >
     <Italic size={14} />
   </Button>
 
   <Button
     variant="format"
-    onclick={() => insert("## ", "\n", "Encabezado")}
-    title="Encabezado (##)"
+    onclick={() => insert("## ", "\n", t.format.headingPlaceholder)}
+    title={t.format.heading}
   >
     <Heading size={14} />
   </Button>
 
   <Button
     variant="format"
-    onclick={() => insert("[", "](https://)", "enlace")}
-    title="Enlace [texto](url)"
+    onclick={() => insert("[", "](https://)", t.format.linkPlaceholder)}
+    title={t.format.link}
   >
     <Link size={14} />
   </Button>
 
   <Button
     variant="format"
-    onclick={() => insert("- [ ] ", "", "Tarea")}
-    title="Tarea (- [ ])"
+    onclick={() => insert("- [ ] ", "", t.format.taskPlaceholder)}
+    title={t.format.task}
   >
     <CheckSquare size={14} />
   </Button>
 
-  <Button variant="format" onclick={insertTable} title="Insertar tabla">
+  <Button variant="format" onclick={insertTable} title={t.format.table}>
     <Table size={14} />
   </Button>
 
-  <Button variant="format" onclick={insertMath} title="Fórmula KaTeX ($$)">
+  <Button variant="format" onclick={insertMath} title={t.format.math}>
     <Sigma size={14} />
   </Button>
 
-  <Button variant="format" onclick={insertMermaid} title="Diagrama Mermaid">
+  <Button variant="format" onclick={insertMermaid} title={t.format.mermaid}>
     <Workflow size={14} />
   </Button>
 </div>

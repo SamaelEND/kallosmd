@@ -1,5 +1,5 @@
 /**
- * Store reactivo para la gestión de documentos, configuración y persistencia de MD Studio.
+ * Store reactivo para la gestión de documentos, configuración y persistencia de Markdown Studio.
  * Preparado con runas de Svelte 5 ($state, $derived).
  */
 
@@ -114,7 +114,7 @@ class DocumentStore {
           localStorage.removeItem(STORAGE_KEYS.TRANSITIONAL_DOCS);
           localStorage.removeItem(STORAGE_KEYS.ACTIVE_DOC_CACHE);
           localStorage.removeItem(STORAGE_KEYS.ACTIVE_ID);
-        } catch {}
+        } catch { }
       } else {
         const savedActiveId = localStorage.getItem(STORAGE_KEYS.ACTIVE_ID);
         if (savedActiveId) {
@@ -131,7 +131,7 @@ class DocumentStore {
               this.documents = [cachedDoc];
               if (!this.activeId) this.activeId = cachedDoc.id;
             }
-          } catch {}
+          } catch { }
         }
       }
     } catch (error) {
@@ -158,7 +158,7 @@ class DocumentStore {
           localStorage.removeItem(STORAGE_KEYS.TRANSITIONAL_DOCS);
           localStorage.removeItem(STORAGE_KEYS.ACTIVE_DOC_CACHE);
           localStorage.removeItem(STORAGE_KEYS.ACTIVE_ID);
-        } catch {}
+        } catch { }
 
         await clearAllDocumentsFromDb();
         await clearAllFoldersFromDb();
@@ -179,7 +179,7 @@ class DocumentStore {
           localStorage.setItem(STORAGE_KEYS.CLEAN_INIT_FLAG, "true");
           localStorage.setItem(STORAGE_KEYS.GUIDE_MIGRATED_FLAG, "true");
           localStorage.setItem(STORAGE_KEYS.ACTIVE_ID, initialDoc.id);
-        } catch {}
+        } catch { }
 
         this.documents = [initialDoc];
         this.folders = [];
@@ -223,7 +223,7 @@ class DocumentStore {
 
         try {
           localStorage.setItem(STORAGE_KEYS.GUIDE_MIGRATED_FLAG, "true");
-        } catch {}
+        } catch { }
       }
 
       this.documents = dbDocs;
@@ -235,7 +235,7 @@ class DocumentStore {
       }
       try {
         localStorage.setItem(STORAGE_KEYS.ACTIVE_ID, this.activeId);
-      } catch {}
+      } catch { }
 
       this.updateActiveCache(this.activeDocument);
       this.isReady = true;
@@ -277,7 +277,7 @@ class DocumentStore {
       } else {
         localStorage.removeItem(STORAGE_KEYS.ACTIVE_DOC_CACHE);
       }
-    } catch {}
+    } catch { }
   }
 
   /**
@@ -382,7 +382,7 @@ class DocumentStore {
     this.activeId = newDoc.id;
     try {
       localStorage.setItem(STORAGE_KEYS.ACTIVE_ID, this.activeId);
-    } catch {}
+    } catch { }
 
     this.updateActiveCache(newDoc);
     saveDocumentToDb(newDoc);
@@ -396,7 +396,7 @@ class DocumentStore {
       this.activeId = id;
       try {
         localStorage.setItem(STORAGE_KEYS.ACTIVE_ID, this.activeId);
-      } catch {}
+      } catch { }
       this.updateActiveCache(this.activeDocument);
     }
   }
@@ -540,7 +540,7 @@ class DocumentStore {
       this.activeId = this.documents[nextIndex].id;
       try {
         localStorage.setItem(STORAGE_KEYS.ACTIVE_ID, this.activeId);
-      } catch {}
+      } catch { }
       this.updateActiveCache(this.activeDocument);
     }
 
@@ -565,7 +565,7 @@ class DocumentStore {
     this.activeId = freshDoc.id;
     try {
       localStorage.setItem(STORAGE_KEYS.ACTIVE_ID, this.activeId);
-    } catch {}
+    } catch { }
     this.updateActiveCache(freshDoc);
 
     clearAllDocumentsFromDb().then(() => {
@@ -590,7 +590,7 @@ class DocumentStore {
       this.activeId = existing.id;
       try {
         localStorage.setItem(STORAGE_KEYS.ACTIVE_ID, this.activeId);
-      } catch {}
+      } catch { }
       this.updateActiveCache(existing);
       saveDocumentToDb(existing);
       return existing;
@@ -608,7 +608,7 @@ class DocumentStore {
     this.activeId = newDoc.id;
     try {
       localStorage.setItem(STORAGE_KEYS.ACTIVE_ID, this.activeId);
-    } catch {}
+    } catch { }
     this.updateActiveCache(newDoc);
     saveDocumentToDb(newDoc);
 

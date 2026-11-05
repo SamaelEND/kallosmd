@@ -5,6 +5,7 @@
    * gestionando estados de búsqueda vacía y Drag & Drop entre contenedores.
    */
   import type { DocumentItem, FolderItem as FolderItemType } from "../../types";
+  import { i18n } from "../../stores/i18n.svelte";
   import FolderItem from "./FolderItem.svelte";
   import FileItem from "./FileItem.svelte";
 
@@ -98,19 +99,23 @@
     }
     draggedDocId = null;
   }
+
+  const t = $derived(i18n.current);
 </script>
 
 <div class="file-tree-container">
   {#if isSearching && totalResultsCount === 0}
     <div class="empty-search-state">
-      <p class="empty-search-text">Sin resultados para "{searchQuery}"</p>
+      <p class="empty-search-text">
+        {i18n.interpolate(t.sidebar.emptySearch, { query: searchQuery })}
+      </p>
     </div>
   {:else}
     <!-- 1. Grupo de Carpetas -->
     {#if visibleFolders.length > 0}
       <div class="folders-group">
         <div class="group-header">
-          <span class="group-title">CARPETAS</span>
+          <span class="group-title">{t.sidebar.foldersGroup}</span>
           <span class="group-count">{visibleFolders.length}</span>
         </div>
 
@@ -156,10 +161,10 @@
         ondragleave={handleDragLeave}
         ondrop={(e) => handleDrop(e, null)}
         role="region"
-        aria-label="Archivos"
+        aria-label={t.sidebar.tabFiles}
       >
         <div class="group-header">
-          <span class="group-title">ARCHIVOS</span>
+          <span class="group-title">{t.sidebar.filesGroup}</span>
           <span class="group-count">{visibleRootDocs.length}</span>
         </div>
 

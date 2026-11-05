@@ -6,6 +6,7 @@
    * - Eliminar
    */
   import { FolderSync, Pencil, Trash2 } from "lucide-svelte";
+  import { i18n } from "../../stores/i18n.svelte";
   import FolderIcon from "./FolderIcon.svelte";
   import type { FolderItem } from "../../types";
 
@@ -24,6 +25,8 @@
     onMoveToFolder,
     onDelete,
   }: Props = $props();
+
+  const t = $derived(i18n.current);
 
   const availableTargetFolders = $derived(
     folders.filter((f) => f.id !== currentFolderId),
@@ -48,12 +51,12 @@
     onclick={onRename}
   >
     <Pencil size={13} />
-    <span>Cambiar nombre</span>
+    <span>{t.contextMenu.rename}</span>
   </button>
 
   {#if showMoveSection}
     <div class="menu-separator"></div>
-    <div class="menu-section-header">Mover a:</div>
+    <div class="menu-section-header">{t.contextMenu.moveTo}</div>
 
     {#if canMoveToRoot}
       <button
@@ -63,7 +66,7 @@
         onclick={() => onMoveToFolder(null)}
       >
         <FolderSync size={13} />
-        <span>Raíz (Sin carpeta)</span>
+        <span>{t.contextMenu.root}</span>
       </button>
     {/if}
 
@@ -89,7 +92,7 @@
     onclick={onDelete}
   >
     <Trash2 size={13} />
-    <span>Eliminar</span>
+    <span>{t.contextMenu.delete}</span>
   </button>
 </div>
 

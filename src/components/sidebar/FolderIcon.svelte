@@ -1,6 +1,6 @@
 <script lang="ts">
   /**
-   * Componente FolderIcon para MD Studio.
+   * Componente FolderIcon para Markdown Studio.
    * Basado en los vectores de SVGRepo (Solar Icons / CC0 - MIT gratuito).
    * Muestra dinámicamente el estado vacío o con archivos mediante animación fluida.
    */

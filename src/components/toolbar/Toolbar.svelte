@@ -1,6 +1,6 @@
 <script lang="ts">
   /**
-   * Componente orquestador Toolbar de MD Studio.
+   * Componente orquestador Toolbar de Markdown Studio.
    * Coordina la fila principal de herramientas, los menús desplegables y la barra de formato Markdown.
    */
   import {
@@ -13,6 +13,7 @@
   } from "lucide-svelte";
   import { downloadTextFile } from "../../lib/htmlExport";
   import { documentStore } from "../../stores/documents.svelte";
+  import { i18n } from "../../stores/i18n.svelte";
   import type { CodeThemeId, ViewMode } from "../../types";
   import Button from "../ui/Button.svelte";
   import DropdownMenu from "../ui/DropdownMenu.svelte";
@@ -20,6 +21,7 @@
   import CodeThemePicker from "./CodeThemePicker.svelte";
   import ExportMenu from "./ExportMenu.svelte";
   import FormatShortcutsBar from "./FormatShortcutsBar.svelte";
+  import LanguagePicker from "./LanguagePicker.svelte";
   import MoreToolsMenu from "./MoreToolsMenu.svelte";
   import ViewModeSwitch from "./ViewModeSwitch.svelte";
 
@@ -48,7 +50,9 @@
   let exportMenuOpen = $state(false);
   let codeThemeOpen = $state(false);
   let moreMenuOpen = $state(false);
+  let langPickerOpen = $state(false);
 
+  const t = $derived(i18n.current);
   const activeDoc = $derived(documentStore.activeDocument);
   const activeDocTitle = $derived(activeDoc?.title || "documento.md");
   const currentViewMode = $derived(documentStore.settings.viewMode);
@@ -93,6 +97,9 @@
     if (!target.closest(".more-menu-wrap")) {
       moreMenuOpen = false;
     }
+    if (!target.closest(".lang-picker-wrap")) {
+      langPickerOpen = false;
+    }
   }}
 />
 
@@ -105,8 +112,8 @@
         size="icon"
         active={sidebarOpen}
         onclick={onToggleSidebar}
-        title="Mostrar u ocultar panel lateral (Ctrl+B)"
-        ariaLabel="Alternar panel lateral"
+        title={t.toolbar.sidebarToggle}
+        ariaLabel={t.toolbar.sidebarToggleAria}
       >
         <PanelLeft size={18} />
       </Button>
@@ -115,7 +122,7 @@
         <span class="readonly-doc-name" title={activeDocTitle}>
           {activeDocTitle}
         </span>
-        <span class="readonly-sync-status">Sincronizado</span>
+        <span class="readonly-sync-status">{t.toolbar.syncStatus}</span>
       </div>
     </div>
 
@@ -133,10 +140,10 @@
             syncScroll: !documentStore.settings.syncScroll,
           })}
         title={documentStore.settings.syncScroll
-          ? "Scroll sincronizado ACTIVO (clic para desactivar)"
-          : "Scroll sincronizado INACTIVO (clic para activar)"}
+          ? t.toolbar.syncScrollActive
+          : t.toolbar.syncScrollInactive}
         aria-pressed={documentStore.settings.syncScroll}
-        aria-label="Scroll sincronizado"
+        aria-label={t.toolbar.syncScrollAria}
       >
         <span class="sync-status-dot" aria-hidden="true"></span>
         <span class="sync-pill-text">SYNC</span>
@@ -152,7 +159,7 @@
             e.stopPropagation();
             codeThemeOpen = !codeThemeOpen;
           }}
-          title="Tema de colores de código"
+          title={t.toolbar.codePaletteTitle}
           ariaHaspopup="true"
           ariaExpanded={codeThemeOpen}
         >
@@ -182,9 +189,9 @@
             lineNumbers: !documentStore.settings.lineNumbers,
           })}
         title={documentStore.settings.lineNumbers
-          ? "Ocultar números de línea"
-          : "Mostrar números de línea"}
-        ariaLabel="Números de línea"
+          ? t.toolbar.lineNumbersActive
+          : t.toolbar.lineNumbersInactive}
+        ariaLabel={t.toolbar.lineNumbersAria}
       >
         <ListOrdered size={16} />
       </Button>
@@ -201,8 +208,12 @@
               minimap: !documentStore.settings.minimap,
             })}
           title={documentStore.settings.minimap
-            ? "Ocultar minimapa"
-            : "Mostrar minimapa"}
+            ? i18n.locale === "es"
+              ? "Ocultar minimapa"
+              : "Hide minimap"
+            : i18n.locale === "es"
+              ? "Mostrar minimapa"
+              : "Show minimap"}
           ariaLabel="Minimapa"
         >
           <Map size={16} />
@@ -215,11 +226,9 @@
         size="icon"
         onclick={() => documentStore.toggleTheme()}
         title={documentStore.isDark
-          ? "Cambiar a modo claro"
-          : "Cambiar a modo oscuro"}
-        ariaLabel={documentStore.isDark
-          ? "Cambiar a modo claro"
-          : "Cambiar a modo oscuro"}
+          ? t.toolbar.themeDark
+          : t.toolbar.themeLight}
+        ariaLabel={t.toolbar.themeAria}
       >
         {#if documentStore.isDark}
           <Moon size={16} />
@@ -227,6 +236,21 @@
           <Sun size={16} />
         {/if}
       </Button>
+
+      <!-- Selector de Idioma ES / EN (Desktop) -->
+      <div class="desktop-lang-picker">
+        <LanguagePicker
+          isOpen={langPickerOpen}
+          onToggleOpen={(e) => {
+            e.stopPropagation();
+            langPickerOpen = !langPickerOpen;
+          }}
+          onSelectLocale={(loc) => {
+            i18n.setLocale(loc);
+            langPickerOpen = false;
+          }}
+        />
+      </div>
 
       <!-- Enlace a GitHub (Escritorio y Tablet) -->
       <Button
@@ -236,8 +260,8 @@
         target="_blank"
         rel="noopener noreferrer"
         class="desktop-tablet-github"
-        title="Ver código en GitHub"
-        ariaLabel="Repositorio de GitHub"
+        title={t.toolbar.githubTitle}
+        ariaLabel={t.toolbar.githubAria}
       >
         <GithubIcon size={16} />
       </Button>
@@ -415,6 +439,7 @@
   @media (max-width: 640px) {
     .desktop-sync-btn,
     .desktop-theme-btn,
+    .desktop-lang-picker,
     .toolbar-right :global(.desktop-linenum-btn),
     .toolbar-right :global(.desktop-minimap-btn),
     .toolbar-right :global(.desktop-tablet-github) {

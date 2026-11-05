@@ -3,6 +3,7 @@
    * Pestañas de navegación estilo cápsula para conmutar entre Archivos e Índice (TOC).
    */
   import { AlignLeft, Folder } from "lucide-svelte";
+  import { i18n } from "../../stores/i18n.svelte";
 
   export type SidebarTab = "docs" | "toc";
 
@@ -14,6 +15,8 @@
   }
 
   let { activeTab, docsCount, tocCount, onSelectTab }: Props = $props();
+
+  const t = $derived(i18n.current);
 </script>
 
 <div class="tabs-bar" role="tablist">
@@ -26,7 +29,7 @@
     aria-selected={activeTab === "docs"}
   >
     <Folder size={14} class="tab-icon" />
-    <span>Archivos</span>
+    <span>{t.sidebar.tabFiles}</span>
     <span class="pill-badge">{docsCount}</span>
   </button>
 
@@ -39,7 +42,7 @@
     aria-selected={activeTab === "toc"}
   >
     <AlignLeft size={14} class="tab-icon" />
-    <span>Índice</span>
+    <span>{t.sidebar.tabToc}</span>
     {#if tocCount > 0}
       <span class="pill-badge">{tocCount}</span>
     {/if}

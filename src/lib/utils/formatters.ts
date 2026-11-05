@@ -22,9 +22,13 @@ export function computeDocumentStats(text: string): DocumentStats {
  * Formatea la fecha de actualización y el tamaño en bytes de un documento.
  * Ejemplo: "Nov 5, 12:01 AM · 11 B"
  */
-export function formatFileMeta(timestamp: number, sizeBytes: number): string {
+export function formatFileMeta(
+  timestamp: number,
+  sizeBytes: number,
+  locale: "es" | "en" = "es",
+): string {
   const date = new Date(timestamp);
-  const monthNames = [
+  const monthNamesEs = [
     "Ene",
     "Feb",
     "Mar",
@@ -38,6 +42,21 @@ export function formatFileMeta(timestamp: number, sizeBytes: number): string {
     "Nov",
     "Dic",
   ];
+  const monthNamesEn = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  const monthNames = locale === "en" ? monthNamesEn : monthNamesEs;
   const month = monthNames[date.getMonth()];
   const day = date.getDate();
   let hours = date.getHours();

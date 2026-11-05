@@ -12,6 +12,7 @@
     Trash2,
   } from "lucide-svelte";
   import type { DocumentItem, FolderItem as FolderItemType } from "../../types";
+  import { i18n } from "../../stores/i18n.svelte";
   import FolderIcon from "./FolderIcon.svelte";
   import FileItem from "./FileItem.svelte";
   import InlineRenameInput from "../ui/InlineRenameInput.svelte";
@@ -81,6 +82,7 @@
 
   let draftFolderName = $state("");
   const isEditingFolder = $derived(editingFolderId === folder.id);
+  const t = $derived(i18n.current);
 
   $effect(() => {
     if (isEditingFolder) {
@@ -111,7 +113,9 @@
     <button
       type="button"
       class="folder-toggle-btn"
-      aria-label={isExpanded ? "Colapsar carpeta" : "Expandir carpeta"}
+      aria-label={isExpanded
+        ? (i18n.locale === "es" ? "Colapsar carpeta" : "Collapse folder")
+        : (i18n.locale === "es" ? "Expandir carpeta" : "Expand folder")}
       tabindex="-1"
     >
       {#if isExpanded}
@@ -130,7 +134,7 @@
     {#if isEditingFolder}
       <InlineRenameInput
         bind:value={draftFolderName}
-        ariaLabel="Renombrar carpeta"
+        ariaLabel={t.sidebar.renameFolderAria}
         onCommit={(val) => onCommitRenameFolder(folder.id, val)}
         onCancel={onCancelRenameFolder}
       />
@@ -161,7 +165,7 @@
       <Button
         variant="ghost"
         size="icon-xs"
-        title="Crear nuevo archivo .md en esta carpeta"
+        title={t.contextMenu.folderNewDoc}
         onclick={(e) => onCreateDocInFolder(folder.id, e)}
       >
         <Plus size={13} />
@@ -169,7 +173,7 @@
       <Button
         variant="ghost"
         size="icon-xs"
-        title="Cambiar nombre de la carpeta"
+        title={t.contextMenu.folderRename}
         onclick={(e) => onStartRenameFolder(folder, e)}
       >
         <Pencil size={12} />
@@ -177,7 +181,7 @@
       <Button
         variant="danger"
         size="icon-xs"
-        title="Eliminar carpeta"
+        title={t.contextMenu.folderDelete}
         onclick={(e) => onDeleteFolder(folder.id, e)}
       >
         <Trash2 size={12} />
@@ -189,7 +193,7 @@
     <div class="folder-children">
       {#if folderDocs.length === 0}
         <div class="empty-folder-label">
-          <span>Carpeta vacía</span>
+          <span>{t.sidebar.emptyFolder}</span>
         </div>
       {:else}
         {#each folderDocs as doc (doc.id)}

@@ -1,10 +1,11 @@
 <script lang="ts">
   /**
-   * Componente orquestador Sidebar de MD Studio.
+   * Componente orquestador Sidebar de Markdown Studio.
    * Coordina los subcomponentes del panel lateral:
    * - SidebarHeader, SidebarTabs, SidebarQuickActions, SearchBox, FileTree, TocPanel y SidebarFooter.
    */
   import { documentStore } from "../../stores/documents.svelte";
+  import { i18n } from "../../stores/i18n.svelte";
   import type { FolderItem, TocHeading } from "../../types";
   import SidebarHeader from "./SidebarHeader.svelte";
   import SidebarTabs, { type SidebarTab } from "./SidebarTabs.svelte";
@@ -140,12 +141,21 @@
     );
     if (docsInside.length > 0) {
       const choice = confirm(
-        `La carpeta "${folder.name}" contiene ${docsInside.length} archivo(s).\n\n¿Presiona ACEPTAR para eliminar la carpeta y conservar los archivos en la raíz?\n(Cancelar aborta la operación)`,
+        i18n.interpolate(i18n.current.dialogs.deleteFolderConfirm, {
+          name: folder.name,
+          count: docsInside.length,
+        }),
       );
       if (choice) {
         documentStore.deleteFolder(folderId, false);
       }
-    } else if (confirm(`¿Eliminar la carpeta vacía "${folder.name}"?`)) {
+    } else if (
+      confirm(
+        i18n.interpolate(i18n.current.dialogs.deleteEmptyFolderConfirm, {
+          name: folder.name,
+        }),
+      )
+    ) {
       documentStore.deleteFolder(folderId, true);
     }
   }
@@ -183,15 +193,19 @@
     const doc = documentStore.documents.find((d) => d.id === id);
     if (!doc) return;
 
-    if (confirm(`¿Cerrar y eliminar "${doc.title}"?`)) {
+    if (
+      confirm(
+        i18n.interpolate(i18n.current.dialogs.deleteDocConfirm, {
+          title: doc.title,
+        }),
+      )
+    ) {
       documentStore.deleteDocument(id);
     }
   }
 
   function handleClearAll(): void {
-    const confirmed = confirm(
-      "¿Deseas vaciar todo el espacio de trabajo? Se cerrarán todos los archivos y carpetas y se creará uno nuevo en blanco.",
-    );
+    const confirmed = confirm(i18n.current.dialogs.clearAllConfirm);
     if (confirmed) {
       documentStore.clearAllDocuments();
     }

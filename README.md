@@ -63,6 +63,12 @@ Built with **Svelte 5** (Runes), **TypeScript**, **Vite**, and **CodeMirror 6**,
 - **Zero Remote Dependencies**: 100% client-side architecture. Your notes, equations, and private files never leave your device.
 - **Debounced Auto-Save (350 ms)**: Seamless background saves without blocking typing responsiveness.
 
+### 7. Native Offline Internationalization (i18n)
+- **Dual-Language Interface (English / Spanish)**: Instant locale switching without reloading or external network requests.
+- **100% Offline & Type-Safe**: Powered by a custom reactive store using Svelte 5 Runes (`$state`, `$derived`), with static TypeScript translation schemas.
+- **Auto-Detection & Persistence**: Automatically falls back to system/browser language preference (`navigator.language`) and preserves choices in `localStorage`.
+- **Localized Metadata**: Automatically translates UI labels, dialogs, shortcuts, empty states, and file date formats (`Jan`/`Ene`).
+
 ---
 
 ## 🛠️ Tech Stack
@@ -81,6 +87,7 @@ Built with **Svelte 5** (Runes), **TypeScript**, **Vite**, and **CodeMirror 6**,
 | **Math Engine** | [KaTeX](https://katex.org/) | `^0.19.1` | Fast inline and display LaTeX rendering |
 | **Diagrams** | [Mermaid](https://mermaid.js.org/) | `^12.2.0` | Vector flowcharts and sequence diagrams |
 | **Icons** | [Lucide Svelte](https://lucide.dev/) | `^1.0.1` | Accessible vector icons |
+| **Internationalization** | [Svelte 5 Runes](https://svelte.dev/) | `—` | Native type-safe offline localization (EN/ES) |
 
 ---
 
@@ -98,8 +105,9 @@ markdown-studio/
     ├── main.ts                  # Application bootstrap entry point
     ├── app.css                  # Global tokens, slate dark theme, print media rules
     ├── App.svelte               # Workspace layout, scroll sync, global hotkeys
+    ├── locales/                 # Type-safe localization dictionaries (es.ts, en.ts)
     ├── types/                   # Data models (DocumentItem, FolderItem, Settings, etc.)
-    ├── stores/                  # Reactive Svelte 5 store with persistence logic
+    ├── stores/                  # Reactive Svelte 5 stores (documents.svelte.ts, i18n.svelte.ts)
     ├── lib/
     │   ├── db.ts                # IndexedDB CRUD operations (md-studio-db)
     │   ├── codeThemes.ts        # Code color theme definitions
@@ -116,7 +124,7 @@ markdown-studio/
     └── components/
         ├── ui/                  # Reusable UI primitives (Button, DropdownMenu, etc.)
         ├── sidebar/             # Folder tree, search box, file items, TOC panel
-        ├── toolbar/             # Top toolbar, mode selectors, format shortcuts
+        ├── toolbar/             # Top toolbar, mode selectors, format shortcuts, LanguagePicker
         ├── editor/              # CodeMirror 6 integration and minimap
         ├── preview/             # Reader preview pane and typographic styles
         └── workspace/           # Resizer divider, StatusBar, and DropOverlay

@@ -63,6 +63,12 @@ Construido con **Svelte 5** (Runas), **TypeScript**, **Vite** y **CodeMirror 6**
 - **Sin servidores intermedios**: Arquitectura 100% *client-side*. Tus textos, notas y fórmulas nunca salen de tu dispositivo.
 - **Guardado debounced (350 ms)**: Escrituras en segundo plano que aseguran rendimiento fluido sin bloquear la escritura.
 
+### 7. Internacionalización Nativa 100% Offline (i18n)
+- **Interfaz Bilingüe (Español / Inglés)**: Conmutación instantánea de idioma sin recargar la página ni realizar peticiones a la red o CDNs.
+- **Completamente Local y Type-Safe**: Implementado con un store reactivo nativo usando Runas de Svelte 5 (`$state`, `$derived`) y esquemas tipados en TypeScript.
+- **Detección Automática y Persistencia**: Detecta automáticamente el idioma del navegador (`navigator.language`) y recuerda la preferencia en `localStorage`.
+- **Localización Completa**: Traduce textos de barra de herramientas, panel lateral, menús contextuales, diálogos de confirmación, estados vacíos y formatos de fecha en metadatos (`Ene`/`Jan`).
+
 ---
 
 ## 🛠️ Stack Tecnológico
@@ -81,6 +87,7 @@ Construido con **Svelte 5** (Runas), **TypeScript**, **Vite** y **CodeMirror 6**
 | **Matemáticas** | [KaTeX](https://katex.org/) | `^0.19.1` | Renderizado LaTeX KaTeX en bloque y en línea |
 | **Diagramas** | [Mermaid](https://mermaid.js.org/) | `^12.2.0` | Diagramas vectoriales con renderizado nativo SVG |
 | **Iconografía** | [Lucide Svelte](https://lucide.dev/) | `^1.0.1` | Iconos vectoriales limpios y accesibles |
+| **Internacionalización** | [Runas de Svelte 5](https://svelte.dev/) | `—` | Localización bilingüe (ES/EN) offline y type-safe |
 
 ---
 
@@ -98,8 +105,9 @@ markdown-studio/
     ├── main.ts                  # Punto de montaje de la aplicación Svelte
     ├── app.css                  # Tokens globales, tema pizarra oscuro, reset y @media print
     ├── App.svelte               # Orquestador del layout, sincronización y atajos globales
+    ├── locales/                 # Diccionarios de localización type-safe (es.ts, en.ts)
     ├── types/                   # Modelos de datos (DocumentItem, FolderItem, Settings, etc.)
-    ├── stores/                  # Store reactivo con runas de Svelte 5 y persistencia
+    ├── stores/                  # Stores reactivos con runas de Svelte 5 (documents, i18n)
     ├── lib/
     │   ├── db.ts                # Operaciones CRUD sobre IndexedDB (md-studio-db)
     │   ├── codeThemes.ts        # Definición de temas de código para Editor y Visor
@@ -116,7 +124,7 @@ markdown-studio/
     └── components/
         ├── ui/                  # Componentes reutilizables (Button, DropdownMenu, etc.)
         ├── sidebar/             # Árbol de carpetas, buscador, archivos y TOC
-        ├── toolbar/             # Barra de herramientas, selectores y snippets
+        ├── toolbar/             # Barra de herramientas, selectores, LanguagePicker y snippets
         ├── editor/              # Integración de CodeMirror 6 y minimapa
         ├── preview/             # Visor de lectura y estilos de presentación
         └── workspace/           # Divisor Resizer, StatusBar y DropOverlay

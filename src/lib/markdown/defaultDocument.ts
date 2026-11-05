@@ -1,5 +1,5 @@
 /**
- * Constantes de almacenamiento, configuración por defecto y plantilla guía inicial de MD Studio.
+ * Constantes de almacenamiento, configuración por defecto y plantilla guía inicial de Markdown Studio.
  */
 
 import type { Settings } from "../../types";

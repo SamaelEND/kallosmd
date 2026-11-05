@@ -1,6 +1,6 @@
 <script lang="ts">
   /**
-   * Componente Resizer para MD Studio.
+   * Componente Resizer para Markdown Studio.
    * Permite redimensionar paneles contiguos mediante arrastre suave
    * y restablecer al 50/50 con doble clic.
    */

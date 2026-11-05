@@ -1,6 +1,6 @@
 <script lang="ts">
   /**
-   * Componente Editor de MD Studio.
+   * Componente Editor de Markdown Studio.
    * Integra CodeMirror 6 con resaltado Markdown nativo, números de línea,
    * minimapa de alta fidelidad, sincronización de temas con la paleta original
    * y soporte para sincronización de scroll.
@@ -299,12 +299,17 @@
 
   :global(.cm-gutters) {
     background-color: var(--cm-palette-bg, var(--editor-gutter-bg, #16181d));
-    border-right: 1px solid var(--cm-palette-border, var(--editor-gutter-border, #212429));
+    border-right: 1px solid
+      var(--cm-palette-border, var(--editor-gutter-border, #212429));
   }
 
   :global(.cm-minimap-gutter) {
-    background-color: var(--cm-palette-bg, var(--editor-bg, #16181d)) !important;
-    border-left: 1px solid var(--cm-palette-border, var(--border-subtle, #212429)) !important;
+    background-color: var(
+      --cm-palette-bg,
+      var(--editor-bg, #16181d)
+    ) !important;
+    border-left: 1px solid
+      var(--cm-palette-border, var(--border-subtle, #212429)) !important;
   }
 
   @media (max-width: 768px) {

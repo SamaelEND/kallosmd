@@ -1,15 +1,18 @@
 <script lang="ts">
   /**
-   * Componente DropOverlay de MD Studio.
+   * Componente DropOverlay de Markdown Studio.
    * Proporciona respuesta visual en pantalla completa al arrastrar archivos Markdown.
    */
   import { FileUp } from "lucide-svelte";
+  import { i18n } from "../../stores/i18n.svelte";
 
   interface Props {
     visible: boolean;
   }
 
   let { visible = false }: Props = $props();
+
+  const t = $derived(i18n.current);
 </script>
 
 {#if visible}
@@ -17,9 +20,10 @@
     <div class="drop-message-card">
       <FileUp size={44} class="drop-icon" />
       <p class="drop-title">
-        Suelta tu archivo <strong>.md</strong> para abrirlo
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+        {@html t.dropOverlay.titleHtml}
       </p>
-      <span class="drop-hint">Formatos compatibles: .md, .markdown, .txt</span>
+      <span class="drop-hint">{t.dropOverlay.hint}</span>
     </div>
   </div>
 {/if}
@@ -85,4 +89,3 @@
     }
   }
 </style>
-

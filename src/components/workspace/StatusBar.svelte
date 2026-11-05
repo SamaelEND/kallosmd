@@ -5,6 +5,7 @@
    * confirmación de guardado y motores activos (KaTeX + Mermaid).
    */
   import { CheckCircle2, Sparkles } from "lucide-svelte";
+  import { i18n } from "../../stores/i18n.svelte";
   import type { DocumentStats } from "../../lib/utils/formatters";
 
   interface Props {
@@ -13,18 +14,19 @@
   }
 
   let { stats, saveNoticeVisible }: Props = $props();
+
+  const t = $derived(i18n.current);
 </script>
 
 <footer class="studio-statusbar no-print">
   <div class="status-left">
     <span class="editor-stats">
-      {stats.lines} líneas · {stats.words} palabras · {stats.readingTime} min de
-      lectura
+      {stats.lines} {t.status.lines} · {stats.words} {t.status.words} · {stats.readingTime} {t.status.readingTime}
     </span>
     {#if saveNoticeVisible}
       <span class="save-toast">
         <CheckCircle2 size={12} />
-        <span>Guardado</span>
+        <span>{t.status.saved}</span>
       </span>
     {/if}
   </div>

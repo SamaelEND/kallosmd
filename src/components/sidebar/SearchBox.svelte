@@ -3,6 +3,7 @@
    * Caja de búsqueda reactiva para filtrar documentos por título o contenido.
    */
   import { Search, X } from "lucide-svelte";
+  import { i18n } from "../../stores/i18n.svelte";
 
   interface Props {
     query: string;
@@ -10,6 +11,7 @@
 
   let { query = $bindable("") }: Props = $props();
 
+  const t = $derived(i18n.current);
   const hasQuery = $derived(query.trim().length > 0);
 </script>
 
@@ -18,17 +20,17 @@
     <Search size={15} class="search-icon" />
     <input
       type="text"
-      placeholder="Buscar documentos..."
+      placeholder={t.sidebar.searchPlaceholder}
       bind:value={query}
       class="search-input"
-      aria-label="Buscar en títulos y contenido"
+      aria-label={t.sidebar.searchAria}
     />
     {#if query}
       <button
         type="button"
         class="clear-search-btn"
         onclick={() => (query = "")}
-        aria-label="Limpiar búsqueda"
+        aria-label={t.sidebar.clearSearch}
       >
         <X size={13} />
       </button>

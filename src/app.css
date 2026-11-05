@@ -1,5 +1,5 @@
 /* =========================================================
-   MD Studio — Sistema de Diseño "Mesa de Lectura"
+   Markdown Studio — Sistema de Diseño "Mesa de Lectura"
    Paleta original de tokens de color, superficies y exportación PDF
    ========================================================= */
 
@@ -7,11 +7,16 @@
 html[data-theme="dark"],
 html.dark {
   /* Escala tipográfica armónica global para UI */
-  --ui-font-2xs: 0.65625rem;  /* 10.5px — metadatos secundarios, badges, indicadores */
-  --ui-font-xs: 0.6875rem;    /* 11px   — encabezados de sección, barra de estado, descripciones */
-  --ui-font-sm: 0.75rem;      /* 12px   — botones, pestañas, controles segmentados, menús, TOC */
-  --ui-font-base: 0.78125rem; /* 12.5px — nombres de carpetas, nombres de archivos, inputs */
-  --ui-font-md: 0.8125rem;    /* 13px   — título de aplicación y documento activo */
+  --ui-font-2xs: 0.65625rem;
+  /* 10.5px — metadatos secundarios, badges, indicadores */
+  --ui-font-xs: 0.6875rem;
+  /* 11px   — encabezados de sección, barra de estado, descripciones */
+  --ui-font-sm: 0.75rem;
+  /* 12px   — botones, pestañas, controles segmentados, menús, TOC */
+  --ui-font-base: 0.78125rem;
+  /* 12.5px — nombres de carpetas, nombres de archivos, inputs */
+  --ui-font-md: 0.8125rem;
+  /* 13px   — título de aplicación y documento activo */
 
   /* Paleta unificada en modo oscuro basada en el tono pizarra profundo (#16181d) del Sidebar */
   --bg-app: #131519;
@@ -446,7 +451,7 @@ button,
     margin: 0 !important;
   }
 
-  .reading-table-content :not(.code-block-wrapper) > pre {
+  .reading-table-content :not(.code-block-wrapper)>pre {
     border: 1.5px solid #cbd5e1 !important;
     border-radius: 6px !important;
     margin: 0.85rem 0 !important;
@@ -518,6 +523,7 @@ button,
     border-left-color: #0969da !important;
     background-color: #eff6ff !important;
   }
+
   .reading-table-content .markdown-alert-note .markdown-alert-title {
     color: #0969da !important;
   }
@@ -526,6 +532,7 @@ button,
     border-left-color: #1a7f37 !important;
     background-color: #f0fdf4 !important;
   }
+
   .reading-table-content .markdown-alert-tip .markdown-alert-title {
     color: #1a7f37 !important;
   }
@@ -534,6 +541,7 @@ button,
     border-left-color: #8250df !important;
     background-color: #faf5ff !important;
   }
+
   .reading-table-content .markdown-alert-important .markdown-alert-title {
     color: #8250df !important;
   }
@@ -542,6 +550,7 @@ button,
     border-left-color: #d97706 !important;
     background-color: #fffbeb !important;
   }
+
   .reading-table-content .markdown-alert-warning .markdown-alert-title {
     color: #b45309 !important;
   }
@@ -550,6 +559,7 @@ button,
     border-left-color: #cf222e !important;
     background-color: #fef2f2 !important;
   }
+
   .reading-table-content .markdown-alert-caution .markdown-alert-title {
     color: #cf222e !important;
   }

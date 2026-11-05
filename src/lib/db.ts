@@ -1,5 +1,5 @@
 /**
- * Capa de persistencia local en IndexedDB para MD Studio.
+ * Capa de persistencia local en IndexedDB para Markdown Studio.
  * Utiliza 'idb' para manejar la base de datos de forma asíncrona,
  * sin bloquear el hilo principal y con capacidad prácticamente ilimitada.
  */

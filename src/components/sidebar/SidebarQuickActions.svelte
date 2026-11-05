@@ -6,6 +6,7 @@
    * - Importar archivo .md/.txt desde el dispositivo
    */
   import { FolderPlus, Plus, Upload } from "lucide-svelte";
+  import { i18n } from "../../stores/i18n.svelte";
   import Button from "../ui/Button.svelte";
   import { readTextFile } from "../../lib/utils/formatters";
 
@@ -16,6 +17,8 @@
   }
 
   let { onCreateDoc, onCreateFolder, onImportFile }: Props = $props();
+
+  const t = $derived(i18n.current);
 
   let fileInputElement = $state<HTMLInputElement | null>(null);
 
@@ -36,18 +39,18 @@
     size="lg"
     class="btn-new-doc-flex"
     onclick={onCreateDoc}
-    title="Crear nuevo documento Markdown"
+    title={t.sidebar.newDocTitle}
   >
     <Plus size={16} />
-    <span>Nuevo documento</span>
+    <span>{t.sidebar.newDoc}</span>
   </Button>
 
   <Button
     variant="secondary"
     size="icon-lg"
     onclick={onCreateFolder}
-    title="Crear nueva carpeta"
-    ariaLabel="Crear nueva carpeta"
+    title={t.sidebar.newFolder}
+    ariaLabel={t.sidebar.newFolderAria}
   >
     <FolderPlus size={16} />
   </Button>
@@ -56,8 +59,8 @@
     variant="secondary"
     size="icon-lg"
     onclick={() => fileInputElement?.click()}
-    title="Abrir archivo .md del equipo"
-    ariaLabel="Abrir archivo desde equipo"
+    title={t.sidebar.openFile}
+    ariaLabel={t.sidebar.openFileAria}
   >
     <Upload size={16} />
   </Button>

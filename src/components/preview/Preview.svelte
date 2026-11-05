@@ -1,6 +1,6 @@
 <script lang="ts">
   /**
-   * Componente orquestador Preview de MD Studio.
+   * Componente orquestador Preview de Markdown Studio.
    * Coordina el renderizado reactivo de Markdown + KaTeX, diagramas Mermaid con caché
    * e interacciones del DOM (botones de copiar, tareas y anclas).
    */

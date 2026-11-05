@@ -3,6 +3,7 @@
    * Selector segmentado de modo de vista (Editor, Dividido, Lectura).
    */
   import { Code, Columns2, Eye } from "lucide-svelte";
+  import { i18n } from "../../stores/i18n.svelte";
   import type { ViewMode } from "../../types";
 
   interface Props {
@@ -11,18 +12,20 @@
   }
 
   let { currentViewMode, onSelectMode }: Props = $props();
+
+  const t = $derived(i18n.current);
 </script>
 
-<div class="segmented-control" role="group" aria-label="Modo de vista">
+<div class="segmented-control" role="group" aria-label={t.toolbar.viewModeAria}>
   <button
     type="button"
     class="seg-btn"
     class:active={currentViewMode === "editor"}
     onclick={() => onSelectMode("editor")}
-    title="Solo editor de código"
+    title={t.toolbar.editorTitle}
   >
     <Code size={15} />
-    <span class="seg-label">Editor</span>
+    <span class="seg-label">{t.toolbar.editor}</span>
   </button>
 
   <button
@@ -30,10 +33,10 @@
     class="seg-btn seg-btn-split"
     class:active={currentViewMode === "split"}
     onclick={() => onSelectMode("split")}
-    title="Vista dividida (Editor + Vista previa)"
+    title={t.toolbar.splitTitle}
   >
     <Columns2 size={15} />
-    <span class="seg-label">Dividido</span>
+    <span class="seg-label">{t.toolbar.split}</span>
   </button>
 
   <button
@@ -41,10 +44,10 @@
     class="seg-btn"
     class:active={currentViewMode === "preview"}
     onclick={() => onSelectMode("preview")}
-    title="Solo lectura y vista previa"
+    title={t.toolbar.previewTitle}
   >
     <Eye size={15} />
-    <span class="seg-label">Lectura</span>
+    <span class="seg-label">{t.toolbar.preview}</span>
   </button>
 </div>
 

@@ -1,5 +1,5 @@
 /**
- * Tipos e interfaces globales para MD Studio.
+ * Tipos e interfaces globales para Markdown Studio.
  * Diseñado con arquitectura modular extensible a largo plazo.
  */
 
