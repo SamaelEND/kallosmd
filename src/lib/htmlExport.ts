@@ -44,9 +44,24 @@ h3{font-size:1.25em}
 p,ul,ol,blockquote,table,pre{margin:0 0 1em}
 a{color:var(--accent)}
 img,svg{max-width:100%;height:auto}
-blockquote{margin-left:0;padding:.2em 1em;border-left:4px solid var(--accent);color:var(--muted)}
+blockquote{margin:1em 0;padding:.65em 1.1em;border-left:4px solid var(--accent);background:var(--code-bg);border-radius:0 6px 6px 0;color:var(--muted);font-style:italic}
+blockquote blockquote{margin:.55em 0 .25em .75em}
+.markdown-alert{margin:1em 0;padding:.75em 1.1em;border-left:4px solid #0969da;border-radius:0 6px 6px 0;background:rgba(9,105,218,.08)}
+.markdown-alert-title{display:flex;align-items:center;gap:.45em;font-weight:650;margin-bottom:.35em}
+.markdown-alert-note{border-left-color:#0969da}.markdown-alert-note .markdown-alert-title{color:#0969da}
+.markdown-alert-tip{border-left-color:#1a7f37;background:rgba(26,127,55,.08)}.markdown-alert-tip .markdown-alert-title{color:#1a7f37}
+.markdown-alert-important{border-left-color:#8250df;background:rgba(130,80,223,.08)}.markdown-alert-important .markdown-alert-title{color:#8250df}
+.markdown-alert-warning{border-left-color:#d97706;background:rgba(217,119,6,.09)}.markdown-alert-warning .markdown-alert-title{color:#d97706}
+.markdown-alert-caution{border-left-color:#cf222e;background:rgba(207,34,46,.09)}.markdown-alert-caution .markdown-alert-title{color:#cf222e}
 ul,ol{padding-left:1.6em}
-li>input[type=checkbox]{margin-right:.4em}
+ul.contains-task-list{padding-left:.4em}
+li.task-list-item{list-style:none}
+li>input[type=checkbox]{margin-right:.5em}
+details{margin:1em 0;padding:.7em 1em;border:1px solid var(--border);border-radius:6px;background:var(--code-bg)}
+details summary{font-weight:600;cursor:pointer}
+.footnote-ref a{font-size:.78em;font-weight:600;text-decoration:none}
+.footnote-item{display:flex;align-items:baseline;gap:.5em;font-size:.9em;margin:.4em 0;padding:.45em .75em;background:var(--code-bg);border-left:3px solid var(--accent);border-radius:0 4px 4px 0}
+.footnote-num{font-weight:700;color:var(--accent)}
 hr{border:0;border-top:1px solid var(--border);margin:2em 0}
 code{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88em}
 :not(pre)>code{background:var(--code-bg);padding:.15em .4em;border-radius:5px}
