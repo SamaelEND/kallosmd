@@ -1,28 +1,61 @@
 /**
- * Motor de procesamiento y sanitización de Markdown + GFM Alerts + Footnotes + KaTeX + Highlight.js.
+ * ES: Motor de procesamiento y sanitización de Markdown, alertas GFM, notas al pie, KaTeX y Highlight.js.
+ * EN: Markdown processing and sanitization engine with GFM alerts, footnotes, KaTeX, and Highlight.js.
  */
 
 import DOMPurify from "dompurify";
-import hljs from "highlight.js";
+import hljs from "highlight.js/lib/common";
 import katex from "katex";
 import { Marked } from "marked";
+import { generateHeadingSlug } from "./markdownUtils";
 
 const markedInstance = new Marked();
+
+// ES: Registro de conteo de slugs para desambiguar encabezados duplicados en el mismo documento.
+// EN: Slug count registry to disambiguate duplicate headings within the same document.
+const renderHeadingCounts = new Map<string, number>();
+
+// ES: Configura directivas de seguridad en atributos de enlaces externos y elementos input.
+// EN: Configures security directives on attributes of external links and input elements.
+DOMPurify.addHook("afterSanitizeAttributes", (node) => {
+  if (node.tagName === "A" && node.hasAttribute("href")) {
+    const href = node.getAttribute("href") || "";
+    if (
+      href.startsWith("http://") ||
+      href.startsWith("https://") ||
+      href.startsWith("//")
+    ) {
+      node.setAttribute("target", "_blank");
+      node.setAttribute("rel", "noopener noreferrer");
+    }
+  }
+
+  if (node.tagName === "INPUT") {
+    const type = node.getAttribute("type");
+    if (type !== "checkbox") {
+      node.remove();
+    }
+  }
+});
+
+/**
+ * ES: Escapa caracteres especiales HTML en cadenas de texto plano.
+ * EN: Escapes special HTML characters in plain text strings.
+ */
+function escapeHtmlText(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
 
 markedInstance.use({
   gfm: true,
   breaks: true,
   renderer: {
     heading({ depth, text }) {
-      const plainText = text
-        .replace(/<[^>]+>/g, "")
-        .replace(/[*_`~[\]]/g, "");
-      const slug = plainText
-        .toLowerCase()
-        .replace(/[^\p{L}\p{N}\s\-_]/gu, "")
-        .trim()
-        .replace(/\s+/g, "-");
-      return `<h${depth} id="${slug || "seccion"}">${text}</h${depth}>\n`;
+      const slug = generateHeadingSlug(text, renderHeadingCounts);
+      return `<h${depth} id="${slug}">${text}</h${depth}>\n`;
     },
     code({ text, lang }) {
       if (lang === "mermaid") {
@@ -30,8 +63,10 @@ markedInstance.use({
       }
 
       const rawLang = lang ? lang.trim().toLowerCase().split(/\s+/)[0] : "";
-      const displayLang = rawLang || "texto";
+      const displayLang = rawLang.replace(/[^a-z0-9\-_+#]/g, "") || "texto";
 
+      // ES: Resalta el código según el lenguaje especificado o escapa el texto plano.
+      // EN: Highlights code using the specified language or escapes plain text.
       let highlightedCode = "";
       try {
         if (rawLang && hljs.getLanguage(rawLang)) {
@@ -40,13 +75,10 @@ markedInstance.use({
             ignoreIllegals: true,
           }).value;
         } else {
-          highlightedCode = hljs.highlightAuto(text).value;
+          highlightedCode = escapeHtmlText(text);
         }
       } catch {
-        highlightedCode = text
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;");
+        highlightedCode = escapeHtmlText(text);
       }
 
       return `
@@ -99,8 +131,8 @@ const GFM_ALERT_MAP: Record<string, AlertMeta> = {
 };
 
 /**
- * Transforma blockquotes con sintaxis GFM `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`
- * en contenedores de alerta semánticos con icono y estilo diferenciado.
+ * ES: Transforma blockquotes con sintaxis GFM ([!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION]) en contenedores de alerta con icono.
+ * EN: Transforms blockquotes with GFM syntax ([!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION]) into alert containers with icons.
  */
 function transformGfmAlerts(html: string): string {
   return html.replace(
@@ -128,8 +160,8 @@ function transformGfmAlerts(html: string): string {
 }
 
 /**
- * Etiqueta los elementos de listas de tareas (`<li>` con checkbox) para suprimir viñetas duplicadas
- * y controlar saltos de página en impresión.
+ * ES: Etiqueta los elementos de listas de tareas (<li> con checkbox) para estilizado y control de saltos de página.
+ * EN: Tags task list items (<li> with checkbox) for styling and page break control.
  */
 function enhanceTaskLists(html: string): string {
   const withTaskItems = html.replace(
@@ -143,17 +175,21 @@ function enhanceTaskLists(html: string): string {
 }
 
 /**
- * Preprocesa expresiones KaTeX, notas al pie y alertas GFM antes/después de Marked,
- * y sanitiza el HTML resultante con DOMPurify.
+ * ES: Preprocesa expresiones KaTeX, notas al pie y alertas GFM antes y después de Marked, y sanitiza el HTML con DOMPurify.
+ * EN: Preprocesses KaTeX expressions, footnotes, and GFM alerts before and after Marked, and sanitizes the HTML with DOMPurify.
  */
 export function processMathAndMarkdown(rawText: string): string {
+  // ES: Reinicia el registro de conteo de encabezados al iniciar cada ciclo de procesamiento.
+  // EN: Resets the heading count registry at the start of each processing cycle.
+  renderHeadingCounts.clear();
+
   const codePlaceholders: { id: string; raw: string }[] = [];
   const mathPlaceholders: { id: string; html: string }[] = [];
   const footnotePlaceholders: { id: string; html: string }[] = [];
   let processed = rawText;
 
-  // 1. Proteger bloques de código cercados (```...``` o ~~~...~~~) y código inline (`...`)
-  //    para evitar que variables como ${TARGET_NODE} o [^1] dentro de código sean alteradas
+  // ES: 1. Protege bloques de código cercados (``` o ~~~) y código en línea (`...`) durante el preprocesamiento.
+  // EN: 1. Protects fenced code blocks (``` or ~~~) and inline code (`...`) during preprocessing.
   processed = processed.replace(
     /(^|\n)(`{3,}|~{3,})[^\n]*\n[\s\S]*?\n\2[ \t]*(?=\n|$)/g,
     (match, prefix) => {
@@ -170,7 +206,8 @@ export function processMathAndMarkdown(rawText: string): string {
     return id;
   });
 
-  // 2. Proteger fórmulas en bloque ($$ ... $$)
+  // ES: 2. Renderiza y protege fórmulas matemáticas en bloque ($$ ... $$).
+  // EN: 2. Renders and protects block math formulas ($$ ... $$).
   processed = processed.replace(/\$\$([\s\S]+?)\$\$/g, (_, math) => {
     const id = `%%KATEX_BLOCK_${mathPlaceholders.length}%%`;
     try {
@@ -185,26 +222,28 @@ export function processMathAndMarkdown(rawText: string): string {
     } catch {
       mathPlaceholders.push({
         id,
-        html: `<div class="katex-error">$$${math}$$</div>`,
+        html: `<div class="katex-error">$$${escapeHtmlText(math)}$$</div>`,
       });
     }
     return id;
   });
 
-  // 3. Proteger fórmulas en línea ($ ... $), soportando espacios internos como `$ Mach \approx 25 $`
-  //    y evitando falsos positivos en precios como $10.00
+  // ES: 3. Renderiza y protege fórmulas matemáticas en línea ($ ... $), ignorando importes monetarios simples.
+  // EN: 3. Renders and protects inline math formulas ($ ... $), ignoring simple currency amounts.
   processed = processed.replace(
     /(^|[^\\$])\$(?!\$)([^\$\n\r]+?)\$(?!\$|\d)/g,
     (match, prefix, math) => {
       const trimmed = math.trim();
       if (!trimmed) return match;
 
-      // Ignorar cantidades monetarias simples ($10, $10.50)
+      // ES: Ignora cantidades numéricas simples con formato de moneda ($10, $10.50).
+      // EN: Ignores simple numeric currency amounts ($10, $10.50).
       if (/^\d+([.,]\d{1,2})?$/.test(trimmed)) {
         return match;
       }
 
-      // Si tiene espacios en ambos extremos, verificar que sea una expresión matemática real
+      // ES: Verifica operadores o funciones matemáticas cuando existen espacios en ambos extremos.
+      // EN: Checks for math operators or functions when spaces exist on both ends.
       if (
         /^\s/.test(math) &&
         /\s$/.test(math) &&
@@ -225,14 +264,15 @@ export function processMathAndMarkdown(rawText: string): string {
       } catch {
         mathPlaceholders.push({
           id,
-          html: `<span class="katex-error">$${math}$</span>`,
+          html: `<span class="katex-error">$${escapeHtmlText(math)}$</span>`,
         });
       }
       return prefix + id;
     },
   );
 
-  // 4. Procesar definiciones y referencias de notas al pie ([^\w+])
+  // ES: 4. Procesa definiciones y referencias de notas al pie ([^id]).
+  // EN: 4. Processes footnote definitions and references ([^id]).
   const footnoteNumbers = new Map<string, number>();
   let footnoteCounter = 0;
 
@@ -252,14 +292,16 @@ export function processMathAndMarkdown(rawText: string): string {
       .replace(/[^a-z0-9\-_]/g, "-");
   }
 
-  // Primero registrar el orden de aparición de las referencias en el texto
+  // ES: Registra el orden de aparición de las referencias en el documento.
+  // EN: Records the order of appearance of references in the document.
   const refOrderRegex = /\[\^([^\]]+)\](?!:)/g;
   let refMatch: RegExpExecArray | null;
   while ((refMatch = refOrderRegex.exec(processed)) !== null) {
     getFootnoteNumber(refMatch[1]);
   }
 
-  // Procesar definiciones `[^id]: texto` al inicio de línea
+  // ES: Transforma definiciones `[^id]: texto` al inicio de línea en contenedores de nota al pie.
+  // EN: Transforms `[^id]: text` definitions at the start of a line into footnote containers.
   processed = processed.replace(
     /(^|\n)\[\^([^\]]+)\]:[ \t]*([^\n]+(?:\n[ \t]+[^\n]+)*)/g,
     (_, leadingNewline: string, rawId: string, rawDef: string) => {
@@ -277,7 +319,8 @@ export function processMathAndMarkdown(rawText: string): string {
     },
   );
 
-  // Reemplazar referencias en línea `[^id]` por superíndices enlazados
+  // ES: Reemplaza referencias en línea `[^id]` por superíndices enlazados.
+  // EN: Replaces inline `[^id]` references with linked superscripts.
   processed = processed.replace(/\[\^([^\]]+)\](?!:)/g, (_, rawId: string) => {
     const num = getFootnoteNumber(rawId);
     const slug = sanitizeFootnoteSlug(rawId);
@@ -291,21 +334,26 @@ export function processMathAndMarkdown(rawText: string): string {
     return placeholderId;
   });
 
-  // 5. Restaurar bloques de código protegidos antes de que Marked los procese con Highlight.js
+  // ES: 5. Restaura los bloques de código protegidos para su procesamiento en Marked.
+  // EN: 5. Restores protected code blocks for processing in Marked.
   for (const item of codePlaceholders) {
     processed = processed.replace(item.id, () => item.raw);
   }
 
-  // 6. Parsear Markdown con Marked
+  // ES: 6. Compila el documento Markdown a HTML mediante Marked.
+  // EN: 6. Compiles the Markdown document to HTML using Marked.
   let html = markedInstance.parse(processed) as string;
 
-  // 7. Transformar alertas GFM ([!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION])
+  // ES: 7. Transforma alertas GFM ([!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION]).
+  // EN: 7. Transforms GFM alerts ([!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION]).
   html = transformGfmAlerts(html);
 
-  // 8. Mejorar listas de tareas (eliminar doble viñeta y agrupar para impresión)
+  // ES: 8. Etiqueta listas de tareas para presentación e impresión.
+  // EN: 8. Tags task lists for display and printing.
   html = enhanceTaskLists(html);
 
-  // 9. Restaurar notas al pie procesadas
+  // ES: 9. Restaura el HTML de las notas al pie procesadas.
+  // EN: 9. Restores the HTML of processed footnotes.
   for (const item of footnotePlaceholders) {
     html = html.replace(
       new RegExp(`<p>\\s*${item.id}\\s*<\\/p>|${item.id}`, "g"),
@@ -313,12 +361,14 @@ export function processMathAndMarkdown(rawText: string): string {
     );
   }
 
-  // 10. Restaurar fórmulas matemáticas procesadas
+  // ES: 10. Restaura el HTML de las fórmulas matemáticas KaTeX.
+  // EN: 10. Restores the HTML of KaTeX math formulas.
   for (const item of mathPlaceholders) {
     html = html.replace(item.id, () => item.html);
   }
 
-  // 11. Sanitizar con DOMPurify permitiendo etiquetas semánticas, alertas SVG, details y KaTeX
+  // ES: 11. Sanitiza el HTML resultante permitiendo etiquetas semánticas, alertas SVG, details y MathML/KaTeX.
+  // EN: 11. Sanitizes the resulting HTML allowing semantic tags, SVG alerts, details, and MathML/KaTeX.
   return DOMPurify.sanitize(html, {
     ADD_TAGS: [
       "input",
@@ -343,6 +393,7 @@ export function processMathAndMarkdown(rawText: string): string {
     ],
     ADD_ATTR: [
       "class",
+      "style",
       "data-mermaid-code",
       "data-task-index",
       "type",

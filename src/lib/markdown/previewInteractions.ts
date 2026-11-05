@@ -1,12 +1,11 @@
 /**
- * Interacciones del DOM en el panel de vista previa:
- * - Copiado de bloques de código al portapapeles
- * - Checkboxes interactivos sincronizados con el código fuente Markdown
- * - Navegación suave hacia anclas internas (#)
+ * ES: Interacciones del DOM en el panel de vista previa: copiado de código, checkboxes de tareas y navegación por anclas.
+ * EN: DOM interactions in the preview panel: code copying, task checkboxes, and anchor navigation.
  */
 
 /**
- * Configura los botones de copiar en los bloques de código renderizados.
+ * ES: Vincula los botones de copiar en los bloques de código renderizados con el portapapeles del sistema.
+ * EN: Binds copy buttons in rendered code blocks to the system clipboard.
  */
 export function setupCopyButtons(scrollContainer: HTMLElement | null): void {
   if (!scrollContainer) return;
@@ -40,7 +39,8 @@ export function setupCopyButtons(scrollContainer: HTMLElement | null): void {
 }
 
 /**
- * Configura los checkboxes de listas de tareas para que actualicen el documento activo.
+ * ES: Vincula los checkboxes de listas de tareas para sincronizar su estado con el documento Markdown activo.
+ * EN: Binds task list checkboxes to synchronize their state with the active Markdown document.
  */
 export function setupTaskCheckboxes(
   scrollContainer: HTMLElement | null,
@@ -49,7 +49,7 @@ export function setupTaskCheckboxes(
   if (!scrollContainer) return;
 
   const checkboxes = scrollContainer.querySelectorAll<HTMLInputElement>(
-    'input[type="checkbox"]',
+    'li.task-list-item > input[type="checkbox"]',
   );
   checkboxes.forEach((cb, idx) => {
     cb.removeAttribute("disabled");
@@ -66,7 +66,8 @@ export function setupTaskCheckboxes(
 }
 
 /**
- * Gestiona el clic en enlaces dentro de la vista previa (scroll suave a anclas # o apertura externa segura).
+ * ES: Gestiona el clic en enlaces dentro de la vista previa: desplazamiento suave a anclas locales (#) o apertura externa segura.
+ * EN: Handles link clicks inside the preview: smooth scrolling to local anchors (#) or secure external opening.
  */
 export function handlePreviewLinkClick(
   event: MouseEvent,
@@ -79,12 +80,16 @@ export function handlePreviewLinkClick(
   const href = link.getAttribute("href");
   if (!href) return;
 
+  // ES: Desplazamiento suave para enlaces internos que apuntan a identificadores (#) dentro del contenedor de vista previa.
+  // EN: Smooth scrolling for internal links targeting element identifiers (#) inside the preview container.
   if (href.startsWith("#")) {
     event.preventDefault();
     const targetId = decodeURIComponent(href.slice(1)).trim();
     if (!targetId || !scrollContainer) return;
 
-    const targetEl = document.getElementById(targetId);
+    const targetEl = scrollContainer.querySelector<HTMLElement>(
+      `#${CSS.escape(targetId)}`,
+    );
     if (targetEl) {
       const cRect = scrollContainer.getBoundingClientRect();
       const tRect = targetEl.getBoundingClientRect();
@@ -100,8 +105,9 @@ export function handlePreviewLinkClick(
       targetEl.classList.add("highlight-anchor-target");
     }
   } else if (href.startsWith("http://") || href.startsWith("https://")) {
+    // ES: Asigna atributos para apertura segura en nueva pestaña sin compartir contexto de navegación.
+    // EN: Assigns attributes for secure opening in a new tab without sharing browsing context.
     link.setAttribute("target", "_blank");
     link.setAttribute("rel", "noopener noreferrer");
   }
 }
-

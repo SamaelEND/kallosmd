@@ -1,8 +1,7 @@
 <script lang="ts">
   /**
-   * Componente orquestador Sidebar de Markdown Studio.
-   * Coordina los subcomponentes del panel lateral:
-   * - SidebarHeader, SidebarTabs, SidebarQuickActions, SearchBox, FileTree, TocPanel y SidebarFooter.
+   * ES: Componente orquestador del panel lateral (Sidebar) con árbol de archivos, búsqueda y tabla de contenidos.
+   * EN: Sidebar orchestrator component with file tree, search, and table of contents.
    */
   import { documentStore } from "../../stores/documents.svelte";
   import { i18n } from "../../stores/i18n.svelte";
@@ -25,12 +24,14 @@
   let activeTab = $state<SidebarTab>("docs");
   let searchQuery = $state("");
 
-  // Estados de edición en línea y menú contextual
+  // ES: Estados de edición en línea y menú contextual de archivos.
+  // EN: States for inline editing and file context menu.
   let editingFolderId = $state<string | null>(null);
   let editingDocId = $state<string | null>(null);
   let activeDocMenuId = $state<string | null>(null);
 
-  // Lógica reactiva de búsqueda
+  // ES: Filtrado reactivo de documentos y carpetas según la consulta de búsqueda.
+  // EN: Reactive filtering of documents and folders based on the search query.
   const isSearching = $derived(searchQuery.trim().length > 0);
   const cleanQuery = $derived(searchQuery.trim().toLowerCase());
 
@@ -216,8 +217,13 @@
     closeIfMobile();
   }
 
+  // ES: Desplaza el panel de lectura hacia el encabezado seleccionado dentro de la vista previa.
+  // EN: Scrolls the reading pane to the selected heading inside the preview container.
   function scrollToHeading(heading: TocHeading): void {
-    const target = document.getElementById(heading.id);
+    const previewArticle = document.querySelector(".reading-table-content");
+    const target = previewArticle?.querySelector<HTMLElement>(
+      `#${CSS.escape(heading.id)}`,
+    );
     if (target) {
       target.scrollIntoView({ behavior: "smooth", block: "start" });
       closeIfMobile();

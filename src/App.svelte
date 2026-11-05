@@ -1,10 +1,9 @@
 <script lang="ts">
   /**
-   * Componente principal de Markdown Studio.
-   * Orquesta los módulos principales (Sidebar, Toolbar, Editor, Preview, Resizer, StatusBar),
-   * la sincronización proporcional de scroll, la exportación a PDF/HTML y atajos globales.
+   * ES: Componente principal que coordina los paneles del área de trabajo, sincronización de desplazamiento, exportación y atajos globales.
+   * EN: Main component coordinating workspace panels, scroll synchronization, export, and global shortcuts.
    */
-  import { onMount, tick } from "svelte";
+  import { onDestroy, onMount, tick } from "svelte";
   import Editor from "./components/editor/Editor.svelte";
   import Preview from "./components/preview/Preview.svelte";
   import Sidebar from "./components/sidebar/Sidebar.svelte";
@@ -13,7 +12,12 @@
   import Resizer from "./components/workspace/Resizer.svelte";
   import StatusBar from "./components/workspace/StatusBar.svelte";
   import { buildHtmlDocument, downloadTextFile } from "./lib/htmlExport";
-  import { computeDocumentStats, readTextFile } from "./lib/utils/formatters";
+  import {
+    computeDocumentStats,
+    isValidImportFile,
+    readTextFile,
+    type DocumentStats,
+  } from "./lib/utils/formatters";
   import { documentStore } from "./stores/documents.svelte";
 
   let sidebarOpen = $state(
@@ -32,17 +36,44 @@
   const splitRatio = $derived(settings.splitRatio);
   const viewMode = $derived(settings.viewMode);
 
-  // Estadísticas del documento para la barra de estado inferior
-  const stats = $derived(computeDocumentStats(activeContent));
+  // ES: Estadísticas del documento actualizadas de forma inmediata al cambiar de archivo y con debounce al escribir.
+  // EN: Document statistics updated immediately on file switch and debounced while typing.
+  let stats = $state<DocumentStats>({ lines: 0, words: 0, readingTime: 0 });
+  let lastStatsDocId = "";
+  let statsDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-  // Sincronización del atributo data-theme y clase dark en <html>
+  $effect(() => {
+    const currentId = documentStore.activeId;
+    const text = activeContent;
+
+    if (currentId !== lastStatsDocId) {
+      lastStatsDocId = currentId;
+      if (statsDebounceTimer) {
+        clearTimeout(statsDebounceTimer);
+        statsDebounceTimer = null;
+      }
+      stats = computeDocumentStats(text);
+      return;
+    }
+
+    if (statsDebounceTimer) {
+      clearTimeout(statsDebounceTimer);
+    }
+    statsDebounceTimer = setTimeout(() => {
+      stats = computeDocumentStats(text);
+    }, 150);
+  });
+
+  // ES: Sincroniza el atributo data-theme y la clase de tema en el elemento raíz <html>.
+  // EN: Synchronizes the data-theme attribute and theme class on the root <html> element.
   $effect(() => {
     if (typeof document !== "undefined") {
       documentStore.applyTheme(isDark ? "dark" : "light");
     }
   });
 
-  // Sincronización dinámica de opciones de página en PDF (URL en pie de página)
+  // ES: Actualiza la regla de estilo de impresión para mostrar u ocultar la URL en el pie de página del PDF.
+  // EN: Updates the print style rule to show or hide the URL in the PDF footer.
   $effect(() => {
     if (typeof document === "undefined") return;
     let styleEl = document.getElementById(
@@ -76,7 +107,8 @@
     `;
   });
 
-  // --- Sincronización de Scroll Proporcional ---
+  // ES: Sincronización proporcional de desplazamiento entre los paneles de edición y vista previa.
+  // EN: Proportional scroll synchronization between the editor and preview panels.
   let activeScrollSource: "editor" | "preview" | null = null;
   let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -115,7 +147,8 @@
   }
 
   /**
-   * Exportación limpia a PDF con preparación de página y temas.
+   * ES: Prepara el documento y ejecuta el diálogo de impresión del navegador para exportar a PDF.
+   * EN: Prepares the document and triggers the browser print dialog to export to PDF.
    */
   async function handleExportPdf(): Promise<void> {
     const originalTitle = typeof document !== "undefined" ? document.title : "";
@@ -154,7 +187,8 @@
   }
 
   /**
-   * Exporta la vista previa como documento HTML5 autónomo.
+   * ES: Exporta la vista previa activa como un documento HTML5 autónomo.
+   * EN: Exports the active preview as a self-contained HTML5 document.
    */
   async function handleExportHtml(): Promise<void> {
     if (!previewComponent) return;
@@ -181,7 +215,8 @@
     }
   }
 
-  // --- Manejo Global de Drag & Drop de Archivos .md ---
+  // ES: Gestión global de arrastrar y soltar para importar archivos de texto Markdown.
+  // EN: Global drag-and-drop handling for importing Markdown text files.
   function handleDragOver(e: DragEvent): void {
     e.preventDefault();
     isDraggingFile = true;
@@ -203,10 +238,14 @@
     isDraggingFile = false;
 
     const file = e.dataTransfer?.files?.[0];
-    if (!file) return;
+    if (!file || !isValidImportFile(file)) return;
 
-    const content = await readTextFile(file);
-    documentStore.importDocument(file.name, content);
+    try {
+      const content = await readTextFile(file);
+      documentStore.importDocument(file.name, content);
+    } catch (error) {
+      console.error("Error al importar archivo arrastrado:", error);
+    }
   }
 
   function handleGlobalKeyDown(event: KeyboardEvent): void {
@@ -219,6 +258,7 @@
 
     if (isMeta && event.key.toLowerCase() === "s") {
       event.preventDefault();
+      documentStore.flushPendingSave();
       saveNoticeVisible = true;
       setTimeout(() => {
         saveNoticeVisible = false;
@@ -234,6 +274,15 @@
   onMount(() => {
     if (window.innerWidth <= 1024) {
       sidebarOpen = false;
+    }
+  });
+
+  onDestroy(() => {
+    if (statsDebounceTimer) {
+      clearTimeout(statsDebounceTimer);
+    }
+    if (scrollTimeout) {
+      clearTimeout(scrollTimeout);
     }
   });
 </script>

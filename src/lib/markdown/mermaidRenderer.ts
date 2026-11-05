@@ -1,16 +1,33 @@
 /**
- * Renderizador de diagramas Mermaid con caché por tema y controles interactivos de zoom.
+ * ES: Renderizador de diagramas Mermaid con carga bajo demanda, caché LRU y controles interactivos de zoom.
+ * EN: Mermaid diagram renderer with on-demand loading, LRU cache, and interactive zoom controls.
  */
 
-import mermaid from "mermaid";
+import type { Mermaid } from "mermaid";
+
+// ES: Límite máximo de diagramas almacenados en la caché en memoria.
+// EN: Maximum number of diagrams stored in the in-memory cache.
+const MAX_CACHE_ENTRIES = 40;
+
+let mermaidInstancePromise: Promise<Mermaid> | null = null;
 
 /**
- * Inicializa y configura Mermaid con las variables de color del tema activo.
- * Se deshabilita `htmlLabels` (`foreignObject`) para garantizar que todos los diagramas
- * utilicen primitivas vectoriales `<text>`/`<tspan>` nativas de SVG, evitando
- * duplicación de texto, recortes de etiquetas y desfases al exportar a PDF.
+ * ES: Carga e importa dinámicamente el motor de Mermaid solo cuando el documento contiene diagramas.
+ * EN: Dynamically loads and imports the Mermaid engine only when the document contains diagrams.
  */
-export function configureMermaid(dark: boolean): void {
+async function getMermaidInstance(): Promise<Mermaid> {
+  if (!mermaidInstancePromise) {
+    mermaidInstancePromise = import("mermaid").then((mod) => mod.default);
+  }
+  return mermaidInstancePromise;
+}
+
+/**
+ * ES: Inicializa y configura Mermaid con las variables de color del tema activo y primitivas SVG nativas.
+ * EN: Initializes and configures Mermaid with active theme color variables and native SVG primitives.
+ */
+export async function configureMermaid(dark: boolean): Promise<Mermaid> {
+  const mermaid = await getMermaidInstance();
   mermaid.initialize({
     startOnLoad: false,
     securityLevel: "strict",
@@ -54,8 +71,33 @@ export function configureMermaid(dark: boolean): void {
       signalTextColor: dark ? "#e6edf3" : "#1f2328",
     },
   });
+  return mermaid;
 }
 
+/**
+ * ES: Almacena un SVG en la caché aplicando reemplazo del elemento menos usado recientemente (LRU).
+ * EN: Stores an SVG in the cache applying least-recently-used (LRU) eviction.
+ */
+function setCacheEntry(
+  cache: Map<string, string>,
+  key: string,
+  svg: string,
+): void {
+  if (cache.has(key)) {
+    cache.delete(key);
+  } else if (cache.size >= MAX_CACHE_ENTRIES) {
+    const oldestKey = cache.keys().next().value;
+    if (oldestKey !== undefined) {
+      cache.delete(oldestKey);
+    }
+  }
+  cache.set(key, svg);
+}
+
+/**
+ * ES: Obtiene las dimensiones base a partir del atributo viewBox del elemento SVG.
+ * EN: Retrieves base dimensions from the SVG element's viewBox attribute.
+ */
 function getSvgViewBoxDimensions(svgEl: SVGElement): {
   width: number;
   height: number;
@@ -74,6 +116,10 @@ function getSvgViewBoxDimensions(svgEl: SVGElement): {
   return { width: 600, height: 400 };
 }
 
+/**
+ * ES: Aplica el nivel de escala y ancho proporcional al elemento SVG del diagrama.
+ * EN: Applies zoom scale and proportional width to the diagram's SVG element.
+ */
 function applyDiagramWidth(
   svgEl: SVGElement,
   zoom: number,
@@ -89,13 +135,31 @@ function applyDiagramWidth(
   svgEl.style.maxWidth = zoom > 1.0 ? "none" : "100%";
 }
 
+/**
+ * ES: Calcula el ancho base óptimo del diagrama acotado entre 480px y 940px.
+ * EN: Computes the optimal base diagram width bounded between 480px and 940px.
+ */
 function computeBaseDiagramWidth(svgEl: SVGElement): number {
   const { width: viewBoxWidth } = getSvgViewBoxDimensions(svgEl);
   return Math.min(Math.max(viewBoxWidth * 1.1, 480), 940);
 }
 
 /**
- * Monta un diagrama SVG dentro de su contenedor con controles de zoom (+, −, ↺).
+ * ES: Escapa caracteres especiales de texto HTML para prevenir interpretaciones en el DOM.
+ * EN: Escapes special HTML text characters to prevent unintended DOM interpretations.
+ */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/**
+ * ES: Monta un diagrama SVG dentro de su contenedor con controles interactivos de zoom (+, −, ↺).
+ * EN: Mounts an SVG diagram inside its container with interactive zoom controls (+, −, ↺).
  */
 export function mountMermaidDiagram(
   container: HTMLDivElement,
@@ -103,13 +167,35 @@ export function mountMermaidDiagram(
   index: number,
   isCachedNotice: boolean,
   diagramZoomLevels: Map<number, number>,
+  cacheKey?: string,
 ): void {
   const currentZoom = diagramZoomLevels.get(index) || 1.0;
   const viewport = container.querySelector<HTMLDivElement>(
     ".mermaid-svg-viewport",
   );
 
-  // Si la estructura ya existe, actualizar únicamente el SVG para evitar parpadeos
+  // ES: Si el diagrama con la misma clave ya está montado en el contenedor, conserva el DOM actual.
+  // EN: If the diagram with the same key is already mounted in the container, preserves the current DOM.
+  if (
+    viewport &&
+    container.querySelector(".mermaid-header-bar") &&
+    cacheKey &&
+    container.dataset.renderedKey === cacheKey
+  ) {
+    const svgEl = viewport.querySelector<SVGElement>("svg");
+    if (svgEl) {
+      const baseWidth = computeBaseDiagramWidth(svgEl);
+      applyDiagramWidth(svgEl, currentZoom, baseWidth);
+    }
+    return;
+  }
+
+  if (cacheKey) {
+    container.dataset.renderedKey = cacheKey;
+  }
+
+  // ES: Si la cabecera ya existe pero cambió el diagrama o el tema, actualiza solo el lienzo SVG.
+  // EN: If the header already exists but the diagram or theme changed, updates only the SVG viewport.
   if (viewport && container.querySelector(".mermaid-header-bar")) {
     viewport.innerHTML = rawSvg;
     const svgEl = viewport.querySelector<SVGElement>("svg");
@@ -167,7 +253,8 @@ export function mountMermaidDiagram(
 }
 
 /**
- * Renderiza todos los bloques `.mermaid-container` dentro del contenedor de vista previa.
+ * ES: Renderiza todos los bloques `.mermaid-container` presentes en el contenedor de vista previa.
+ * EN: Renders all `.mermaid-container` blocks present in the preview container.
  */
 export async function renderMermaidContainers(
   scrollContainer: HTMLElement | null,
@@ -181,7 +268,7 @@ export async function renderMermaidContainers(
     scrollContainer.querySelectorAll<HTMLDivElement>(".mermaid-container");
   if (containers.length === 0) return;
 
-  configureMermaid(dark);
+  const mermaid = await configureMermaid(dark);
 
   for (let index = 0; index < containers.length; index++) {
     const container = containers[index];
@@ -194,12 +281,14 @@ export async function renderMermaidContainers(
     const cachedSvg = mermaidCache.get(cacheKey);
 
     if (cachedSvg) {
+      setCacheEntry(mermaidCache, cacheKey, cachedSvg);
       mountMermaidDiagram(
         container,
         cachedSvg,
         index,
         false,
         diagramZoomLevels,
+        cacheKey,
       );
       continue;
     }
@@ -208,8 +297,15 @@ export async function renderMermaidContainers(
       await mermaid.parse(rawCode);
       const renderId = `mermaid_svg_${Date.now()}_${index}`;
       const { svg } = await mermaid.render(renderId, rawCode);
-      mermaidCache.set(cacheKey, svg);
-      mountMermaidDiagram(container, svg, index, false, diagramZoomLevels);
+      setCacheEntry(mermaidCache, cacheKey, svg);
+      mountMermaidDiagram(
+        container,
+        svg,
+        index,
+        false,
+        diagramZoomLevels,
+        cacheKey,
+      );
     } catch {
       if (cachedSvg) {
         mountMermaidDiagram(
@@ -218,12 +314,16 @@ export async function renderMermaidContainers(
           index,
           true,
           diagramZoomLevels,
+          cacheKey,
         );
       } else {
+        // ES: Renderiza el aviso de sintaxis incompleta con el código fuente escapado.
+        // EN: Renders the incomplete syntax notice with the escaped source code.
+        container.removeAttribute("data-rendered-key");
         container.innerHTML = `
           <div class="mermaid-error">
             <span class="mermaid-error-title">⚠️ Sintaxis de diagrama incompleta</span>
-            <pre><code>${rawCode}</code></pre>
+            <pre><code>${escapeHtml(rawCode)}</code></pre>
           </div>
         `;
       }

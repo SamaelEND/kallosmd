@@ -1,19 +1,22 @@
 /**
- * Utilidades para exportar la vista previa como un documento HTML5 autónomo.
+ * ES: Utilidades para exportar la vista previa como un documento HTML5 autónomo y sin recursos externos.
+ * EN: Utilities to export the preview as a self-contained HTML5 document without external resources.
  */
 
 import katexCss from "katex/dist/katex.min.css?raw";
 import type { CodeThemeId } from "../types";
 import { getPalette, paletteToCssText } from "./codeThemes";
 
-// Fuentes de KaTeX como data URI (carga diferida, funciona sin internet)
+// ES: Fuentes de KaTeX cargadas de forma diferida como data URI para funcionamiento sin red.
+// EN: Lazily loaded KaTeX fonts as data URIs for offline operation.
 const katexFonts = import.meta.glob<string>(
   "/node_modules/katex/dist/fonts/*.woff2",
   { query: "?inline", import: "default" },
 );
 
 /**
- * Devuelve el CSS de KaTeX con las fuentes incrustadas (autónomo, sin red).
+ * ES: Construye la hoja de estilos de KaTeX con las fuentes WOFF2 incrustadas en formato data URI.
+ * EN: Builds the KaTeX stylesheet with WOFF2 fonts embedded as data URIs.
  */
 async function buildKatexCss(): Promise<string> {
   const dataUris = new Map<string, string>();
@@ -91,6 +94,10 @@ tr:nth-child(even) td{background:var(--stripe)}
 @media print{main{max-width:none;padding:0}}
 `;
 
+/**
+ * ES: Escapa caracteres HTML especiales en el título del documento exportado.
+ * EN: Escapes special HTML characters in the exported document title.
+ */
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, "&amp;")
@@ -100,7 +107,8 @@ function escapeHtml(text: string): string {
 }
 
 /**
- * Limpia el DOM de la vista previa de elementos interactivos (copiar, zoom, etc.).
+ * ES: Limpia el DOM de la vista previa eliminando controles interactivos antes de exportar.
+ * EN: Cleans the preview DOM by removing interactive controls before exporting.
  */
 export function cleanPreviewHtml(article: HTMLElement): string {
   const clone = article.cloneNode(true) as HTMLElement;
@@ -126,7 +134,8 @@ export function cleanPreviewHtml(article: HTMLElement): string {
 }
 
 /**
- * Construye un documento HTML5 completo y autónomo (sin recursos externos).
+ * ES: Construye un documento HTML5 completo, autónomo y con directiva Content-Security-Policy integrada.
+ * EN: Builds a complete, self-contained HTML5 document with an embedded Content-Security-Policy directive.
  */
 export async function buildHtmlDocument(
   title: string,
@@ -146,6 +155,7 @@ export async function buildHtmlDocument(
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data: https: http: blob:; font-src data:; media-src data: https: http:;">
 <title>${safeTitle}</title>
 <style>${katex}</style>
 <style>${BASE_CSS}${themeCss}</style>
@@ -160,7 +170,8 @@ ${bodyHtml}
 }
 
 /**
- * Descarga un texto como archivo.
+ * ES: Descarga una cadena de texto como archivo local en el navegador.
+ * EN: Downloads a text string as a local file in the browser.
  */
 export function downloadTextFile(
   filename: string,
@@ -177,4 +188,3 @@ export function downloadTextFile(
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
-

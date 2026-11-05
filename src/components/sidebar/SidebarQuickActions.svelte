@@ -1,14 +1,12 @@
 <script lang="ts">
   /**
-   * Barra de acciones rápidas del Sidebar:
-   * - Crear nuevo documento en la raíz
-   * - Crear nueva carpeta
-   * - Importar archivo .md/.txt desde el dispositivo
+   * ES: Barra de acciones rápidas del Sidebar para crear documentos, crear carpetas e importar archivos locales.
+   * EN: Sidebar quick actions bar to create documents, create folders, and import local files.
    */
   import { FolderPlus, Plus, Upload } from "lucide-svelte";
   import { i18n } from "../../stores/i18n.svelte";
   import Button from "../ui/Button.svelte";
-  import { readTextFile } from "../../lib/utils/formatters";
+  import { isValidImportFile, readTextFile } from "../../lib/utils/formatters";
 
   interface Props {
     onCreateDoc: () => void;
@@ -22,13 +20,21 @@
 
   let fileInputElement = $state<HTMLInputElement | null>(null);
 
+  // ES: Lee e importa el archivo seleccionado tras verificar su extensión y tamaño.
+  // EN: Reads and imports the selected file after verifying its extension and size.
   async function handleFileInputChange(e: Event): Promise<void> {
     const input = e.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
 
-    const content = await readTextFile(file);
-    onImportFile(file.name, content);
+    if (isValidImportFile(file)) {
+      try {
+        const content = await readTextFile(file);
+        onImportFile(file.name, content);
+      } catch (error) {
+        console.error("Error al leer archivo seleccionado:", error);
+      }
+    }
     input.value = "";
   }
 </script>

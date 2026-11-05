@@ -1,13 +1,15 @@
 <script lang="ts">
   /**
-   * Componente FileItem reutilizable.
-   * Representa un archivo .md tanto dentro de una carpeta como en la raíz del árbol.
-   * Incluye edición de nombre en línea, metadatos de tamaño/fecha, Drag & Drop y menú contextual.
+   * ES: Elemento de archivo en el árbol lateral con edición de nombre en línea, metadatos y menú contextual.
+   * EN: File item in the sidebar tree with inline renaming, metadata, and context menu.
    */
   import { FileText, MoreVertical } from "lucide-svelte";
   import { i18n } from "../../stores/i18n.svelte";
   import type { DocumentItem, FolderItem } from "../../types";
-  import { formatFileMeta } from "../../lib/utils/formatters";
+  import {
+    formatFileMeta,
+    getUtf8ByteLength,
+  } from "../../lib/utils/formatters";
   import InlineRenameInput from "../ui/InlineRenameInput.svelte";
   import Button from "../ui/Button.svelte";
   import FileContextMenu from "./FileContextMenu.svelte";
@@ -58,7 +60,9 @@
     }
   });
 
-  const docSize = $derived(new Blob([doc.content]).size);
+  // ES: Calcula el tamaño en bytes UTF-8 del documento para su visualización en metadatos.
+  // EN: Computes the UTF-8 byte size of the document for metadata display.
+  const docSize = $derived(getUtf8ByteLength(doc.content));
   const t = $derived(i18n.current);
 </script>
 

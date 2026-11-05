@@ -3,7 +3,11 @@
 
 <head>
   <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: http:; media-src 'self' data: blob: https: http:; connect-src 'self' ws: wss:; object-src 'none'; base-uri 'self'; form-action 'none';" />
   <script>
+    // ES: Aplica el tema guardado en localStorage antes del primer pintado del DOM.
+    // EN: Applies the theme stored in localStorage before the first DOM paint.
     (function () {
       try {
         var t = localStorage.getItem('md_studio_theme_v1');
@@ -15,10 +19,10 @@
       } catch (_) { }
     })();
   </script>
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="icon" type="image/png" sizes="32x32" href="/md-studio-icon-32.png" />
-  <link rel="icon" type="image/png" sizes="64x64" href="/md-studio-icon-64.png" />
-  <link rel="apple-touch-icon" sizes="128x128" href="/md-studio-icon-128.png" />
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="./md-studio-icon-32.png" />
+  <link rel="icon" type="image/png" sizes="64x64" href="./md-studio-icon-64.png" />
+  <link rel="apple-touch-icon" sizes="128x128" href="./md-studio-icon-128.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#151617" />
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f0efea" />
@@ -34,7 +38,7 @@
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
   <link rel="canonical" href="https://markdown-studio.xyz/" />
 
-  <!-- Open Graph / SEO / Facebook / LinkedIn / WhatsApp -->
+  <!-- ES: Metadatos Open Graph para redes sociales / EN: Open Graph metadata for social networks -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://markdown-studio.xyz/" />
   <meta property="og:site_name" content="Markdown Studio" />
@@ -49,7 +53,7 @@
 
   <meta name="google-site-verification" content="X2qo0v9Hs-mlRzuW0hbKbN2zPOcVICbCQ-4LcujKwNg" />
 
-  <!-- Twitter Card -->
+  <!-- ES: Metadatos Twitter Card / EN: Twitter Card metadata -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Markdown Studio — Free Online Markdown Editor &amp; Live Preview" />
   <meta name="twitter:description"
@@ -57,7 +61,7 @@
   <meta name="twitter:image" content="https://markdown-studio.xyz/md-studio-icon-512.png" />
   <meta name="twitter:image:alt" content="Markdown Studio - Online Markdown Editor &amp; Live Preview" />
 
-  <!-- Structured Data (JSON-LD) for Search Engines -->
+  <!-- ES: Datos estructurados JSON-LD para motores de búsqueda / EN: Structured JSON-LD data for search engines -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -93,7 +97,7 @@
 
 <body>
   <div id="app">
-    <!-- Contenido semántico pre-renderizado para motores de búsqueda y lectores de pantalla -->
+    <!-- ES: Contenido semántico alternativo sin JavaScript / EN: Fallback semantic content without JavaScript -->
     <noscript>
       <main style="font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; line-height: 1.6;">
         <h1>Markdown Studio — Online Markdown Editor &amp; Live Preview</h1>

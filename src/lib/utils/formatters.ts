@@ -1,5 +1,6 @@
 /**
- * Utilidades de formato para metadatos de archivos y estadísticas de texto.
+ * ES: Utilidades de formato para metadatos de archivos, validación de importación y estadísticas de texto.
+ * EN: Formatting utilities for file metadata, import validation, and text statistics.
  */
 
 export interface DocumentStats {
@@ -8,19 +9,49 @@ export interface DocumentStats {
   readingTime: number;
 }
 
+// ES: Tamaño máximo permitido para importar archivos de texto (10 MB).
+// EN: Maximum allowed size for importing text files (10 MB).
+export const MAX_IMPORT_FILE_BYTES = 10 * 1024 * 1024;
+
+// ES: Extensiones de archivo admitidas para importación local.
+// EN: Supported file extensions for local import.
+const ALLOWED_IMPORT_EXTENSIONS = [".md", ".markdown", ".txt"];
+
+const sharedTextEncoder =
+  typeof TextEncoder !== "undefined" ? new TextEncoder() : null;
+
 /**
- * Calcula la cantidad de líneas, palabras y tiempo estimado de lectura (200 ppm).
+ * ES: Calcula la longitud en bytes UTF-8 de una cadena de texto sin instanciar objetos Blob.
+ * EN: Computes the UTF-8 byte length of a text string without instantiating Blob objects.
+ */
+export function getUtf8ByteLength(text: string): number {
+  if (!text) return 0;
+  return sharedTextEncoder ? sharedTextEncoder.encode(text).byteLength : text.length;
+}
+
+/**
+ * ES: Calcula la cantidad de líneas, palabras y tiempo estimado de lectura (200 palabras por minuto).
+ * EN: Computes line count, word count, and estimated reading time (200 words per minute).
  */
 export function computeDocumentStats(text: string): DocumentStats {
-  const lines = text ? text.split("\n").length : 0;
-  const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+  if (!text) {
+    return { lines: 0, words: 0, readingTime: 0 };
+  }
+
+  let lines = 1;
+  for (let i = 0; i < text.length; i++) {
+    if (text.charCodeAt(i) === 10) lines++;
+  }
+
+  const trimmed = text.trim();
+  const words = trimmed ? trimmed.split(/\s+/).length : 0;
   const readingTime = words ? Math.max(1, Math.round(words / 200)) : 0;
   return { lines, words, readingTime };
 }
 
 /**
- * Formatea la fecha de actualización y el tamaño en bytes de un documento.
- * Ejemplo: "Nov 5, 12:01 AM · 11 B"
+ * ES: Formatea la fecha de actualización y el tamaño en bytes de un documento según el idioma activo.
+ * EN: Formats the update timestamp and byte size of a document according to the active locale.
  */
 export function formatFileMeta(
   timestamp: number,
@@ -79,26 +110,50 @@ export function formatFileMeta(
 }
 
 /**
- * Genera un identificador único compatible con cualquier entorno de navegador.
+ * ES: Genera un identificador único compatible con cualquier entorno de navegador.
+ * EN: Generates a unique identifier compatible with any browser environment.
  */
 export function generateId(): string {
   return typeof crypto !== "undefined" && crypto.randomUUID
     ? crypto.randomUUID()
     : "doc_" +
-    Date.now().toString(36) +
-    "_" +
-    Math.random().toString(36).substring(2, 8);
+        Date.now().toString(36) +
+        "_" +
+        Math.random().toString(36).substring(2, 8);
 }
 
 /**
- * Lee un archivo de texto del navegador mediante FileReader y devuelve su contenido.
+ * ES: Verifica que el archivo cumpla con las extensiones de texto admitidas y el límite de tamaño.
+ * EN: Verifies that the file matches supported text extensions and the size limit.
+ */
+export function isValidImportFile(file: File): boolean {
+  if (!file || file.size > MAX_IMPORT_FILE_BYTES) {
+    return false;
+  }
+  const lowerName = file.name.toLowerCase();
+  const hasAllowedExt = ALLOWED_IMPORT_EXTENSIONS.some((ext) =>
+    lowerName.endsWith(ext),
+  );
+  const isTextMime =
+    !file.type ||
+    file.type.startsWith("text/") ||
+    file.type === "application/octet-stream";
+  return hasAllowedExt && isTextMime;
+}
+
+/**
+ * ES: Lee un archivo de texto validado del navegador mediante FileReader y devuelve su contenido.
+ * EN: Reads a validated browser text file using FileReader and returns its content.
  */
 export function readTextFile(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
+    if (!isValidImportFile(file)) {
+      reject(new Error("Unsupported file type or size limit exceeded."));
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (event) => resolve(String(event.target?.result || ""));
     reader.onerror = () => reject(reader.error);
     reader.readAsText(file);
   });
 }
-

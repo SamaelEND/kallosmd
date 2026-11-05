@@ -305,7 +305,7 @@ Parámetros de Ruido del Sensor Estelar:
 
 ### Imagen de Prueba con Texto Alternativo
 
-![Planeta Tierra desde el espacio](https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=800&auto=format&fit=crop "Simulación Orbital Terrestre")
+![Simulación Orbital Terrestre](/favicon.svg "Simulación Orbital Terrestre — Gráfico Vectorial Local")
 
 ---
 

@@ -1,9 +1,7 @@
 <script lang="ts">
   /**
-   * Componente Editor de Markdown Studio.
-   * Integra CodeMirror 6 con resaltado Markdown nativo, números de línea,
-   * minimapa de alta fidelidad, sincronización de temas con la paleta original
-   * y soporte para sincronización de scroll.
+   * ES: Componente Editor basado en CodeMirror 6 con resaltado Markdown, números de línea, minimapa y temas.
+   * EN: CodeMirror 6 Editor component with Markdown highlighting, line numbers, minimap, and themes.
    */
   import { onMount, onDestroy } from "svelte";
   import {
@@ -78,6 +76,10 @@
     }));
   }
 
+  /**
+   * ES: Inicializa la instancia de EditorView con sus extensiones y escuchadores de eventos.
+   * EN: Initializes the EditorView instance with its extensions and event listeners.
+   */
   function initEditor(): void {
     if (!editorContainer) return;
 
@@ -126,7 +128,8 @@
     }
   }
 
-  // Sincronización de valor externo sin cambiar de documento
+  // ES: Aplica cambios externos de contenido preservando la selección y el desplazamiento.
+  // EN: Applies external content changes while preserving selection and scroll position.
   $effect(() => {
     const docValue = value;
     if (!view) return;
@@ -171,7 +174,8 @@
     }
   });
 
-  // Sincronización reactiva del tema
+  // ES: Reconfigura el tema de colores del editor cuando cambia la paleta o el modo oscuro.
+  // EN: Reconfigures the editor color theme when the palette or dark mode changes.
   $effect(() => {
     const themeExt = themeExtensions();
     if (!view) return;
@@ -180,7 +184,8 @@
     });
   });
 
-  // Sincronización reactiva de minimapa
+  // ES: Activa o desactiva la extensión del minimapa de forma reactiva.
+  // EN: Reactively enables or disables the minimap extension.
   $effect(() => {
     const minimapActive = showMinimapEnabled;
     if (!view) return;
@@ -190,7 +195,8 @@
     });
   });
 
-  // Sincronización reactiva de números de línea
+  // ES: Activa o desactiva el margen de números de línea y plegado de código.
+  // EN: Enables or disables the line numbers and code folding gutter.
   $effect(() => {
     const lineNumbersActive = showLineNumbersEnabled;
     if (!view) return;
@@ -202,7 +208,8 @@
     });
   });
 
-  // Sincronización reactiva de word wrap
+  // ES: Activa o desactiva el ajuste automático de línea (word wrap).
+  // EN: Enables or disables automatic line wrapping (word wrap).
   $effect(() => {
     const wrapActive = wordWrapEnabled;
     if (!view) return;
@@ -223,6 +230,10 @@
     }
   });
 
+  /**
+   * ES: Inserta un fragmento de sintaxis Markdown alrededor de la selección actual.
+   * EN: Inserts a Markdown syntax snippet around the current selection.
+   */
   export function insertSnippet(
     prefix: string,
     suffix = "",

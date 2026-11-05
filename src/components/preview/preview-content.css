@@ -1,5 +1,6 @@
 /* =========================================================
-   Estilos Tipográficos y de Componentes de Lectura (Preview)
+   ES: Estilos tipográficos y de componentes del panel de lectura (Preview).
+   EN: Typographic and component styles for the reading panel (Preview).
    ========================================================= */
 
 .reading-table-content {
@@ -8,6 +9,8 @@
   padding: 1.35rem 2.25rem 6rem;
   font-family: inherit;
   word-break: break-word;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 /* Encabezados proporcionados en armonía con el Editor */
@@ -464,7 +467,8 @@
   color: var(--reading-accent-hover, #7cc9bb);
 }
 
-/* KaTeX Fórmulas Matemáticas */
+/* ES: Fórmulas matemáticas KaTeX y aislamiento de capas auxiliares para selección de texto e interacción.
+   EN: KaTeX math formulas and auxiliary layer isolation for text selection and interaction. */
 .reading-table-content .katex-display-wrapper {
   margin: 1.75rem 0;
   padding: 1.25rem 1.5rem;
@@ -477,6 +481,16 @@
 
 .reading-table-content .katex {
   font-size: 1.1em;
+}
+
+.reading-table-content .katex .katex-mathml {
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: none;
+}
+
+.reading-table-content .katex .pstrut {
+  pointer-events: none;
 }
 
 .reading-table-content .katex-error {

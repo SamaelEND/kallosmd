@@ -1,6 +1,6 @@
 /**
- * Store reactivo para la gestión de documentos, configuración y persistencia de Markdown Studio.
- * Preparado con runas de Svelte 5 ($state, $derived).
+ * ES: Store reactivo para la gestión de documentos, carpetas, configuración y persistencia local.
+ * EN: Reactive store for managing documents, folders, settings, and local persistence.
  */
 
 import type {
@@ -44,6 +44,7 @@ class DocumentStore {
   folders = $state<FolderItem[]>([]);
   activeId = $state<string>("");
   settings = $state<Settings>(DEFAULT_SETTINGS);
+  tocHeadings = $state<TocHeading[]>([]);
   isReady = $state<boolean>(false);
 
   private saveTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -61,7 +62,8 @@ class DocumentStore {
   }
 
   /**
-   * Carga configuraciones de usuario de manera síncrona desde localStorage para arranque instantáneo.
+   * ES: Carga la configuración del usuario y la caché inicial desde localStorage.
+   * EN: Loads user settings and initial cache from localStorage.
    */
   private loadSettings(): void {
     if (typeof window === "undefined") return;
@@ -105,34 +107,25 @@ class DocumentStore {
 
       this.applyTheme(savedTheme);
 
-      const isCleanInitialized =
-        localStorage.getItem(STORAGE_KEYS.CLEAN_INIT_FLAG) === "true";
+      // ES: Recupera el identificador activo y el documento en caché para arranque inmediato.
+      // EN: Retrieves the active identifier and cached document for instant startup.
+      const savedActiveId = localStorage.getItem(STORAGE_KEYS.ACTIVE_ID);
+      if (savedActiveId) {
+        this.activeId = savedActiveId;
+      }
 
-      if (!isCleanInitialized) {
+      const cachedActiveRaw = localStorage.getItem(
+        STORAGE_KEYS.ACTIVE_DOC_CACHE,
+      );
+      if (cachedActiveRaw) {
         try {
-          localStorage.removeItem(STORAGE_KEYS.DOCS);
-          localStorage.removeItem(STORAGE_KEYS.TRANSITIONAL_DOCS);
-          localStorage.removeItem(STORAGE_KEYS.ACTIVE_DOC_CACHE);
-          localStorage.removeItem(STORAGE_KEYS.ACTIVE_ID);
+          const cachedDoc = JSON.parse(cachedActiveRaw);
+          if (cachedDoc && cachedDoc.id) {
+            this.documents = [cachedDoc];
+            if (!this.activeId) this.activeId = cachedDoc.id;
+            this.refreshDerivedMetadata(cachedDoc);
+          }
         } catch { }
-      } else {
-        const savedActiveId = localStorage.getItem(STORAGE_KEYS.ACTIVE_ID);
-        if (savedActiveId) {
-          this.activeId = savedActiveId;
-        }
-
-        const cachedActiveRaw = localStorage.getItem(
-          STORAGE_KEYS.ACTIVE_DOC_CACHE,
-        );
-        if (cachedActiveRaw) {
-          try {
-            const cachedDoc = JSON.parse(cachedActiveRaw);
-            if (cachedDoc && cachedDoc.id) {
-              this.documents = [cachedDoc];
-              if (!this.activeId) this.activeId = cachedDoc.id;
-            }
-          } catch { }
-        }
       }
     } catch (error) {
       console.error(
@@ -143,55 +136,25 @@ class DocumentStore {
   }
 
   /**
-   * Inicializa IndexedDB, purgando cualquier residuo previo en localStorage para arrancar 100% desde cero.
+   * ES: Inicializa la conexión con IndexedDB y sincroniza la colección local de documentos y carpetas.
+   * EN: Initializes the IndexedDB connection and synchronizes the local collection of documents and folders.
    */
   private async initDatabase(): Promise<void> {
     if (typeof window === "undefined") return;
 
     try {
-      const isCleanInitialized =
-        localStorage.getItem(STORAGE_KEYS.CLEAN_INIT_FLAG) === "true";
-
-      if (!isCleanInitialized) {
-        try {
-          localStorage.removeItem(STORAGE_KEYS.DOCS);
-          localStorage.removeItem(STORAGE_KEYS.TRANSITIONAL_DOCS);
-          localStorage.removeItem(STORAGE_KEYS.ACTIVE_DOC_CACHE);
-          localStorage.removeItem(STORAGE_KEYS.ACTIVE_ID);
-        } catch { }
-
-        await clearAllDocumentsFromDb();
-        await clearAllFoldersFromDb();
-
-        const initialDoc: DocumentItem = {
-          id: generateId(),
-          title: DEFAULT_DOCUMENT_TITLE,
-          content: DEFAULT_MARKDOWN,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-          folderId: null,
-          hasCustomTitle: false,
-        };
-
-        await saveDocumentToDb(initialDoc);
-
-        try {
-          localStorage.setItem(STORAGE_KEYS.CLEAN_INIT_FLAG, "true");
-          localStorage.setItem(STORAGE_KEYS.GUIDE_MIGRATED_FLAG, "true");
-          localStorage.setItem(STORAGE_KEYS.ACTIVE_ID, initialDoc.id);
-        } catch { }
-
-        this.documents = [initialDoc];
-        this.folders = [];
-        this.activeId = initialDoc.id;
-        this.updateActiveCache(initialDoc);
-        this.isReady = true;
-        return;
-      }
+      // ES: Limpia claves de almacenamiento heredadas en localStorage.
+      // EN: Cleans legacy storage keys in localStorage.
+      try {
+        localStorage.removeItem(STORAGE_KEYS.DOCS);
+        localStorage.removeItem(STORAGE_KEYS.TRANSITIONAL_DOCS);
+      } catch { }
 
       let dbDocs = await getAllDocumentsFromDb();
       const dbFolders = await getAllFoldersFromDb();
 
+      // ES: Si la base de datos local está vacía, genera el documento inicial con la guía predeterminada.
+      // EN: If the local database is empty, generates the initial document with the default guide.
       if (dbDocs.length === 0) {
         const initialDoc: DocumentItem = {
           id: generateId(),
@@ -204,26 +167,6 @@ class DocumentStore {
         };
         await saveDocumentToDb(initialDoc);
         dbDocs = [initialDoc];
-      } else if (
-        localStorage.getItem(STORAGE_KEYS.GUIDE_MIGRATED_FLAG) !== "true"
-      ) {
-        // Actualizar el documento de bienvenida anterior por la nueva guía completa por defecto
-        const legacyWelcomeDoc = dbDocs.find(
-          (d) =>
-            d.title.toLowerCase() === "bienvenido.md" ||
-            d.title.toLowerCase().startsWith("bienvenido a md studio"),
-        );
-
-        if (legacyWelcomeDoc) {
-          legacyWelcomeDoc.title = DEFAULT_DOCUMENT_TITLE;
-          legacyWelcomeDoc.content = DEFAULT_MARKDOWN;
-          legacyWelcomeDoc.updatedAt = Date.now();
-          await saveDocumentToDb(legacyWelcomeDoc);
-        }
-
-        try {
-          localStorage.setItem(STORAGE_KEYS.GUIDE_MIGRATED_FLAG, "true");
-        } catch { }
       }
 
       this.documents = dbDocs;
@@ -237,6 +180,7 @@ class DocumentStore {
         localStorage.setItem(STORAGE_KEYS.ACTIVE_ID, this.activeId);
       } catch { }
 
+      this.refreshDerivedMetadata(this.activeDocument);
       this.updateActiveCache(this.activeDocument);
       this.isReady = true;
     } catch (error) {
@@ -251,12 +195,37 @@ class DocumentStore {
         };
         this.documents = [fallbackDoc];
         this.activeId = fallbackDoc.id;
+        this.refreshDerivedMetadata(fallbackDoc);
       }
     }
   }
 
   /**
-   * Mantiene un snapshot ligero en localStorage exclusivamente del documento activo para carga instantánea.
+   * ES: Actualiza la tabla de contenidos y el título automático a partir del documento indicado.
+   * EN: Updates the table of contents and automatic title from the specified document.
+   */
+  private refreshDerivedMetadata(doc: DocumentItem | undefined): void {
+    if (!doc) {
+      this.tocHeadings = [];
+      return;
+    }
+
+    if (!doc.hasCustomTitle) {
+      const h1Title = extractFirstH1(doc.content);
+      if (h1Title) {
+        const normalized = normalizeDocTitle(h1Title);
+        if (doc.title !== normalized) {
+          doc.title = normalized;
+        }
+      }
+    }
+
+    this.tocHeadings = extractHeadings(doc.content);
+  }
+
+  /**
+   * ES: Guarda una instantánea ligera en localStorage del documento activo para carga instantánea.
+   * EN: Saves a lightweight snapshot of the active document in localStorage for instant startup.
    */
   private updateActiveCache(doc: DocumentItem | undefined): void {
     if (typeof window === "undefined") return;
@@ -281,7 +250,8 @@ class DocumentStore {
   }
 
   /**
-   * Programa el guardado asíncrono con debounce (250 ms) para evitar sobrecargar el disco en escritura continua.
+   * ES: Programa el guardado asíncrono y la actualización de metadatos con debounce de 250 ms.
+   * EN: Schedules asynchronous saving and metadata refresh with a 250 ms debounce.
    */
   private scheduleSave(doc: DocumentItem): void {
     this.pendingSaveDoc = doc;
@@ -294,7 +264,8 @@ class DocumentStore {
   }
 
   /**
-   * Fuerza el guardado inmediato en IndexedDB si hay cambios pendientes en cola.
+   * ES: Ejecuta de inmediato el guardado en IndexedDB y actualiza los metadatos pendientes en cola.
+   * EN: Immediately executes IndexedDB saving and refreshes queued pending metadata.
    */
   public flushPendingSave(): void {
     if (this.saveTimeout) {
@@ -302,14 +273,17 @@ class DocumentStore {
       this.saveTimeout = null;
     }
     if (this.pendingSaveDoc) {
-      saveDocumentToDb(this.pendingSaveDoc);
-      this.updateActiveCache(this.pendingSaveDoc);
+      const doc = this.pendingSaveDoc;
       this.pendingSaveDoc = null;
+      this.refreshDerivedMetadata(doc);
+      saveDocumentToDb(doc);
+      this.updateActiveCache(doc);
     }
   }
 
   /**
-   * Guarda las opciones de configuración en las claves individuales de localStorage.
+   * ES: Persiste las opciones de configuración en claves individuales de localStorage.
+   * EN: Persists configuration options to individual keys in localStorage.
    */
   private persistSettings(): void {
     if (typeof window === "undefined") return;
@@ -340,7 +314,8 @@ class DocumentStore {
     }
   }
 
-  // --- Propiedades Derivadas ---
+  // ES: Propiedades derivadas de lectura para el documento activo y el estado del tema.
+  // EN: Read-only derived properties for the active document and theme state.
 
   get activeDocument(): DocumentItem | undefined {
     return (
@@ -349,17 +324,12 @@ class DocumentStore {
     );
   }
 
-  get tocHeadings(): TocHeading[] {
-    const active = this.activeDocument;
-    if (!active) return [];
-    return extractHeadings(active.content);
-  }
-
   get isDark(): boolean {
     return this.settings.theme === "dark";
   }
 
-  // --- Operaciones CRUD de Documentos ---
+  // ES: Operaciones CRUD de documentos.
+  // EN: Document CRUD operations.
 
   createDocument(
     rawTitle = "nuevo-documento.md",
@@ -384,6 +354,7 @@ class DocumentStore {
       localStorage.setItem(STORAGE_KEYS.ACTIVE_ID, this.activeId);
     } catch { }
 
+    this.refreshDerivedMetadata(newDoc);
     this.updateActiveCache(newDoc);
     saveDocumentToDb(newDoc);
 
@@ -397,7 +368,9 @@ class DocumentStore {
       try {
         localStorage.setItem(STORAGE_KEYS.ACTIVE_ID, this.activeId);
       } catch { }
-      this.updateActiveCache(this.activeDocument);
+      const active = this.activeDocument;
+      this.refreshDerivedMetadata(active);
+      this.updateActiveCache(active);
     }
   }
 
@@ -407,18 +380,6 @@ class DocumentStore {
 
     doc.content = content;
     doc.updatedAt = Date.now();
-
-    if (!doc.hasCustomTitle) {
-      const h1Title = extractFirstH1(content);
-      if (h1Title) {
-        const normalized = normalizeDocTitle(h1Title);
-        if (doc.title !== normalized) {
-          doc.title = normalized;
-          this.updateActiveCache(doc);
-        }
-      }
-    }
-
     this.scheduleSave(doc);
   }
 
@@ -450,7 +411,8 @@ class DocumentStore {
     }
   }
 
-  // --- Operaciones de Carpetas (Folders) ---
+  // ES: Operaciones de gestión de carpetas.
+  // EN: Folder management operations.
 
   createFolder(rawName = "Nueva Carpeta"): FolderItem {
     const cleanName = rawName.trim() || "Nueva Carpeta";
@@ -541,17 +503,25 @@ class DocumentStore {
       try {
         localStorage.setItem(STORAGE_KEYS.ACTIVE_ID, this.activeId);
       } catch { }
-      this.updateActiveCache(this.activeDocument);
+      const active = this.activeDocument;
+      this.refreshDerivedMetadata(active);
+      this.updateActiveCache(active);
     }
 
     return true;
   }
 
   /**
-   * Elimina todos los documentos y crea uno nuevo en blanco.
+   * ES: Vacía todos los documentos y carpetas e inicializa un documento en blanco.
+   * EN: Clears all documents and folders and initializes a blank document.
    */
   clearAllDocuments(): void {
-    this.flushPendingSave();
+    if (this.saveTimeout) {
+      clearTimeout(this.saveTimeout);
+      this.saveTimeout = null;
+    }
+    this.pendingSaveDoc = null;
+
     const freshDoc: DocumentItem = {
       id: generateId(),
       title: "nuevo-documento.md",
@@ -566,16 +536,19 @@ class DocumentStore {
     try {
       localStorage.setItem(STORAGE_KEYS.ACTIVE_ID, this.activeId);
     } catch { }
+    this.refreshDerivedMetadata(freshDoc);
     this.updateActiveCache(freshDoc);
 
-    clearAllDocumentsFromDb().then(() => {
-      saveDocumentToDb(freshDoc);
-    });
-    clearAllFoldersFromDb();
+    Promise.all([clearAllDocumentsFromDb(), clearAllFoldersFromDb()]).then(
+      () => {
+        saveDocumentToDb(freshDoc);
+      },
+    );
   }
 
   /**
-   * Importa o actualiza un archivo .md / .txt desde disco o Drag & Drop.
+   * ES: Importa o actualiza un documento .md / .txt desde archivo local o arrastrar y soltar.
+   * EN: Imports or updates a .md / .txt document from a local file or drag and drop.
    */
   importDocument(rawFilename: string, content: string): DocumentItem {
     this.flushPendingSave();
@@ -591,6 +564,7 @@ class DocumentStore {
       try {
         localStorage.setItem(STORAGE_KEYS.ACTIVE_ID, this.activeId);
       } catch { }
+      this.refreshDerivedMetadata(existing);
       this.updateActiveCache(existing);
       saveDocumentToDb(existing);
       return existing;
@@ -609,6 +583,7 @@ class DocumentStore {
     try {
       localStorage.setItem(STORAGE_KEYS.ACTIVE_ID, this.activeId);
     } catch { }
+    this.refreshDerivedMetadata(newDoc);
     this.updateActiveCache(newDoc);
     saveDocumentToDb(newDoc);
 
@@ -616,7 +591,8 @@ class DocumentStore {
   }
 
   /**
-   * Conmuta interactivamente una tarea en el Markdown activo según su índice ordinal.
+   * ES: Conmuta el estado de una tarea en el documento activo según su índice ordinal.
+   * EN: Toggles the state of a task in the active document by its ordinal index.
    */
   toggleTaskCheckbox(taskIndex: number, isChecked: boolean): void {
     const doc = this.activeDocument;
@@ -632,7 +608,8 @@ class DocumentStore {
     }
   }
 
-  // --- Operaciones de Configuración ---
+  // ES: Operaciones de configuración de interfaz y tema visual.
+  // EN: UI and visual theme configuration operations.
 
   applyTheme(theme: ThemeMode): void {
     if (typeof document === "undefined") return;
@@ -684,7 +661,6 @@ class DocumentStore {
   toggleTheme(): ThemeMode {
     const nextMode: ThemeMode =
       this.settings.theme === "dark" ? "light" : "dark";
-    this.applyTheme(nextMode);
     this.updateSettings({ theme: nextMode });
     return nextMode;
   }
