@@ -6,34 +6,44 @@
 :root,
 html[data-theme="dark"],
 html.dark {
-  /* Tokens originales en modo oscuro (Por defecto) */
-  --bg-app: #151617;
-  --bg-surface: #1a1b1d;
-  --bg-reader: #1e1f22;
-  --bg-elevated: #26282b;
-  --bg-hover: #2e3034;
-  --border-color: #2b2d31;
-  --border-subtle: #232427;
-  --text-primary: #e8e6e1;
-  --text-secondary: #9b9a94;
-  --text-faint: #6f6e69;
+  /* Escala tipográfica armónica global para UI */
+  --ui-font-2xs: 0.65625rem;  /* 10.5px — metadatos secundarios, badges, indicadores */
+  --ui-font-xs: 0.6875rem;    /* 11px   — encabezados de sección, barra de estado, descripciones */
+  --ui-font-sm: 0.75rem;      /* 12px   — botones, pestañas, controles segmentados, menús, TOC */
+  --ui-font-base: 0.78125rem; /* 12.5px — nombres de carpetas, nombres de archivos, inputs */
+  --ui-font-md: 0.8125rem;    /* 13px   — título de aplicación y documento activo */
+
+  /* Paleta unificada en modo oscuro basada en el tono pizarra profundo (#16181d) del Sidebar */
+  --bg-app: #131519;
+  --bg-surface: #16181d;
+  --bg-reader: #16181d;
+  --bg-elevated: #20232a;
+  --bg-hover: #282c35;
+  --bg-input: #181b20;
+  --bg-active-item: #1e293b;
+  --border-active-item: rgba(59, 130, 246, 0.35);
+  --border-color: #262a33;
+  --border-subtle: #212429;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-faint: #64748b;
   --accent-color: #5fb3a3;
   --accent-hover: #7cc9bb;
   --accent-ink: #0e1a18;
-  --accent-soft: rgba(95, 179, 163, 0.15);
+  --accent-soft: rgba(95, 179, 163, 0.16);
   --danger-color: #e5736a;
   --warn-color: #d9a441;
-  --code-bg: #121315;
-  --code-border: #2b2d31;
+  --code-bg: #121418;
+  --code-border: #262a33;
   --code-text: #7cc9bb;
-  --blockquote-bg: rgba(95, 179, 163, 0.07);
-  --diagram-bg: #1a1b1d;
-  --diagram-border: #2b2d31;
+  --blockquote-bg: rgba(95, 179, 163, 0.08);
+  --diagram-bg: #181b20;
+  --diagram-border: #262a33;
 
-  --editor-bg: #1e1e1e;
-  --editor-gutter-bg: #1e1e1e;
-  --editor-gutter-border: #282828;
-  --editor-text: #d4d4d4;
+  --editor-bg: #16181d;
+  --editor-gutter-bg: #16181d;
+  --editor-gutter-border: #212429;
+  --editor-text: #e2e8f0;
   --editor-caret: #4fc1ff;
   --editor-selection: rgba(38, 79, 120, 0.65);
 
@@ -43,7 +53,7 @@ html.dark {
   --reading-toolbar-bg: var(--bg-surface);
   --reading-statusbar-bg: var(--bg-app);
   --reading-text: var(--text-primary);
-  --reading-heading: #f5f4ef;
+  --reading-heading: #f8fafc;
   --reading-muted: var(--text-secondary);
   --reading-border: var(--border-color);
   --reading-border-subtle: var(--border-subtle);
@@ -51,16 +61,16 @@ html.dark {
   --reading-accent-hover: var(--accent-hover);
   --reading-btn-bg: var(--bg-elevated);
   --reading-hover: var(--bg-hover);
-  --reading-input-bg: #161719;
+  --reading-input-bg: var(--bg-input);
   --reading-quote-bg: var(--blockquote-bg);
-  --reading-quote-text: #c9c7bf;
+  --reading-quote-text: #cbd5e1;
   --reading-code-bg: var(--code-bg);
   --reading-code-text: var(--code-text);
-  --reading-pre-bg: #141517;
-  --reading-table-stripe: #1b1c1f;
+  --reading-pre-bg: #121418;
+  --reading-table-stripe: #191c22;
   --reading-link: var(--accent-color);
   --reading-link-hover: var(--accent-hover);
-  --reading-math-bg: #18191c;
+  --reading-math-bg: #181b20;
   --reading-diagram-bg: var(--diagram-bg);
 
   color-scheme: dark;
@@ -68,21 +78,24 @@ html.dark {
 
 html[data-theme="light"],
 html.light {
-  /* Tokens originales en modo claro */
+  /* Tokens en modo claro sincronizados en toda la aplicación (incluido Sidebar) */
   --bg-app: #f0efea;
   --bg-surface: #f7f6f2;
   --bg-reader: #fcfbf8;
   --bg-elevated: #e8e6df;
   --bg-hover: #deddd5;
+  --bg-input: #ffffff;
+  --bg-active-item: rgba(59, 130, 246, 0.12);
+  --border-active-item: rgba(59, 130, 246, 0.35);
   --border-color: #dcdad2;
-  --border-subtle: #eae8e1;
+  --border-subtle: #e6e4dc;
   --text-primary: #25241f;
   --text-secondary: #6b6a63;
   --text-faint: #98968d;
   --accent-color: #1f7a6d;
   --accent-hover: #17625a;
   --accent-ink: #ffffff;
-  --accent-soft: rgba(31, 122, 109, 0.12);
+  --accent-soft: rgba(31, 122, 109, 0.14);
   --danger-color: #c8372d;
   --warn-color: #a8730f;
   --code-bg: #f4f2eb;
@@ -92,9 +105,9 @@ html.light {
   --diagram-bg: #fcfbf8;
   --diagram-border: #dcdad2;
 
-  --editor-bg: #ffffff;
-  --editor-gutter-bg: #f8f9fa;
-  --editor-gutter-border: #e1e4e8;
+  --editor-bg: #fcfbf8;
+  --editor-gutter-bg: #f4f3ee;
+  --editor-gutter-border: #e2e0d8;
   --editor-text: #24292e;
   --editor-caret: #0066b8;
   --editor-selection: rgba(173, 214, 255, 0.65);
@@ -185,20 +198,20 @@ button,
   }
 }
 
-/* Modificadores de tamaño de texto para el panel de lectura */
+/* Modificadores de tamaño de texto para el panel de lectura (en armonía con el Editor) */
 .font-size-small {
-  font-size: 0.9375rem !important;
-  line-height: 1.68 !important;
+  font-size: 0.875rem !important;
+  line-height: 1.65 !important;
 }
 
 .font-size-medium {
-  font-size: 1.0625rem !important;
-  line-height: 1.8 !important;
+  font-size: 0.9375rem !important;
+  line-height: 1.72 !important;
 }
 
 .font-size-large {
-  font-size: 1.25rem !important;
-  line-height: 1.85 !important;
+  font-size: 1.0625rem !important;
+  line-height: 1.78 !important;
 }
 
 /* Scrollbars discretos estilo mesa de lectura */
@@ -284,7 +297,7 @@ button,
   .studio-statusbar,
   .resizer-gutter,
   .resizer-divider,
-  .code-header-bar,
+  .code-copy-btn,
   .mermaid-header-bar,
   .mermaid-zoom-controls,
   .delete-doc-btn,
@@ -298,6 +311,13 @@ button,
     overflow: hidden !important;
     position: absolute !important;
     left: -99999px !important;
+  }
+
+  /* Preservar colores de fondo, bordes, alertas y resaltado de sintaxis en el PDF */
+  .reading-table-content,
+  .reading-table-content * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   /* Asegurar que la vista previa siempre sea la ÚNICA que se muestre en el PDF */
@@ -387,24 +407,49 @@ button,
     margin: 1.5rem 0 !important;
   }
 
-  /* Bloques de código con ajuste de línea para no desbordar en papel */
+  /* Bloques de código con contenedor visual claro, encabezado de lenguaje y ajuste de línea */
   .reading-table-content .code-block-wrapper {
-    overflow: visible !important;
-    border: 1px solid #d0d7de !important;
+    overflow: hidden !important;
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 6px !important;
     background-color: #f6f8fa !important;
     margin: 1rem 0 !important;
     page-break-inside: avoid;
     break-inside: avoid;
   }
 
+  .reading-table-content .code-header-bar {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 4px 12px !important;
+    background-color: #eaeef2 !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+    font-size: 8.5pt !important;
+  }
+
+  .reading-table-content .code-lang-label {
+    color: #475569 !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+  }
+
   .reading-table-content pre {
     overflow: visible !important;
     white-space: pre-wrap !important;
     word-break: break-word !important;
-    background-color: transparent !important;
+    background-color: #f6f8fa !important;
     color: #1f2328 !important;
-    padding: 0.8rem 1rem !important;
+    padding: 0.85rem 1.1rem !important;
     border: none !important;
+    margin: 0 !important;
+  }
+
+  .reading-table-content :not(.code-block-wrapper) > pre {
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+    margin: 0.85rem 0 !important;
   }
 
   .reading-table-content pre code,
@@ -414,22 +459,158 @@ button,
     word-break: break-word !important;
     background: transparent !important;
     color: #1f2328 !important;
-    font-size: 9.5pt !important;
+    font-size: 9.25pt !important;
+    line-height: 1.55 !important;
   }
 
   .reading-table-content :not(pre)>code {
-    background-color: #eceff2 !important;
-    color: #1f2328 !important;
-    border: 1px solid #d0d7de !important;
+    background-color: #eef2f6 !important;
+    color: #0f172a !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 0.12em 0.38em !important;
+    border-radius: 4px !important;
   }
 
-  /* Citas / Blockquotes */
+  /* Citas / Blockquotes simples y anidadas con sangría y barra vertical distintiva */
   .reading-table-content blockquote {
-    border-left: 3.5px solid #0969da !important;
-    background-color: #f6f8fa !important;
-    color: #57606a !important;
+    margin: 0.9rem 0 0.9rem 0.25rem !important;
+    padding: 0.7rem 1.15rem !important;
+    border-left: 4px solid #0969da !important;
+    background-color: #f4f7fb !important;
+    color: #334155 !important;
+    border-radius: 0 6px 6px 0 !important;
+    font-style: italic !important;
     page-break-inside: avoid;
     break-inside: avoid;
+  }
+
+  .reading-table-content blockquote blockquote {
+    margin: 0.55rem 0 0.25rem 0.85rem !important;
+    padding: 0.55rem 1rem !important;
+    border-left: 3.5px solid #1f7a6d !important;
+    background-color: #eaf0f6 !important;
+  }
+
+  /* Alertas GFM (Callouts: NOTE, TIP, IMPORTANT, WARNING, CAUTION) en PDF */
+  .reading-table-content .markdown-alert {
+    margin: 0.95rem 0 !important;
+    padding: 0.75rem 1.1rem !important;
+    border: 1px solid #cbd5e1 !important;
+    border-left-width: 4.5px !important;
+    border-radius: 6px !important;
+    background-color: #f8fafc !important;
+    color: #1f2328 !important;
+    font-style: normal !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .reading-table-content .markdown-alert-title {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    font-weight: 700 !important;
+    font-size: 10pt !important;
+    margin-bottom: 0.35rem !important;
+  }
+
+  .reading-table-content .markdown-alert-note {
+    border-left-color: #0969da !important;
+    background-color: #eff6ff !important;
+  }
+  .reading-table-content .markdown-alert-note .markdown-alert-title {
+    color: #0969da !important;
+  }
+
+  .reading-table-content .markdown-alert-tip {
+    border-left-color: #1a7f37 !important;
+    background-color: #f0fdf4 !important;
+  }
+  .reading-table-content .markdown-alert-tip .markdown-alert-title {
+    color: #1a7f37 !important;
+  }
+
+  .reading-table-content .markdown-alert-important {
+    border-left-color: #8250df !important;
+    background-color: #faf5ff !important;
+  }
+  .reading-table-content .markdown-alert-important .markdown-alert-title {
+    color: #8250df !important;
+  }
+
+  .reading-table-content .markdown-alert-warning {
+    border-left-color: #d97706 !important;
+    background-color: #fffbeb !important;
+  }
+  .reading-table-content .markdown-alert-warning .markdown-alert-title {
+    color: #b45309 !important;
+  }
+
+  .reading-table-content .markdown-alert-caution {
+    border-left-color: #cf222e !important;
+    background-color: #fef2f2 !important;
+  }
+  .reading-table-content .markdown-alert-caution .markdown-alert-title {
+    color: #cf222e !important;
+  }
+
+  /* Elementos desplegables (<details>) siempre expandidos y estilizados en PDF */
+  .reading-table-content details {
+    display: block !important;
+    margin: 1rem 0 !important;
+    padding: 0.75rem 1.1rem !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+    background-color: #fcfcfd !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .reading-table-content details summary {
+    display: block !important;
+    font-weight: 600 !important;
+    color: #1f2328 !important;
+    margin-bottom: 0.65rem !important;
+    padding-bottom: 0.4rem !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+  }
+
+  /* Notas al pie en PDF */
+  .reading-table-content .footnote-item {
+    display: flex !important;
+    align-items: baseline !important;
+    gap: 0.5rem !important;
+    padding: 0.45rem 0.75rem !important;
+    margin: 0.4rem 0 !important;
+    background-color: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-left: 3px solid #0969da !important;
+    border-radius: 4px !important;
+    font-size: 9.5pt !important;
+    color: #334155 !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .reading-table-content .footnote-num {
+    font-weight: 700 !important;
+    color: #0969da !important;
+  }
+
+  /* Listas y Checkboxes protegidos contra cortes de página inconsistentes */
+  .reading-table-content li {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .reading-table-content ul.contains-task-list {
+    padding-left: 0.4rem !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .reading-table-content li.task-list-item {
+    list-style: none !important;
   }
 
   /* Tablas multipágina estructuradas */
@@ -489,29 +670,29 @@ button,
   }
 
   .reading-table-content .mermaid-container {
-    overflow: visible !important;
-    border: 1px solid #d0d7de !important;
+    overflow: hidden !important;
+    border: 1px solid #cbd5e1 !important;
     border-radius: 6px !important;
     background-color: #ffffff !important;
-    margin: 1.25rem 0 !important;
+    margin: 1.15rem 0 !important;
     page-break-inside: avoid;
     break-inside: avoid;
   }
 
   .reading-table-content .mermaid-svg-viewport {
-    display: block !important;
-    text-align: center !important;
-    overflow: visible !important;
-    padding: 0.75rem !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    overflow: hidden !important;
+    padding: 0.85rem !important;
     margin: 0 auto !important;
     background-color: #ffffff !important;
   }
 
   .reading-table-content .mermaid-svg-viewport svg {
-    display: inline-block !important;
+    display: block !important;
     max-width: 100% !important;
-    max-height: 215mm !important;
-    width: auto !important;
+    max-height: 195mm !important;
     height: auto !important;
     margin: 0 auto !important;
     background-color: transparent !important;
@@ -538,18 +719,19 @@ button,
     stroke-width: 1.5px !important;
   }
 
-  /* Textos dentro de nodos y etiquetas */
+  /* Textos dentro de nodos y etiquetas (sin alterar font-weight para evitar recortes) */
   .reading-table-content .mermaid-container svg .node text,
+  .reading-table-content .mermaid-container svg .node tspan,
   .reading-table-content .mermaid-container svg .node .label,
   .reading-table-content .mermaid-container svg .node .nodeLabel,
   .reading-table-content .mermaid-container svg .node span,
   .reading-table-content .mermaid-container svg .node p,
   .reading-table-content .mermaid-container svg .node div,
   .reading-table-content .mermaid-container svg .label text,
+  .reading-table-content .mermaid-container svg .label tspan,
   .reading-table-content .mermaid-container svg .label span {
     fill: #1f2328 !important;
     color: #1f2328 !important;
-    font-weight: 500 !important;
   }
 
   /* Subgraphs, clusters y grupos contenedores */

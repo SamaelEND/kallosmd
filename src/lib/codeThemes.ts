@@ -46,11 +46,11 @@ export const CODE_THEMES: CodeTheme[] = [
     label: "VS Code",
     description: "Dark+ / Light+ suavizado, bajo cansancio visual",
     dark: {
-      bg: "#1e1e1e",
-      fg: "#d4d4d4",
-      border: "#2b2d31",
-      gutter: "#858585",
-      activeLine: "rgba(255,255,255,0.04)",
+      bg: "#16181d",
+      fg: "#e2e8f0",
+      border: "#262a33",
+      gutter: "#64748b",
+      activeLine: "rgba(255,255,255,0.035)",
       selection: "rgba(38,79,120,0.7)",
       caret: "#aeafad",
       keyword: "#569cd6",
@@ -301,12 +301,12 @@ export function buildEditorExtensions(p: Palette, dark: boolean): Extension {
         height: "100%",
         fontFamily:
           '"JetBrains Mono", ui-monospace, Menlo, Monaco, Consolas, monospace',
-        fontSize: "15px",
+        fontSize: "13.75px",
       },
       ".cm-content": {
         caretColor: p.caret,
-        padding: "20px 24px",
-        lineHeight: "1.65",
+        padding: "18px 22px",
+        lineHeight: "1.68",
       },
       ".cm-cursor, .cm-dropCursor": {
         borderLeftColor: p.caret,
