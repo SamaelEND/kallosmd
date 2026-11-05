@@ -61,7 +61,7 @@
       document.head.appendChild(styleEl);
     }
 
-    const currentUrl = typeof window !== "undefined" ? window.location.href : "https://samaelend.github.io/markdown-studio/";
+    const currentUrl = typeof window !== "undefined" ? window.location.href : "https://markdown-studio.xyz/";
     const urlContent = settings.includePdfUrl ? JSON.stringify(currentUrl) : '""';
 
     styleEl.textContent = `

@@ -12,7 +12,7 @@
           document.documentElement.classList.remove('dark');
           document.documentElement.classList.add('light');
         }
-      } catch (_) {}
+      } catch (_) { }
     })();
   </script>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -25,28 +25,37 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>Markdown Studio — Markdown Editor &amp; Live Preview</title>
+  <title>Markdown Studio — Free Online Markdown Editor &amp; Live Preview (KaTeX, Mermaid &amp; PDF)</title>
   <meta name="description"
-    content="Markdown Studio: editor y visor en vivo de Markdown de alto rendimiento con KaTeX, diagramas Mermaid, resaltado de código y vista dividida." />
+    content="Markdown Studio es un editor y visor en vivo de Markdown (Live Preview) gratuito, rápido y privado. Incluye fórmulas KaTeX LaTeX, diagramas Mermaid, resaltado de código multi-lenguaje, vista dividida y exportación limpia a PDF sin registro." />
   <meta name="keywords"
-    content="markdown, mark down, markdown preview, markdown editor, markdown live preview, markdown viewer, mark down preview, svelte markdown, katex, mermaid" />
+    content="markdown editor, markdown preview, markdown live preview, mark down preview, markdown viewer, online markdown editor, editor markdown online, previsualizador markdown, markdown katex, markdown latex formulas, markdown mermaid diagrams, markdown to pdf, markdown split view, svelte markdown editor, offline markdown editor, private markdown editor" />
   <meta name="author" content="Markdown Studio" />
-  <link rel="canonical" href="https://samaelend.github.io/markdown-studio/" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <link rel="canonical" href="https://markdown-studio.xyz/" />
 
-  <!-- Open Graph / SEO -->
+  <!-- Open Graph / SEO / Facebook / LinkedIn / WhatsApp -->
   <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://samaelend.github.io/markdown-studio/" />
-  <meta property="og:title" content="Markdown Studio — Markdown Editor &amp; Live Preview" />
+  <meta property="og:url" content="https://markdown-studio.xyz/" />
+  <meta property="og:site_name" content="Markdown Studio" />
+  <meta property="og:locale" content="es_ES" />
+  <meta property="og:title" content="Markdown Studio — Free Online Markdown Editor &amp; Live Preview" />
   <meta property="og:description"
-    content="High-performance Markdown editor and live preview studio with KaTeX, Mermaid diagrams, and split-view." />
-  <meta property="og:image" content="https://samaelend.github.io/markdown-studio/md-studio-icon-512.png" />
-  <meta name="google-site-verification" content="JfuNPqbVxypoHmgkGMyxfkkT6hGGC-Inrg1FDinfPLk" />
+    content="Fast, privacy-friendly online Markdown editor with instant live preview, KaTeX math equations, interactive Mermaid diagrams, split view, and clean PDF export." />
+  <meta property="og:image" content="https://markdown-studio.xyz/md-studio-icon-512.png" />
+  <meta property="og:image:alt" content="Markdown Studio - Online Markdown Editor &amp; Live Preview" />
+  <meta property="og:image:width" content="512" />
+  <meta property="og:image:height" content="512" />
+
+  <meta name="google-site-verification" content="X2qo0v9Hs-mlRzuW0hbKbN2zPOcVICbCQ-4LcujKwNg" />
+
   <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="Markdown Studio — Markdown Editor &amp; Live Preview" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Markdown Studio — Free Online Markdown Editor &amp; Live Preview" />
   <meta name="twitter:description"
-    content="High-performance Markdown editor and live preview studio with KaTeX, Mermaid diagrams, and split-view." />
-  <meta name="twitter:image" content="https://samaelend.github.io/markdown-studio/md-studio-icon-512.png" />
+    content="Fast, privacy-friendly online Markdown editor with instant live preview, KaTeX math equations, interactive Mermaid diagrams, and clean PDF export." />
+  <meta name="twitter:image" content="https://markdown-studio.xyz/md-studio-icon-512.png" />
+  <meta name="twitter:image:alt" content="Markdown Studio - Online Markdown Editor &amp; Live Preview" />
 
   <!-- Structured Data (JSON-LD) for Search Engines -->
   <script type="application/ld+json">
@@ -54,29 +63,60 @@
     "@context": "https://schema.org",
     "@type": "WebApplication",
     "name": "Markdown Studio",
-    "url": "https://samaelend.github.io/markdown-studio/",
-    "description": "High-performance Markdown editor and live preview studio with KaTeX math formulas, Mermaid diagrams, and syntax highlighting.",
+    "alternateName": ["MD Studio", "Markdown Preview Studio"],
+    "url": "https://markdown-studio.xyz/",
+    "description": "High-performance online Markdown editor and live preview studio with KaTeX LaTeX math equations, interactive Mermaid diagrams, split view, syntax highlighting, and PDF export.",
     "applicationCategory": "DeveloperApplication",
+    "applicationSubCategory": "TextEditor",
     "operatingSystem": "All",
+    "browserRequirements": "Requires JavaScript. Requires HTML5.",
+    "inLanguage": ["es", "en"],
+    "keywords": "markdown editor, markdown preview, markdown live preview, mark down, katex markdown, mermaid diagrams, markdown to pdf",
     "offers": {
       "@type": "Offer",
       "price": "0",
       "priceCurrency": "USD"
     },
     "featureList": [
-      "Live Markdown Preview",
-      "Math formulas with KaTeX",
-      "Mermaid diagram rendering",
-      "Code syntax highlighting",
-      "Split view and fullscreen reading mode",
-      "Local offline storage"
+      "Real-time Live Markdown Preview",
+      "Math equations rendering with KaTeX (LaTeX)",
+      "Interactive Mermaid diagrams (Flowcharts, Sequence, Class diagrams)",
+      "Multi-language code syntax highlighting with line numbers",
+      "Split-screen editing with synchronized scrolling",
+      "Distraction-free fullscreen reading mode",
+      "Instant export to PDF and Markdown (.md)",
+      "100% Client-side local storage with IndexedDB (No server storage, total privacy)"
     ]
   }
   </script>
 </head>
 
 <body>
-  <div id="app"></div>
+  <div id="app">
+    <!-- Contenido semántico pre-renderizado para motores de búsqueda y lectores de pantalla -->
+    <noscript>
+      <main style="font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; line-height: 1.6;">
+        <h1>Markdown Studio — Online Markdown Editor &amp; Live Preview</h1>
+        <p><strong>Markdown Studio</strong> es un editor y visor en vivo de Markdown de alto rendimiento, enfocado en la
+          claridad tipográfica, la soberanía de datos y la experiencia de lectura sin distracciones.</p>
+        <h2>Características principales</h2>
+        <ul>
+          <li><strong>Editor en Vivo y Vista Dividida (Split View):</strong> Edición simultánea con previsualización en
+            tiempo real y sincronización de desplazamiento.</li>
+          <li><strong>Fórmulas Matemáticas con KaTeX:</strong> Soporte completo para ecuaciones en línea y en bloque
+            tipo LaTeX.</li>
+          <li><strong>Diagramas Interactivos con Mermaid:</strong> Diagramas de flujo, arquitectura, secuencias y
+            clases.</li>
+          <li><strong>Resaltado de Sintaxis:</strong> Bloques de código multi-lenguaje (Python, TypeScript, JavaScript,
+            SQL, Rust, Go, etc.).</li>
+          <li><strong>Exportación Limpia a PDF:</strong> Diseñado con reglas de impresión profesionales para generar
+            documentos listos para compartir.</li>
+          <li><strong>Privacidad Total:</strong> Almacenamiento local mediante IndexedDB en tu navegador; ningún dato se
+            envía a servidores externos.</li>
+        </ul>
+      </main>
+    </noscript>
+  </div>
   <script type="module" src="/src/main.ts"></script>
 </body>
 

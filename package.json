@@ -9,11 +9,13 @@
     "mark-down",
     "markdown-viewer",
     "markdown-live-preview",
-    "svelte",
-    "svelte5",
-    "codemirror",
+    "markdown-to-pdf",
     "katex",
-    "mermaid"
+    "latex",
+    "mermaid",
+    "mermaid-diagrams",
+    "split-view",
+    "codemirror"
   ],
   "private": true,
   "version": "0.0.0",
