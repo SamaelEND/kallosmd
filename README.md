@@ -179,3 +179,5 @@ markdown-studio/
 Este proyecto está licenciado bajo los términos de la **GNU Affero General Public License v3.0 (AGPL-3.0)**. Consulta el archivo [LICENSE](./LICENSE) para más detalles.
 
 Copyright (C) 2026 Manuel Alvarez.
+
+> Desarrollado y optimizado mediante pair programming entre Manuel Alvarez y herramientas de asistencia de código con IA.
