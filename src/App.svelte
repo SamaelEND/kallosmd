@@ -272,7 +272,7 @@
   }
 
   onMount(() => {
-    if (window.innerWidth < 820) {
+    if (window.innerWidth <= 1024) {
       sidebarOpen = false;
     }
   });
@@ -288,6 +288,16 @@
 <div class="studio-root" class:dark={isDark}>
   <!-- Overlay para soltar archivos .md -->
   <DropOverlay visible={isDraggingFile} />
+
+  <!-- Backdrop scrim para tablets y móviles cuando el sidebar está abierto -->
+  {#if sidebarOpen}
+    <div
+      class="sidebar-backdrop"
+      onclick={() => (sidebarOpen = false)}
+      role="presentation"
+      aria-hidden="true"
+    ></div>
+  {/if}
 
   <!-- Barra lateral: Documentos e Índice -->
   <Sidebar isOpen={sidebarOpen} onClose={() => (sidebarOpen = false)} />
@@ -495,6 +505,33 @@
     .studio-statusbar {
       padding: 0 0.65rem;
       padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+  }
+
+  /* Backdrop Scrim para Drawer del Sidebar en Tablets y Móviles */
+  .sidebar-backdrop {
+    display: none;
+  }
+
+  @media (max-width: 1024px) {
+    .sidebar-backdrop {
+      display: block;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+      z-index: 95;
+      animation: fadeInScrim 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes fadeInScrim {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
     }
   }
 </style>

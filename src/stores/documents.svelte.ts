@@ -3,13 +3,17 @@
  * Preparado con runas de Svelte 5 ($state, $derived).
  */
 
-import type { DocumentItem, Settings, TocHeading, ThemeMode, ViewMode, FontSize } from '../types';
+import type { DocumentItem, FolderItem, Settings, TocHeading, ThemeMode, ViewMode, FontSize } from '../types';
 import {
   getAllDocumentsFromDb,
   saveDocumentToDb,
   saveAllDocumentsToDb,
   deleteDocumentFromDb,
   clearAllDocumentsFromDb,
+  getAllFoldersFromDb,
+  saveFolderToDb,
+  deleteFolderFromDb,
+  clearAllFoldersFromDb,
 } from '../lib/db';
 import { DEFAULT_CODE_THEME, isCodeThemeId } from '../lib/codeThemes';
 
@@ -177,6 +181,35 @@ function normalizeDocTitle(rawTitle: string): string {
 }
 
 /**
+ * Extrae el primer encabezado de nivel 1 (# Título) para el nombre automático del archivo.
+ */
+export function extractFirstH1(markdown: string): string | null {
+  const lines = markdown.split('\n');
+  let inCodeBlock = false;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
+      inCodeBlock = !inCodeBlock;
+      continue;
+    }
+    if (inCodeBlock) continue;
+
+    // Detectar encabezado de nivel 1 (# Encabezado pero no ## o más)
+    const match = line.match(/^#\s+(.+)$/);
+    if (match) {
+      const clean = match[1]
+        .replace(/[*_`~[\]]/g, '')
+        .replace(/[\\/:*?"<>|]/g, '')
+        .trim();
+      if (clean) return clean;
+    }
+  }
+
+  return null;
+}
+
+/**
  * Extrae encabezados del contenido Markdown para construir la tabla de contenidos (TOC).
  */
 export function extractHeadings(markdown: string): TocHeading[] {
@@ -224,6 +257,7 @@ export function extractHeadings(markdown: string): TocHeading[] {
 
 class DocumentStore {
   documents = $state<DocumentItem[]>([]);
+  folders = $state<FolderItem[]>([]);
   activeId = $state<string>('');
   settings = $state<Settings>(DEFAULT_SETTINGS);
   isReady = $state<boolean>(false);
@@ -331,6 +365,7 @@ class DocumentStore {
 
         // 2. Limpiar documentos residuales de prueba en IndexedDB
         await clearAllDocumentsFromDb();
+        await clearAllFoldersFromDb();
 
         // 3. Crear el documento inicial limpio oficial
         const initialDoc: DocumentItem = {
@@ -339,6 +374,8 @@ class DocumentStore {
           content: DEFAULT_MARKDOWN,
           createdAt: Date.now(),
           updatedAt: Date.now(),
+          folderId: null,
+          hasCustomTitle: false,
         };
 
         await saveDocumentToDb(initialDoc);
@@ -350,6 +387,7 @@ class DocumentStore {
         } catch {}
 
         this.documents = [initialDoc];
+        this.folders = [];
         this.activeId = initialDoc.id;
         this.updateActiveCache(initialDoc);
         this.isReady = true;
@@ -358,6 +396,7 @@ class DocumentStore {
 
       // Flujo normal una vez inicializado con IndexedDB:
       let dbDocs = await getAllDocumentsFromDb();
+      let dbFolders = await getAllFoldersFromDb();
 
       if (dbDocs.length === 0) {
         const initialDoc: DocumentItem = {
@@ -366,12 +405,15 @@ class DocumentStore {
           content: DEFAULT_MARKDOWN,
           createdAt: Date.now(),
           updatedAt: Date.now(),
+          folderId: null,
+          hasCustomTitle: false,
         };
         await saveDocumentToDb(initialDoc);
         dbDocs = [initialDoc];
       }
 
       this.documents = dbDocs;
+      this.folders = dbFolders;
 
       // Asegurar que activeId apunte a un documento existente
       const exists = this.documents.some((d) => d.id === this.activeId);
@@ -415,6 +457,8 @@ class DocumentStore {
             content: doc.content,
             createdAt: doc.createdAt,
             updatedAt: doc.updatedAt,
+            folderId: doc.folderId || null,
+            hasCustomTitle: Boolean(doc.hasCustomTitle),
           })
         );
       } else {
@@ -489,7 +533,11 @@ class DocumentStore {
 
   // --- Operaciones CRUD de Documentos ---
 
-  createDocument(rawTitle = 'nuevo-documento.md', content = '# Nuevo Documento\n\n'): DocumentItem {
+  createDocument(
+    rawTitle = 'nuevo-documento.md',
+    content = '# Nuevo Documento\n\n',
+    folderId: string | null = null
+  ): DocumentItem {
     this.flushPendingSave();
     const title = normalizeDocTitle(rawTitle);
     const newDoc: DocumentItem = {
@@ -498,6 +546,8 @@ class DocumentStore {
       content,
       createdAt: Date.now(),
       updatedAt: Date.now(),
+      folderId,
+      hasCustomTitle: false,
     };
 
     this.documents = [newDoc, ...this.documents];
@@ -529,17 +579,125 @@ class DocumentStore {
 
     doc.content = content;
     doc.updatedAt = Date.now();
+
+    // Si el usuario no ha personalizado manualmente el nombre del archivo,
+    // extraer dinámicamente el primer encabezado H1 para nombrarlo automáticamente
+    if (!doc.hasCustomTitle) {
+      const h1Title = extractFirstH1(content);
+      if (h1Title) {
+        const normalized = normalizeDocTitle(h1Title);
+        if (doc.title !== normalized) {
+          doc.title = normalized;
+          this.updateActiveCache(doc);
+        }
+      }
+    }
+
     this.scheduleSave(doc);
   }
 
-  updateActiveTitle(rawTitle: string): void {
+  updateActiveTitle(rawTitle: string, isManual = true): void {
     const doc = this.activeDocument;
     if (!doc) return;
 
     doc.title = normalizeDocTitle(rawTitle);
+    if (isManual) {
+      doc.hasCustomTitle = true;
+    }
     doc.updatedAt = Date.now();
     saveDocumentToDb(doc);
     this.updateActiveCache(doc);
+  }
+
+  updateDocumentTitle(id: string, rawTitle: string, isManual = true): void {
+    const doc = this.documents.find((d) => d.id === id);
+    if (!doc) return;
+
+    doc.title = normalizeDocTitle(rawTitle);
+    if (isManual) {
+      doc.hasCustomTitle = true;
+    }
+    doc.updatedAt = Date.now();
+    saveDocumentToDb(doc);
+    if (this.activeId === id) {
+      this.updateActiveCache(doc);
+    }
+  }
+
+  // --- Operaciones de Carpetas (Folders) ---
+
+  createFolder(rawName = 'Nueva Carpeta'): FolderItem {
+    const cleanName = rawName.trim() || 'Nueva Carpeta';
+    const newFolder: FolderItem = {
+      id: generateId(),
+      name: cleanName,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      isExpanded: true,
+    };
+
+    this.folders = [...this.folders, newFolder];
+    saveFolderToDb(newFolder);
+    return newFolder;
+  }
+
+  updateFolderName(id: string, newName: string): void {
+    const folder = this.folders.find((f) => f.id === id);
+    if (!folder) return;
+
+    const clean = newName.trim();
+    if (!clean) return;
+
+    folder.name = clean;
+    folder.updatedAt = Date.now();
+    saveFolderToDb(folder);
+  }
+
+  deleteFolder(id: string, deleteContainedFiles = false): void {
+    const folder = this.folders.find((f) => f.id === id);
+    if (!folder) return;
+
+    if (deleteContainedFiles) {
+      const docsToDelete = this.documents.filter((d) => d.folderId === id);
+      for (const d of docsToDelete) {
+        this.deleteDocument(d.id);
+      }
+    } else {
+      // Mover los documentos contenidos a la raíz (sin carpeta)
+      this.documents.forEach((d) => {
+        if (d.folderId === id) {
+          d.folderId = null;
+          d.updatedAt = Date.now();
+          saveDocumentToDb(d);
+        }
+      });
+      if (this.activeDocument?.folderId === id) {
+        this.updateActiveCache(this.activeDocument);
+      }
+    }
+
+    this.folders = this.folders.filter((f) => f.id !== id);
+    deleteFolderFromDb(id);
+  }
+
+  toggleFolderExpanded(id: string): void {
+    const folder = this.folders.find((f) => f.id === id);
+    if (!folder) return;
+
+    folder.isExpanded = !folder.isExpanded;
+    saveFolderToDb(folder);
+  }
+
+  moveDocumentToFolder(docId: string, folderId: string | null): void {
+    const doc = this.documents.find((d) => d.id === docId);
+    if (!doc) return;
+
+    doc.folderId = folderId;
+    doc.updatedAt = Date.now();
+    saveDocumentToDb(doc);
+    if (this.activeId === docId) {
+      this.updateActiveCache(doc);
+    }
   }
 
   deleteDocument(id: string): boolean {
@@ -578,6 +736,7 @@ class DocumentStore {
     };
 
     this.documents = [freshDoc];
+    this.folders = [];
     this.activeId = freshDoc.id;
     try {
       localStorage.setItem(STORAGE_KEYS.ACTIVE_ID, this.activeId);
@@ -587,6 +746,7 @@ class DocumentStore {
     clearAllDocumentsFromDb().then(() => {
       saveDocumentToDb(freshDoc);
     });
+    clearAllFoldersFromDb();
   }
 
   /**

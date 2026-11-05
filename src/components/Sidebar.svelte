@@ -1,20 +1,33 @@
 <script lang="ts">
   /**
    * Componente Sidebar de MD Studio.
-   * Gestión completa de documentos (Nuevo, Abrir local, Buscar, Eliminar, Vaciar todo)
-   * y navegación por Tabla de Contenidos (TOC).
+   * Sistema ergonómico de navegación por carpetas y documentos Markdown (.md):
+   * - Búsqueda inteligente: oculta elementos no coincidentes y muestra mensaje de sin resultados.
+   * - Iconos de carpetas en ámbar dorado (#eab308) con animación dinámica.
+   * - Menú contextual de 3 puntos para renombrar manualmente, mover o eliminar archivos.
+   * - Botón de ocultar en la esquina superior derecha con icono de sidebar (PanelLeft).
    */
   import {
+    AlignLeft,
+    Check,
+    ChevronDown,
+    ChevronRight,
     FileText,
-    FolderOpen,
-    List,
+    Folder,
+    FolderPlus,
+    FolderSync,
+    MoreVertical,
+    PanelLeft,
+    Pencil,
     Plus,
     Search,
     Trash2,
+    Upload,
     X,
   } from "lucide-svelte";
+  import FolderIcon from "./FolderIcon.svelte";
   import { documentStore } from "../stores/documents.svelte";
-  import type { TocHeading } from "../types";
+  import type { FolderItem, TocHeading } from "../types";
 
   interface Props {
     isOpen: boolean;
@@ -27,34 +40,198 @@
   let searchQuery = $state("");
   let fileInputElement = $state<HTMLInputElement | null>(null);
 
-  const filteredDocs = $derived.by(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return documentStore.documents;
+  // Estados de edición en línea de nombres
+  let editingFolderId = $state<string | null>(null);
+  let editingFolderName = $state("");
+  let editingDocId = $state<string | null>(null);
+  let editingDocTitle = $state("");
+
+  // Estado del menú desplegable de 3 puntos para documentos
+  let activeDocMenuId = $state<string | null>(null);
+
+  // Estado de Drag & Drop
+  let draggedDocId = $state<string | null>(null);
+  let dragOverTargetId = $state<string | null>(null);
+
+  // Acción de auto-enfoque y selección al montar inputs de edición
+  function focusOnMount(node: HTMLInputElement) {
+    node.focus();
+    node.select();
+  }
+
+  // Lógica reactiva de búsqueda
+  const isSearching = $derived(searchQuery.trim().length > 0);
+  const cleanQuery = $derived(searchQuery.trim().toLowerCase());
+
+  // Documentos coincidentes
+  const matchingDocs = $derived.by(() => {
+    if (!isSearching) return documentStore.documents;
     return documentStore.documents.filter(
       (d) =>
-        d.title.toLowerCase().includes(q) ||
-        d.content.toLowerCase().includes(q),
+        d.title.toLowerCase().includes(cleanQuery) ||
+        d.content.toLowerCase().includes(cleanQuery),
     );
   });
+
+  // Carpetas visibles: en búsqueda sólo aquellas con archivos coincidentes
+  const visibleFolders = $derived.by(() => {
+    if (!isSearching) return documentStore.folders;
+    return documentStore.folders.filter((folder) =>
+      matchingDocs.some((d) => d.folderId === folder.id),
+    );
+  });
+
+  // Documentos para una carpeta dada
+  function getDocsForFolder(folderId: string) {
+    if (!isSearching) {
+      return documentStore.documents.filter((d) => d.folderId === folderId);
+    }
+    return matchingDocs.filter((d) => d.folderId === folderId);
+  }
+
+  // Documentos de la raíz (sin carpeta)
+  const visibleRootDocs = $derived.by(() => {
+    if (!isSearching) {
+      return documentStore.documents.filter((d) => !d.folderId);
+    }
+    return matchingDocs.filter((d) => !d.folderId);
+  });
+
+  // Cantidad total de resultados
+  const totalResultsCount = $derived(matchingDocs.length);
 
   const tocHeadings = $derived(documentStore.tocHeadings);
 
   function closeIfMobile(): void {
-    if (typeof window !== "undefined" && window.innerWidth <= 768 && onClose) {
+    if (typeof window !== "undefined" && window.innerWidth <= 1024 && onClose) {
       onClose();
     }
   }
 
-  function handleCreateDoc(): void {
+  // Creación de documento en la raíz
+  function handleCreateRootDoc(): void {
     const count = documentStore.documents.length + 1;
     documentStore.createDocument(
       `documento-${count}.md`,
       `# Documento ${count}\n\n`,
+      null,
     );
     activeTab = "docs";
     closeIfMobile();
   }
 
+  // Creación de documento dentro de una carpeta específica
+  function handleCreateDocInFolder(folderId: string, e?: MouseEvent): void {
+    e?.stopPropagation();
+    const folder = documentStore.folders.find((f) => f.id === folderId);
+    const folderName = folder ? folder.name.toLowerCase().replace(/\s+/g, "-") : "folder";
+    const docsInFolder = documentStore.documents.filter((d) => d.folderId === folderId);
+    const count = docsInFolder.length + 1;
+
+    if (folder && !folder.isExpanded) {
+      documentStore.toggleFolderExpanded(folderId);
+    }
+
+    documentStore.createDocument(
+      `${folderName}-doc-${count}.md`,
+      `# Nuevo Documento\n\n`,
+      folderId,
+    );
+    activeTab = "docs";
+    closeIfMobile();
+  }
+
+  // Creación de carpeta
+  function handleCreateFolder(): void {
+    const folderCount = documentStore.folders.length + 1;
+    const defaultName = `Carpeta ${folderCount}`;
+    const newFolder = documentStore.createFolder(defaultName);
+    editingFolderId = newFolder.id;
+    editingFolderName = newFolder.name;
+  }
+
+  // Renombrado de carpeta
+  function startRenamingFolder(folder: FolderItem, e: MouseEvent): void {
+    e.stopPropagation();
+    editingFolderId = folder.id;
+    editingFolderName = folder.name;
+  }
+
+  function commitFolderName(folderId: string): void {
+    if (editingFolderId === folderId && editingFolderName.trim()) {
+      documentStore.updateFolderName(folderId, editingFolderName);
+    }
+    editingFolderId = null;
+    editingFolderName = "";
+  }
+
+  function handleFolderInputKeyDown(folderId: string, e: KeyboardEvent): void {
+    if (e.key === "Enter") {
+      commitFolderName(folderId);
+    } else if (e.key === "Escape") {
+      editingFolderId = null;
+      editingFolderName = "";
+    }
+  }
+
+  // Eliminación de carpeta
+  function handleDeleteFolder(folderId: string, e: MouseEvent): void {
+    e.stopPropagation();
+    const folder = documentStore.folders.find((f) => f.id === folderId);
+    if (!folder) return;
+
+    const docsInside = documentStore.documents.filter((d) => d.folderId === folderId);
+    if (docsInside.length > 0) {
+      const choice = confirm(
+        `La carpeta "${folder.name}" contiene ${docsInside.length} archivo(s).\n\n¿Presiona ACEPTAR para eliminar la carpeta y conservar los archivos en la raíz?\n(Cancelar aborta la operación)`,
+      );
+      if (choice) {
+        documentStore.deleteFolder(folderId, false);
+      }
+    } else {
+      if (confirm(`¿Eliminar la carpeta vacía "${folder.name}"?`)) {
+        documentStore.deleteFolder(folderId, true);
+      }
+    }
+  }
+
+  // Renombrado manual de documento desde los 3 puntos o doble clic
+  function startRenamingDoc(docId: string, currentTitle: string, e?: MouseEvent): void {
+    e?.stopPropagation();
+    editingDocId = docId;
+    editingDocTitle = currentTitle;
+    activeDocMenuId = null;
+  }
+
+  function commitDocTitle(docId: string): void {
+    if (editingDocId === docId && editingDocTitle.trim()) {
+      documentStore.updateDocumentTitle(docId, editingDocTitle, true);
+    }
+    editingDocId = null;
+    editingDocTitle = "";
+  }
+
+  function handleDocInputKeyDown(docId: string, e: KeyboardEvent): void {
+    if (e.key === "Enter") {
+      commitDocTitle(docId);
+    } else if (e.key === "Escape") {
+      editingDocId = null;
+      editingDocTitle = "";
+    }
+  }
+
+  // Menú de 3 puntos
+  function toggleDocMenu(docId: string, e: MouseEvent): void {
+    e.stopPropagation();
+    activeDocMenuId = activeDocMenuId === docId ? null : docId;
+  }
+
+  function handleMoveDoc(docId: string, targetFolderId: string | null): void {
+    documentStore.moveDocumentToFolder(docId, targetFolderId);
+    activeDocMenuId = null;
+  }
+
+  // Manejo de importación de archivos
   function handleTriggerOpen(): void {
     fileInputElement?.click();
   }
@@ -74,8 +251,10 @@
     reader.readAsText(file);
   }
 
+  // Eliminación de documento
   function handleDeleteDoc(id: string, e: MouseEvent): void {
     e.stopPropagation();
+    activeDocMenuId = null;
     const doc = documentStore.documents.find((d) => d.id === id);
     if (!doc) return;
 
@@ -85,682 +264,1511 @@
     }
   }
 
+  // Vaciar todo
   function handleClearAll(): void {
     const confirmed = confirm(
-      "¿Deseas vaciar todo el historial? Se cerrarán todos los archivos y se creará uno nuevo en blanco.",
+      "¿Deseas vaciar todo el espacio de trabajo? Se cerrarán todos los archivos y carpetas y se creará uno nuevo en blanco.",
     );
     if (confirmed) {
       documentStore.clearAllDocuments();
     }
   }
 
+  // --- Drag & Drop ---
+  function onDragStart(e: DragEvent, docId: string): void {
+    draggedDocId = docId;
+    if (e.dataTransfer) {
+      e.dataTransfer.setData("text/plain", docId);
+      e.dataTransfer.effectAllowed = "move";
+    }
+  }
+
+  function onDragOver(e: DragEvent, targetId: string): void {
+    e.preventDefault();
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = "move";
+    }
+    dragOverTargetId = targetId;
+  }
+
+  function onDragLeave(): void {
+    dragOverTargetId = null;
+  }
+
+  function onDrop(e: DragEvent, targetFolderId: string | null): void {
+    e.preventDefault();
+    dragOverTargetId = null;
+    const docId = draggedDocId || e.dataTransfer?.getData("text/plain");
+    if (docId) {
+      documentStore.moveDocumentToFolder(docId, targetFolderId);
+    }
+    draggedDocId = null;
+  }
+
   function scrollToHeading(heading: TocHeading): void {
     const target = document.getElementById(heading.id);
     if (target) {
       target.scrollIntoView({ behavior: "smooth", block: "start" });
+      closeIfMobile();
     }
-    closeIfMobile();
   }
 
-  function formatMeta(doc: { updatedAt: number; content: string }): string {
-    const dateStr = new Date(doc.updatedAt).toLocaleString("es-MX", {
-      day: "2-digit",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-    const sizeKb = (new Blob([doc.content]).size / 1024).toFixed(1);
-    return `${dateStr} · ${sizeKb} KB`;
+  // Formato exacto de fecha y tamaño como en el prototipo: "Nov 5, 12:01 AM · 11 B"
+  function formatFileMeta(timestamp: number, sizeBytes: number): string {
+    const d = new Date(timestamp);
+    const monthNames = [
+      "Ene", "Feb", "Mar", "Abr", "May", "Jun",
+      "Jul", "Ago", "Sep", "Oct", "Nov", "Dic",
+    ];
+    const month = monthNames[d.getMonth()];
+    const day = d.getDate();
+    let hours = d.getHours();
+    const minutes = d.getMinutes().toString().padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    const timeStr = `${hours}:${minutes} ${ampm}`;
+
+    let sizeStr = "";
+    if (sizeBytes < 1024) {
+      sizeStr = `${sizeBytes} B`;
+    } else if (sizeBytes < 1024 * 1024) {
+      sizeStr = `${(sizeBytes / 1024).toFixed(1)} KB`;
+    } else {
+      sizeStr = `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+
+    return `${month} ${day}, ${timeStr} · ${sizeStr}`;
   }
 </script>
 
-<!-- Input oculto para abrir archivos locales -->
-<input
-  type="file"
-  accept=".md,.markdown,.txt"
-  class="hidden-file-input"
-  bind:this={fileInputElement}
-  onchange={handleFileInputChange}
+<svelte:window
+  onclick={() => {
+    activeDocMenuId = null;
+  }}
 />
 
-{#if isOpen}
-  <!-- Backdrop oscuro con blur para cerrar el panel al pulsar fuera en móviles -->
-  <div
-    class="sidebar-backdrop no-print"
-    onclick={onClose}
-    role="presentation"
-    aria-hidden="true"
-  ></div>
-{/if}
-
-<aside class="studio-sidebar no-print" class:open={isOpen}>
-  <!-- Cabecera de la Barra Lateral -->
+<aside
+  class="sidebar"
+  class:sidebar-open={isOpen}
+  aria-label="Panel lateral de navegación"
+>
+  <!-- Encabezado del Sidebar con Icono para Ocultar a la Derecha -->
   <div class="sidebar-header">
-    <div class="brand">
-      <img
-        src="/md-studio-icon-64.png"
-        alt="MD Studio Logo"
-        class="brand-logo"
-        width="22"
-        height="22"
-      />
-      <span class="brand-name">Markdown Studio</span>
+    <div class="header-brand">
+      <div class="brand-badge">
+        <FileText size={16} />
+      </div>
+      <h2 class="sidebar-title">Markdown Studio</h2>
     </div>
+
     {#if onClose}
       <button
         type="button"
-        class="icon-btn"
+        class="toggle-sidebar-btn"
         onclick={onClose}
-        title="Ocultar panel lateral"
+        title="Ocultar panel lateral (Ctrl+B)"
         aria-label="Ocultar panel lateral"
       >
-        <X size={16} />
+        <PanelLeft size={18} />
       </button>
     {/if}
   </div>
 
-  <!-- Pestañas Documentos vs Índice -->
-  <div class="sidebar-tabs" role="tablist">
+  <!-- Pestañas de Navegación estilo Cápsula (Archivos / Índice) -->
+  <div class="tabs-bar" role="tablist">
     <button
       type="button"
-      class="tab-btn"
+      class="tab-pill"
       class:active={activeTab === "docs"}
       onclick={() => (activeTab = "docs")}
       role="tab"
+      aria-selected={activeTab === "docs"}
     >
-      <FileText size={14} />
-      <span>Documentos ({documentStore.documents.length})</span>
+      <Folder size={14} class="tab-icon" />
+      <span>Archivos</span>
+      <span class="pill-badge">{documentStore.documents.length}</span>
     </button>
     <button
       type="button"
-      class="tab-btn"
+      class="tab-pill"
       class:active={activeTab === "toc"}
       onclick={() => (activeTab = "toc")}
       role="tab"
+      aria-selected={activeTab === "toc"}
     >
-      <List size={14} />
-      <span>Índice ({tocHeadings.length})</span>
+      <AlignLeft size={14} class="tab-icon" />
+      <span>Índice</span>
+      {#if tocHeadings.length > 0}
+        <span class="pill-badge">{tocHeadings.length}</span>
+      {/if}
     </button>
   </div>
 
+  <!-- Contenido de Pestaña: Documentos y Carpetas -->
   {#if activeTab === "docs"}
-    <div class="tab-panel">
-      <!-- Acciones: Nuevo y Abrir -->
-      <div class="side-actions-row">
+    <div class="sidebar-section">
+      <!-- Fila de Acciones: Botón Principal Azul + Botón Carpeta + Botón Subir -->
+      <div class="quick-actions-bar">
         <button
           type="button"
-          class="action-btn"
-          onclick={handleCreateDoc}
-          title="Crear un nuevo documento"
+          class="btn-new-doc"
+          onclick={handleCreateRootDoc}
+          title="Crear nuevo documento Markdown"
         >
-          <Plus size={14} />
-          <span>Nuevo</span>
+          <Plus size={16} />
+          <span>Nuevo documento</span>
         </button>
+
         <button
           type="button"
-          class="action-btn"
-          onclick={handleTriggerOpen}
-          title="Abrir un archivo .md local"
+          class="btn-action-square"
+          onclick={handleCreateFolder}
+          title="Crear nueva carpeta"
+          aria-label="Crear nueva carpeta"
         >
-          <FolderOpen size={14} />
-          <span>Abrir</span>
+          <FolderPlus size={16} />
+        </button>
+
+        <button
+          type="button"
+          class="btn-action-square"
+          onclick={handleTriggerOpen}
+          title="Abrir archivo .md del equipo"
+          aria-label="Abrir archivo desde equipo"
+        >
+          <Upload size={16} />
         </button>
       </div>
 
-      <!-- Barra de búsqueda -->
-      <div class="search-box">
-        <Search size={14} class="search-icon" />
-        <input
-          type="text"
-          placeholder="Buscar documento..."
-          bind:value={searchQuery}
-          class="search-input"
-        />
-        {#if searchQuery}
+      <input
+        type="file"
+        accept=".md,.markdown,.txt"
+        bind:this={fileInputElement}
+        onchange={handleFileInputChange}
+        style="display: none;"
+        aria-hidden="true"
+      />
+
+      <!-- Barra de Búsqueda (sin atajo ctrl+k) -->
+      <div class="search-box-wrap">
+        <div class="search-box" class:has-focus={isSearching}>
+          <Search size={15} class="search-icon" />
+          <input
+            type="text"
+            placeholder="Buscar documentos..."
+            bind:value={searchQuery}
+            class="search-input"
+            aria-label="Buscar en títulos y contenido"
+          />
+          {#if searchQuery}
+            <button
+              type="button"
+              class="clear-search-btn"
+              onclick={() => (searchQuery = "")}
+              aria-label="Limpiar búsqueda"
+            >
+              <X size={13} />
+            </button>
+          {/if}
+        </div>
+      </div>
+
+      <!-- Árbol de Carpetas y Archivos -->
+      <div class="file-tree-container">
+        <!-- Estado sin coincidencias en búsqueda -->
+        {#if isSearching && totalResultsCount === 0}
+          <div class="empty-search-state">
+            <p class="empty-search-text">Sin resultados para "{searchQuery}"</p>
+          </div>
+        {:else}
+          <!-- 1. Listado de Carpetas (se oculta si no hay carpetas o si ninguna coincide en búsqueda) -->
+          {#if visibleFolders.length > 0}
+            <div class="folders-group">
+              <div class="group-header">
+                <span class="group-title">CARPETAS</span>
+                <span class="group-count">{visibleFolders.length}</span>
+              </div>
+
+              {#each visibleFolders as folder (folder.id)}
+                {@const folderDocs = getDocsForFolder(folder.id)}
+                {@const isDropTarget = dragOverTargetId === folder.id}
+                {@const isExpanded = isSearching ? true : folder.isExpanded}
+
+                <div
+                  class="folder-item"
+                  class:drop-target={isDropTarget}
+                  ondragover={(e) => onDragOver(e, folder.id)}
+                  ondragleave={onDragLeave}
+                  ondrop={(e) => onDrop(e, folder.id)}
+                  role="group"
+                >
+                  <!-- Fila de la Carpeta -->
+                  <div
+                    class="folder-row"
+                    onclick={() => documentStore.toggleFolderExpanded(folder.id)}
+                    role="button"
+                    tabindex="0"
+                    onkeydown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        documentStore.toggleFolderExpanded(folder.id);
+                      }
+                    }}
+                  >
+                    <button
+                      type="button"
+                      class="folder-toggle-btn"
+                      aria-label={isExpanded ? "Colapsar carpeta" : "Expandir carpeta"}
+                      tabindex="-1"
+                    >
+                      {#if isExpanded}
+                        <ChevronDown size={14} />
+                      {:else}
+                        <ChevronRight size={14} />
+                      {/if}
+                    </button>
+
+                    <!-- Icono de Carpeta Ámbar Dorado (#eab308) -->
+                    <FolderIcon
+                      hasFiles={folderDocs.length > 0}
+                      isOpen={isExpanded}
+                      size={18}
+                    />
+
+                    {#if editingFolderId === folder.id}
+                      <div
+                        class="inline-edit-wrapper"
+                        role="presentation"
+                        onclick={(e) => e.stopPropagation()}
+                        onkeydown={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          type="text"
+                          bind:value={editingFolderName}
+                          class="inline-edit-input"
+                          onblur={() => commitFolderName(folder.id)}
+                          onkeydown={(e) => handleFolderInputKeyDown(folder.id, e)}
+                          use:focusOnMount
+                        />
+                        <button
+                          type="button"
+                          class="inline-save-btn"
+                          onclick={() => commitFolderName(folder.id)}
+                          title="Guardar nombre"
+                        >
+                          <Check size={12} />
+                        </button>
+                      </div>
+                    {:else}
+                      <span
+                        class="folder-name"
+                        title={folder.name}
+                        role="button"
+                        tabindex="0"
+                        ondblclick={(e) => startRenamingFolder(folder, e)}
+                        onkeydown={(e) => {
+                          if (e.key === "F2") startRenamingFolder(folder, e as unknown as MouseEvent);
+                        }}
+                      >
+                        {folder.name}
+                      </span>
+                      <span class="folder-doc-count">{folderDocs.length}</span>
+                    {/if}
+
+                    <!-- Acciones rápidas en hover para la carpeta -->
+                    <div
+                      class="folder-actions"
+                      role="presentation"
+                      onclick={(e) => e.stopPropagation()}
+                      onkeydown={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        type="button"
+                        class="folder-action-btn"
+                        title="Crear nuevo archivo .md en esta carpeta"
+                        onclick={(e) => handleCreateDocInFolder(folder.id, e)}
+                      >
+                        <Plus size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        class="folder-action-btn"
+                        title="Cambiar nombre de la carpeta"
+                        onclick={(e) => startRenamingFolder(folder, e)}
+                      >
+                        <Pencil size={12} />
+                      </button>
+                      <button
+                        type="button"
+                        class="folder-action-btn danger"
+                        title="Eliminar carpeta"
+                        onclick={(e) => handleDeleteFolder(folder.id, e)}
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Contenido de la carpeta si está expandida -->
+                  {#if isExpanded}
+                    <div class="folder-children">
+                      {#if folderDocs.length === 0}
+                        <div class="empty-folder-label">
+                          <span>Carpeta vacía</span>
+                        </div>
+                      {:else}
+                        {#each folderDocs as doc (doc.id)}
+                          {@const isActive = doc.id === documentStore.activeId}
+                          {@const docSize = new Blob([doc.content]).size}
+
+                          <div
+                            class="doc-item nested-doc"
+                            class:active={isActive}
+                            draggable="true"
+                            ondragstart={(e) => onDragStart(e, doc.id)}
+                            onclick={() => {
+                              documentStore.selectDocument(doc.id);
+                              closeIfMobile();
+                            }}
+                            role="button"
+                            tabindex="0"
+                            onkeydown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                documentStore.selectDocument(doc.id);
+                                closeIfMobile();
+                              }
+                            }}
+                          >
+                            <div class="doc-icon">
+                              <FileText size={15} />
+                            </div>
+
+                            <div class="doc-info">
+                              {#if editingDocId === doc.id}
+                                <div
+                                  class="inline-edit-wrapper"
+                                  role="presentation"
+                                  onclick={(e) => e.stopPropagation()}
+                                  onkeydown={(e) => e.stopPropagation()}
+                                >
+                                  <input
+                                    type="text"
+                                    bind:value={editingDocTitle}
+                                    class="inline-edit-input"
+                                    onblur={() => commitDocTitle(doc.id)}
+                                    onkeydown={(e) => handleDocInputKeyDown(doc.id, e)}
+                                    use:focusOnMount
+                                  />
+                                  <button
+                                    type="button"
+                                    class="inline-save-btn"
+                                    onclick={() => commitDocTitle(doc.id)}
+                                    title="Guardar nombre"
+                                  >
+                                    <Check size={12} />
+                                  </button>
+                                </div>
+                              {:else}
+                                <span
+                                  class="doc-title"
+                                  title={doc.title}
+                                  role="button"
+                                  tabindex="0"
+                                  ondblclick={(e) => startRenamingDoc(doc.id, doc.title, e)}
+                                  onkeydown={(e) => {
+                                    if (e.key === "F2") startRenamingDoc(doc.id, doc.title, e as unknown as MouseEvent);
+                                  }}
+                                >
+                                  {doc.title}
+                                </span>
+                                <div class="doc-meta">
+                                  <span>{formatFileMeta(doc.updatedAt, docSize)}</span>
+                                </div>
+                              {/if}
+                            </div>
+
+                            <!-- Acciones de documento: 3 puntos -->
+                            <div
+                              class="doc-actions"
+                              role="presentation"
+                              onclick={(e) => e.stopPropagation()}
+                              onkeydown={(e) => e.stopPropagation()}
+                            >
+                              <button
+                                type="button"
+                                class="doc-action-btn"
+                                title="Opciones del archivo"
+                                aria-label="Opciones del archivo"
+                                onclick={(e) => toggleDocMenu(doc.id, e)}
+                              >
+                                <MoreVertical size={14} />
+                              </button>
+                            </div>
+
+                            <!-- Menú flotante de 3 puntos -->
+                            {#if activeDocMenuId === doc.id}
+                              <div
+                                class="doc-context-menu"
+                                role="menu"
+                                tabindex="-1"
+                                onclick={(e) => e.stopPropagation()}
+                                onkeydown={(e) => e.stopPropagation()}
+                              >
+                                <button
+                                  type="button"
+                                  class="menu-item-btn"
+                                  role="menuitem"
+                                  onclick={(e) => startRenamingDoc(doc.id, doc.title, e)}
+                                >
+                                  <Pencil size={13} />
+                                  <span>Cambiar nombre</span>
+                                </button>
+
+                                <div class="menu-separator"></div>
+
+                                <div class="menu-section-header">Mover a:</div>
+                                <button
+                                  type="button"
+                                  class="menu-item-btn"
+                                  role="menuitem"
+                                  onclick={() => handleMoveDoc(doc.id, null)}
+                                >
+                                  <FolderSync size={13} />
+                                  <span>Raíz (Sin carpeta)</span>
+                                </button>
+                                {#each documentStore.folders as targetF}
+                                  {#if targetF.id !== folder.id}
+                                    <button
+                                      type="button"
+                                      class="menu-item-btn"
+                                      role="menuitem"
+                                      onclick={() => handleMoveDoc(doc.id, targetF.id)}
+                                    >
+                                      <FolderIcon size={14} />
+                                      <span>{targetF.name}</span>
+                                    </button>
+                                  {/if}
+                                {/each}
+
+                                <div class="menu-separator"></div>
+
+                                <button
+                                  type="button"
+                                  class="menu-item-btn danger"
+                                  role="menuitem"
+                                  onclick={(e) => handleDeleteDoc(doc.id, e)}
+                                >
+                                  <Trash2 size={13} />
+                                  <span>Eliminar</span>
+                                </button>
+                              </div>
+                            {/if}
+                          </div>
+                        {/each}
+                      {/if}
+                    </div>
+                  {/if}
+                </div>
+              {/each}
+            </div>
+          {/if}
+
+          <!-- 2. Archivos en la Raíz (se oculta si no hay archivos coincidentes) -->
+          {#if visibleRootDocs.length > 0}
+            <div
+              class="root-docs-group"
+              class:drop-target={dragOverTargetId === "root"}
+              ondragover={(e) => onDragOver(e, "root")}
+              ondragleave={onDragLeave}
+              ondrop={(e) => onDrop(e, null)}
+              role="region"
+              aria-label="Archivos"
+            >
+              <div class="group-header">
+                <span class="group-title">ARCHIVOS</span>
+                <span class="group-count">{visibleRootDocs.length}</span>
+              </div>
+
+              {#each visibleRootDocs as doc (doc.id)}
+                {@const isActive = doc.id === documentStore.activeId}
+                {@const docSize = new Blob([doc.content]).size}
+
+                <div
+                  class="doc-item"
+                  class:active={isActive}
+                  draggable="true"
+                  ondragstart={(e) => onDragStart(e, doc.id)}
+                  onclick={() => {
+                    documentStore.selectDocument(doc.id);
+                    closeIfMobile();
+                  }}
+                  role="button"
+                  tabindex="0"
+                  onkeydown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      documentStore.selectDocument(doc.id);
+                      closeIfMobile();
+                    }
+                  }}
+                >
+                  <div class="doc-icon">
+                    <FileText size={15} />
+                  </div>
+
+                  <div class="doc-info">
+                    {#if editingDocId === doc.id}
+                      <div
+                        class="inline-edit-wrapper"
+                        role="presentation"
+                        onclick={(e) => e.stopPropagation()}
+                        onkeydown={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          type="text"
+                          bind:value={editingDocTitle}
+                          class="inline-edit-input"
+                          onblur={() => commitDocTitle(doc.id)}
+                          onkeydown={(e) => handleDocInputKeyDown(doc.id, e)}
+                          use:focusOnMount
+                        />
+                        <button
+                          type="button"
+                          class="inline-save-btn"
+                          onclick={() => commitDocTitle(doc.id)}
+                          title="Guardar nombre"
+                        >
+                          <Check size={12} />
+                        </button>
+                      </div>
+                    {:else}
+                      <span
+                        class="doc-title"
+                        title={doc.title}
+                        role="button"
+                        tabindex="0"
+                        ondblclick={(e) => startRenamingDoc(doc.id, doc.title, e)}
+                        onkeydown={(e) => {
+                          if (e.key === "F2") startRenamingDoc(doc.id, doc.title, e as unknown as MouseEvent);
+                        }}
+                      >
+                        {doc.title}
+                      </span>
+                      <div class="doc-meta">
+                        <span>{formatFileMeta(doc.updatedAt, docSize)}</span>
+                      </div>
+                    {/if}
+                  </div>
+
+                  <!-- Acciones de Documento: 3 puntos -->
+                  <div
+                    class="doc-actions"
+                    role="presentation"
+                    onclick={(e) => e.stopPropagation()}
+                    onkeydown={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      type="button"
+                      class="doc-action-btn"
+                      title="Opciones del archivo"
+                      aria-label="Opciones del archivo"
+                      onclick={(e) => toggleDocMenu(doc.id, e)}
+                    >
+                      <MoreVertical size={14} />
+                    </button>
+                  </div>
+
+                  <!-- Menú flotante de 3 puntos -->
+                  {#if activeDocMenuId === doc.id}
+                    <div
+                      class="doc-context-menu"
+                      role="menu"
+                      tabindex="-1"
+                      onclick={(e) => e.stopPropagation()}
+                      onkeydown={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        type="button"
+                        class="menu-item-btn"
+                        role="menuitem"
+                        onclick={(e) => startRenamingDoc(doc.id, doc.title, e)}
+                      >
+                        <Pencil size={13} />
+                        <span>Cambiar nombre</span>
+                      </button>
+
+                      {#if documentStore.folders.length > 0}
+                        <div class="menu-separator"></div>
+                        <div class="menu-section-header">Mover a:</div>
+                        {#each documentStore.folders as targetF}
+                          <button
+                            type="button"
+                            class="menu-item-btn"
+                            role="menuitem"
+                            onclick={() => handleMoveDoc(doc.id, targetF.id)}
+                          >
+                            <FolderIcon size={14} />
+                            <span>{targetF.name}</span>
+                          </button>
+                        {/each}
+                      {/if}
+
+                      <div class="menu-separator"></div>
+
+                      <button
+                        type="button"
+                        class="menu-item-btn danger"
+                        role="menuitem"
+                        onclick={(e) => handleDeleteDoc(doc.id, e)}
+                      >
+                        <Trash2 size={13} />
+                        <span>Eliminar</span>
+                      </button>
+                    </div>
+                  {/if}
+                </div>
+              {/each}
+            </div>
+          {/if}
+        {/if}
+      </div>
+
+      <!-- Pie de página discreto con opción de vaciar todo -->
+      {#if !isSearching}
+        <div class="sidebar-footer">
           <button
             type="button"
-            class="clear-btn"
-            onclick={() => (searchQuery = "")}
-            aria-label="Limpiar búsqueda"
+            class="clear-all-btn"
+            onclick={handleClearAll}
+            title="Elimina todos los archivos y carpetas locales"
           >
-            <X size={12} />
+            <Trash2 size={13} />
+            <span>Vaciar todo</span>
           </button>
-        {/if}
-      </div>
-
-      <!-- Lista de Historial de Documentos -->
-      <div class="doc-list">
-        {#if filteredDocs.length === 0}
-          <p class="empty-hint">No hay documentos que coincidan.</p>
-        {:else}
-          {#each filteredDocs as doc (doc.id)}
-            <div
-              class="doc-item"
-              class:active={doc.id === documentStore.activeId}
-              onclick={() => {
-                documentStore.selectDocument(doc.id);
-                closeIfMobile();
-              }}
-              role="button"
-              tabindex="0"
-              onkeydown={(e) => {
-                if (e.key === "Enter") {
-                  documentStore.selectDocument(doc.id);
-                  closeIfMobile();
-                }
-              }}
-            >
-              <div class="doc-info">
-                <div class="doc-title" title={doc.title}>{doc.title}</div>
-                <div class="doc-meta">{formatMeta(doc)}</div>
-              </div>
-              <button
-                type="button"
-                class="delete-btn"
-                onclick={(e) => handleDeleteDoc(doc.id, e)}
-                title="Cerrar y eliminar este archivo"
-                aria-label={`Eliminar ${doc.title}`}
-              >
-                <Trash2 size={13} />
-              </button>
-            </div>
-          {/each}
-        {/if}
-      </div>
-
-      <!-- Pie de lista: Vaciar todo -->
-      <div class="sidebar-footer">
-        <button
-          type="button"
-          class="clear-all-btn"
-          onclick={handleClearAll}
-          title="Eliminar todos los archivos y crear uno en blanco"
-        >
-          Vaciar todo
-        </button>
-      </div>
+        </div>
+      {/if}
     </div>
   {:else}
-    <!-- Panel de Tabla de Contenidos (TOC) -->
-    <div class="tab-panel">
-      <div class="toc-list">
-        {#if tocHeadings.length === 0}
-          <p class="empty-hint">
-            Los encabezados (#, ##) de tu documento aparecerán aquí.
+    <!-- Contenido de Pestaña: Tabla de Contenidos (TOC) -->
+    <div class="sidebar-section toc-section">
+      {#if tocHeadings.length === 0}
+        <div class="empty-toc">
+          <FileText size={28} class="empty-icon" />
+          <p class="empty-title">Sin encabezados</p>
+          <p class="empty-desc">
+            Agrega títulos (# H1, ## H2) en el editor para generar el índice automático.
           </p>
-        {:else}
-          {#each tocHeadings as heading (heading.id)}
+        </div>
+      {:else}
+        <nav class="toc-list" aria-label="Tabla de contenidos del documento">
+          {#each tocHeadings as heading}
             <button
               type="button"
               class="toc-item level-{heading.level}"
               onclick={() => scrollToHeading(heading)}
               title={heading.text}
             >
+              <span class="toc-bullet">•</span>
               <span class="toc-text">{heading.text}</span>
             </button>
           {/each}
-        {/if}
-      </div>
+        </nav>
+      {/if}
     </div>
   {/if}
-
-  <!-- Pie del Sidebar con enlace a GitHub -->
-  <div class="sidebar-footer">
-    <a
-      href="https://github.com/SamaelEND/markdown-studio"
-      target="_blank"
-      rel="noopener noreferrer"
-      class="sidebar-github-link"
-      title="Ver repositorio"
-    >
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 98 96"
-        fill="currentColor"
-        aria-hidden="true"
-      >
-        <path
-          fill-rule="evenodd"
-          clip-rule="evenodd"
-          d="M48.854 0C21.839 0 0 22 0 49.217c0 21.756 13.993 40.172 33.405 46.69 2.427.49 3.316-1.059 3.316-2.362 0-1.141-.08-5.052-.08-9.127-13.59 2.934-16.42-5.867-16.42-5.867-2.184-5.704-5.42-7.17-5.42-7.17-4.448-3.015.324-3.015.324-3.015 4.934.326 7.523 5.052 7.523 5.052 4.367 7.496 11.404 5.378 14.235 4.074.404-3.178 1.699-5.378 3.074-6.6-10.839-1.141-22.243-5.378-22.243-24.283 0-5.378 1.94-9.778 5.014-13.2-.485-1.222-2.184-6.275.486-13.038 0 0 4.125-1.304 13.426 5.052a46.97 46.97 0 0 1 12.214-1.63c4.125 0 8.33.571 12.213 1.63 9.302-6.356 13.427-5.052 13.427-5.052 2.67 6.763.97 11.816.485 13.038 3.155 3.422 5.015 7.822 5.015 13.2 0 18.905-11.404 23.06-22.324 24.283 1.78 1.548 3.316 4.481 3.316 9.126 0 6.6-.08 11.897-.08 13.526 0 1.304.89 2.853 3.316 2.364 19.412-6.52 33.405-24.935 33.405-46.691C97.707 22 75.788 0 48.854 0z"
-        />
-      </svg>
-      <span>Código abierto en GitHub</span>
-    </a>
-  </div>
 </aside>
 
 <style>
-  .hidden-file-input {
-    display: none;
-  }
-
-  .studio-sidebar {
-    width: 280px;
-    min-width: 280px;
+  .sidebar {
+    width: 290px;
     height: 100%;
-    background-color: var(--bg-surface, #1a1b1d);
-    border-right: 1px solid var(--border-color, #2b2d31);
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    background-color: var(--color-bg-sidebar, #16181d);
+    border-right: 1px solid var(--color-border-subtle, #212429);
     user-select: none;
-    transition: margin-left 0.22s ease-in-out;
-    z-index: 30;
+    overflow: hidden;
+    position: relative;
+    z-index: 25;
+    flex-shrink: 0;
+    transition:
+      width 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 0.22s ease;
   }
 
-  .studio-sidebar:not(.open) {
-    margin-left: -280px;
+  /* Ocultar en escritorio cuando isOpen es false */
+  .sidebar:not(.sidebar-open) {
+    width: 0;
+    border-right: none;
+    pointer-events: none;
+    visibility: hidden;
   }
 
+  /* Encabezado */
   .sidebar-header {
-    height: 52px;
-    padding: 0 1rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border-bottom: 1px solid var(--border-color, #2b2d31);
+    padding: 14px 16px 12px 16px;
+    min-width: 290px;
   }
 
-  .brand {
+  .header-brand {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
   }
 
-  .brand-logo {
-    width: 22px;
-    height: 22px;
-    border-radius: 4px;
-    object-fit: contain;
-    flex-shrink: 0;
-    display: block;
+  .brand-badge {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
   }
 
-  .brand-name {
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: var(--text-primary, #e8e6e1);
+  .sidebar-title {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--color-text-primary, #f8fafc);
+    margin: 0;
   }
 
-  .icon-btn {
+  /* Botón con icono de Sidebar a la derecha */
+  .toggle-sidebar-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
     border: none;
     background: transparent;
-    color: var(--text-secondary, #9b9a94);
+    color: var(--color-text-muted, #94a3b8);
+    border-radius: 6px;
     cursor: pointer;
-    padding: 4px;
-    border-radius: 4px;
+    transition: all 0.15s ease;
   }
 
-  .icon-btn:hover {
-    color: var(--text-primary, #e8e6e1);
+  .toggle-sidebar-btn:hover {
+    background: var(--color-surface-hover, #23272f);
+    color: var(--color-text-primary, #f8fafc);
   }
 
-  /* Pestañas */
-  .sidebar-tabs {
+  /* Pestañas Cápsula */
+  .tabs-bar {
     display: flex;
-    padding: 6px 10px;
-    background-color: var(--bg-surface, #1a1b1d);
-    border-bottom: 1px solid var(--border-subtle, #232427);
-    gap: 4px;
+    padding: 3px;
+    margin: 0 14px 12px 14px;
+    background: var(--color-bg-base, #1b1e24);
+    border-radius: 9px;
+    border: 1px solid var(--color-border-subtle, #23272f);
+    min-width: 262px;
   }
 
-  .tab-btn {
+  .tab-pill {
     flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    border: none;
+    gap: 7px;
+    padding: 6px 10px;
     background: transparent;
-    color: var(--text-secondary, #9b9a94);
-    padding: 6px 8px;
-    border-radius: 6px;
-    font-size: 0.775rem;
+    border: none;
+    border-radius: 7px;
+    font-size: 12.5px;
     font-weight: 500;
+    color: var(--color-text-muted, #94a3b8);
     cursor: pointer;
-    transition:
-      background-color 0.15s ease,
-      color 0.15s ease;
+    transition: all 0.15s ease;
   }
 
-  .tab-btn:hover {
-    color: var(--text-primary, #e8e6e1);
+  .tab-pill:hover {
+    color: var(--color-text-secondary, #cbd5e1);
   }
 
-  .tab-btn.active {
-    background-color: var(--bg-elevated, #26282b);
-    color: var(--accent-color, #5fb3a3);
+  .tab-pill.active {
+    background: var(--color-surface-panel, #282c35);
+    color: var(--color-text-primary, #ffffff);
     font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
   }
 
-  .tab-panel {
-    flex: 1;
+  :global(.tab-icon) {
+    flex-shrink: 0;
+    opacity: 0.9;
+  }
+
+  .pill-badge {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--color-text-muted, #94a3b8);
+  }
+
+  .tab-pill.active .pill-badge {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+  }
+
+  /* Fila de Creación de Archivos */
+  .sidebar-section {
     display: flex;
     flex-direction: column;
-    overflow: hidden;
-  }
-
-  /* Acciones: Nuevo y Abrir */
-  .side-actions-row {
-    padding: 10px 10px 6px;
-    display: flex;
-    gap: 8px;
-  }
-
-  .action-btn {
     flex: 1;
-    border: 1px solid var(--border-color, #2b2d31);
-    background-color: var(--bg-elevated, #26282b);
-    color: var(--text-primary, #e8e6e1);
-    padding: 6px 10px;
-    border-radius: 6px;
+    min-height: 0;
+    overflow: hidden;
+    min-width: 290px;
+  }
+
+  .quick-actions-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 14px 10px 14px;
+  }
+
+  .btn-new-doc {
+    flex: 1;
+    height: 38px;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
-    font-size: 0.8rem;
-    font-weight: 500;
+    padding: 0 14px;
+    border-radius: 8px;
+    background: #3b82f6;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
     cursor: pointer;
     transition: background-color 0.15s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
   }
 
-  .action-btn:hover {
-    background-color: var(--bg-hover, #2e3034);
-    border-color: var(--accent-color, #5fb3a3);
+  .btn-new-doc:hover {
+    background: #2563eb;
   }
 
-  /* Búsqueda */
-  .search-box {
-    margin: 6px 10px;
-    position: relative;
+  .btn-action-square {
+    width: 38px;
+    height: 38px;
     display: flex;
     align-items: center;
+    justify-content: center;
+    background: #202328;
+    border: 1px solid #2b3038;
+    border-radius: 8px;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+    padding: 0;
+  }
+
+  .btn-action-square:hover {
+    background: #282c33;
+    border-color: #3f4652;
+    color: #ffffff;
+  }
+
+  /* Barra de Búsqueda */
+  .search-box-wrap {
+    padding: 0 14px 14px 14px;
+  }
+
+  .search-box {
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    height: 38px;
+    background: #181b20;
+    border: 1px solid #282d35;
+    border-radius: 8px;
+    position: relative;
+    transition: all 0.15s ease;
+  }
+
+  .search-box.has-focus,
+  .search-box:focus-within {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 1.5px #3b82f6;
+    background: #1b1e24;
   }
 
   :global(.search-icon) {
-    position: absolute;
-    left: 8px;
-    color: var(--text-faint, #6f6e69);
-    pointer-events: none;
+    color: #64748b;
+    margin-right: 8px;
+    flex-shrink: 0;
   }
 
   .search-input {
     width: 100%;
-    padding: 6px 26px 6px 28px;
-    font-size: 0.8rem;
-    background-color: var(--bg-app, #151617);
-    border: 1px solid var(--border-color, #2b2d31);
-    border-radius: 6px;
-    color: var(--text-primary, #e8e6e1);
+    background: transparent;
+    border: none;
     outline: none;
+    color: #f1f5f9;
+    font-size: 13px;
     font-family: inherit;
   }
 
-  .search-input:focus {
-    border-color: var(--accent-color, #5fb3a3);
+  .search-input::placeholder {
+    color: #64748b;
   }
 
-  .clear-btn {
-    position: absolute;
-    right: 6px;
-    border: none;
+  .clear-search-btn {
     background: transparent;
-    color: var(--text-secondary, #9b9a94);
-    cursor: pointer;
+    border: none;
+    color: #64748b;
     padding: 2px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
   }
 
-  /* Lista de documentos */
-  .doc-list {
+  .clear-search-btn:hover {
+    color: #f1f5f9;
+  }
+
+  /* Mensaje cuando no hay resultados de búsqueda */
+  .empty-search-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 56px 16px;
+    text-align: center;
+  }
+
+  .empty-search-text {
+    font-size: 13px;
+    color: #64748b;
+    margin: 0;
+  }
+
+  /* Árbol de Carpetas y Archivos */
+  .file-tree-container {
     flex: 1;
     overflow-y: auto;
-    padding: 4px 6px;
+    overflow-x: hidden;
+    padding: 0 8px 12px 8px;
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 16px;
   }
 
-  .doc-item {
+  /* Encabezados de grupo */
+  .group-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 10px;
+    padding: 4px 10px 6px 10px;
+  }
+
+  .group-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #64748b;
+  }
+
+  .group-count {
+    font-size: 11px;
+    font-weight: 500;
+    color: #64748b;
+  }
+
+  /* Carpeta */
+  .folder-item {
+    border-radius: 8px;
+    transition: background 0.15s ease, border-color 0.15s ease;
+    border: 1px solid transparent;
+  }
+
+  .folder-item.drop-target {
+    border: 1px dashed #3b82f6;
+    background: rgba(59, 130, 246, 0.08);
+  }
+
+  .folder-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
     border-radius: 6px;
     cursor: pointer;
+    color: #e2e8f0;
+    font-size: 13px;
+    font-weight: 500;
+    position: relative;
+    transition: background 0.12s ease;
+  }
+
+  .folder-row:hover {
+    background: #1e2127;
+  }
+
+  .folder-toggle-btn {
+    background: transparent;
+    border: none;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+  }
+
+  .folder-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: inherit;
+    font: inherit;
+  }
+
+  .folder-doc-count {
+    font-size: 11px;
+    color: #64748b;
+    margin-left: auto;
+  }
+
+  .folder-actions {
+    display: none;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .folder-row:hover .folder-actions {
+    display: flex;
+  }
+
+  .folder-action-btn {
+    width: 20px;
+    height: 20px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .folder-action-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #f1f5f9;
+  }
+
+  .folder-action-btn.danger:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+  }
+
+  /* Sangría y línea guía vertical */
+  .folder-children {
+    margin-left: 17px;
+    border-left: 1px solid #272a31;
+    padding-left: 8px;
+    margin-top: 2px;
+    margin-bottom: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .empty-folder-label {
+    padding: 6px 10px;
+    font-size: 12px;
+    color: #64748b;
+  }
+
+  /* Documentos */
+  .root-docs-group {
+    border-radius: 8px;
     border: 1px solid transparent;
-    transition:
-      background-color 0.15s ease,
-      border-color 0.15s ease;
+    transition: all 0.15s ease;
+  }
+
+  .root-docs-group.drop-target {
+    border: 1px dashed #3b82f6;
+    background: rgba(59, 130, 246, 0.08);
+  }
+
+  .doc-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid transparent;
+    transition: all 0.12s ease;
   }
 
   .doc-item:hover {
-    background-color: var(--bg-hover, #2e3034);
+    background: #1b1e24;
   }
 
+  /* Documento Activo: fondo azul pizarra oscuro */
   .doc-item.active {
-    background-color: var(--bg-elevated, #26282b);
-    border-color: var(--border-color, #2b2d31);
+    background-color: #1e293b;
+    border-color: rgba(59, 130, 246, 0.3);
+  }
+
+  .doc-icon {
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .doc-item.active .doc-icon {
+    color: #60a5fa;
   }
 
   .doc-info {
     flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
   }
 
   .doc-title {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--text-primary, #e8e6e1);
+    font-size: 13px;
+    font-weight: 500;
+    color: #f1f5f9;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    text-align: left;
+    background: transparent;
+    border: none;
+    padding: 0;
+    font: inherit;
   }
 
   .doc-item.active .doc-title {
-    color: var(--accent-color, #5fb3a3);
+    color: #ffffff;
+    font-weight: 600;
   }
 
   .doc-meta {
-    font-size: 0.7rem;
-    color: var(--text-secondary, #9b9a94);
-    margin-top: 2px;
-  }
-
-  .delete-btn {
-    opacity: 0;
-    border: none;
-    background: transparent;
-    color: var(--text-secondary, #9b9a94);
-    cursor: pointer;
-    padding: 4px;
-    border-radius: 4px;
-    transition:
-      opacity 0.15s ease,
-      color 0.15s ease;
-  }
-
-  .doc-item:hover .delete-btn {
-    opacity: 0.8;
-  }
-
-  .delete-btn:hover {
-    opacity: 1;
-    color: var(--danger-color, #e5736a);
-  }
-
-  /* Pie de barra lateral */
-  .sidebar-footer {
-    padding: 8px 10px;
-    border-top: 1px solid var(--border-subtle, #232427);
     display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #64748b;
+  }
+
+  .doc-actions {
+    display: none;
+    align-items: center;
+  }
+
+  .doc-item:hover .doc-actions,
+  .doc-item.active .doc-actions {
+    display: flex;
+  }
+
+  .doc-action-btn {
+    width: 24px;
+    height: 24px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: #64748b;
+    display: flex;
+    align-items: center;
     justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.12s ease;
+  }
+
+  .doc-action-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+  }
+
+  /* Edición en línea */
+  .inline-edit-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+  }
+
+  .inline-edit-input {
+    flex: 1;
+    font-size: 12px;
+    padding: 2px 6px;
+    background: #121418;
+    border: 1px solid #3b82f6;
+    border-radius: 4px;
+    color: #ffffff;
+    outline: none;
+  }
+
+  .inline-save-btn {
+    background: #3b82f6;
+    border: none;
+    color: white;
+    border-radius: 4px;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  /* Menú flotante de 3 puntos */
+  .doc-context-menu {
+    position: absolute;
+    right: 8px;
+    top: 30px;
+    background: #1e2229;
+    border: 1px solid #2e3440;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    z-index: 60;
+    min-width: 170px;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    animation: menuPop 0.12s ease-out;
+  }
+
+  @keyframes menuPop {
+    from {
+      opacity: 0;
+      transform: translateY(-4px) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .menu-section-header {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    padding: 4px 8px;
+  }
+
+  .menu-separator {
+    height: 1px;
+    background: #2b303c;
+    margin: 3px 0;
+  }
+
+  .menu-item-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    background: transparent;
+    border: none;
+    border-radius: 5px;
+    color: #cbd5e1;
+    font-size: 12px;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    transition: all 0.12s ease;
+  }
+
+  .menu-item-btn:hover {
+    background: #3b82f6;
+    color: #ffffff;
+  }
+
+  .menu-item-btn.danger {
+    color: #f87171;
+  }
+
+  .menu-item-btn.danger:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+  }
+
+  /* Footer */
+  .sidebar-footer {
+    padding: 8px 14px;
+    border-top: 1px solid #212429;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 290px;
   }
 
   .clear-all-btn {
-    border: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
     background: transparent;
-    color: var(--danger-color, #e5736a);
-    font-size: 0.775rem;
-    cursor: pointer;
-    padding: 4px 8px;
+    border: none;
     border-radius: 4px;
-    transition: background-color 0.15s ease;
+    font-size: 11.5px;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.15s ease;
   }
 
   .clear-all-btn:hover {
-    background-color: rgba(229, 115, 106, 0.1);
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
   }
 
-  /* Índice (TOC) */
-  .toc-list {
-    flex: 1;
+  /* TOC */
+  .toc-section {
+    padding: 8px 14px;
     overflow-y: auto;
-    padding: 8px 6px;
+  }
+
+  .empty-toc {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 16px;
+    text-align: center;
+    color: #64748b;
+  }
+
+  :global(.empty-icon) {
+    margin-bottom: 8px;
+    opacity: 0.4;
+  }
+
+  .empty-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #94a3b8;
+    margin: 0 0 4px 0;
+  }
+
+  .empty-desc {
+    font-size: 11.5px;
+    line-height: 1.4;
+    margin: 0;
+  }
+
+  .toc-list {
     display: flex;
     flex-direction: column;
     gap: 2px;
   }
 
   .toc-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
     border: none;
     background: transparent;
-    text-align: left;
-    padding: 6px 8px;
     border-radius: 4px;
-    font-size: 0.8rem;
-    color: var(--text-secondary, #9b9a94);
+    color: #94a3b8;
+    font-size: 12px;
+    text-align: left;
     cursor: pointer;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    transition:
-      background-color 0.15s ease,
-      color 0.15s ease;
+    transition: all 0.12s ease;
   }
 
   .toc-item:hover {
-    background-color: var(--bg-hover, #2e3034);
-    color: var(--text-primary, #e8e6e1);
+    background: #1e2127;
+    color: #ffffff;
   }
 
   .toc-item.level-1 {
     font-weight: 600;
-    color: var(--text-primary, #e8e6e1);
-    padding-left: 8px;
   }
 
   .toc-item.level-2 {
-    padding-left: 18px;
+    padding-left: 16px;
+    font-size: 11.5px;
   }
 
   .toc-item.level-3 {
-    padding-left: 28px;
-    font-size: 0.75rem;
+    padding-left: 24px;
+    font-size: 11px;
+    color: #64748b;
   }
 
   .toc-item.level-4,
   .toc-item.level-5,
   .toc-item.level-6 {
-    padding-left: 36px;
-    font-size: 0.725rem;
+    padding-left: 32px;
+    font-size: 10.5px;
+    color: #64748b;
   }
 
-  .empty-hint {
-    padding: 2rem 1rem;
-    text-align: center;
-    color: var(--text-faint, #6f6e69);
-    font-size: 0.8rem;
+  .toc-bullet {
+    font-size: 12px;
+    opacity: 0.5;
   }
 
-  /* Pie del panel lateral */
-  .sidebar-footer {
-    margin-top: auto;
-    padding: 10px 14px;
-    border-top: 1px solid var(--border-subtle, #232427);
-    background-color: var(--bg-surface, #1a1b1d);
+  .toc-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  .sidebar-github-link {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.775rem;
-    font-weight: 500;
-    color: var(--text-secondary, #9b9a94);
-    text-decoration: none;
-    padding: 6px 8px;
-    border-radius: 6px;
-    transition:
-      background-color 0.15s ease,
-      color 0.15s ease;
-  }
-
-  .sidebar-github-link:hover {
-    background-color: var(--bg-hover, #2e3034);
-    color: var(--text-primary, #e8e6e1);
-  }
-
-  /* Backdrop oscuro para móviles */
-  .sidebar-backdrop {
-    display: none;
-  }
-
-  @media (max-width: 768px) {
-    .sidebar-backdrop {
-      display: block;
+  /* Responsivo Tablet y Móvil / Drawer por encima de todo */
+  @media (max-width: 1024px) {
+    .sidebar {
       position: fixed;
-      inset: 0;
-      background-color: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(2px);
-      -webkit-backdrop-filter: blur(2px);
-      z-index: 85;
-      animation: fadeInBackdrop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 285px;
+      max-width: 85vw;
+      transform: translateX(-100%);
+      box-shadow: 8px 0 36px rgba(0, 0, 0, 0.65);
+      visibility: visible;
+      pointer-events: auto;
+      z-index: 100;
+      transition: transform 0.26s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    @keyframes fadeInBackdrop {
-      from {
-        opacity: 0;
-      }
-      to {
-        opacity: 1;
-      }
+    .sidebar.sidebar-open {
+      transform: translateX(0);
+      visibility: visible;
     }
 
-    .studio-sidebar {
-      position: fixed !important;
-      top: 0 !important;
-      left: 0 !important;
-      bottom: 0 !important;
-      width: min(300px, 86vw) !important;
-      min-width: unset !important;
-      box-shadow: 4px 0 24px rgba(0, 0, 0, 0.45) !important;
-      z-index: 90 !important;
-      margin-left: 0 !important;
-      transform: translateX(0) !important;
-      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
-      padding-top: env(safe-area-inset-top, 0px);
-      padding-bottom: env(safe-area-inset-bottom, 0px);
-    }
-
-    .studio-sidebar:not(.open) {
-      transform: translateX(-100%) !important;
-      margin-left: 0 !important;
-      pointer-events: none !important;
-    }
-
-    .doc-item {
-      min-height: 48px;
-      padding: 10px 12px;
-    }
-
-    .tab-btn {
-      min-height: 38px;
-    }
-
-    .tool-btn {
-      min-height: 36px;
+    .sidebar:not(.sidebar-open) {
+      width: 285px;
+      transform: translateX(-100%);
+      visibility: hidden;
+      pointer-events: none;
     }
   }
 </style>

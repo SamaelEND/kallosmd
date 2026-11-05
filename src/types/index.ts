@@ -10,6 +10,17 @@ export type CodeThemeId = 'vscode' | 'solarized' | 'one' | 'github';
 export type FontSize = 'small' | 'medium' | 'large';
 
 /**
+ * Representa una carpeta de organización de documentos.
+ */
+export interface FolderItem {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+  isExpanded?: boolean;
+}
+
+/**
  * Representa un documento dentro del estudio.
  * Extensible para futuras características (etiquetas, favoritos, carpetas, etc.).
  */
@@ -21,6 +32,8 @@ export interface DocumentItem {
   createdAt?: number;
   tags?: string[];
   isFavorite?: boolean;
+  folderId?: string | null;
+  hasCustomTitle?: boolean;
 }
 
 /**
