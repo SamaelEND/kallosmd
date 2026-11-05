@@ -13,7 +13,7 @@
 </script>
 
 {#if visible}
-  <div class="drop-zone-overlay" aria-hidden="true">
+  <div class="drop-zone-overlay no-print" aria-hidden="true">
     <div class="drop-message-card">
       <FileUp size={44} class="drop-icon" />
       <p class="drop-title">
@@ -85,3 +85,4 @@
     }
   }
 </style>
+

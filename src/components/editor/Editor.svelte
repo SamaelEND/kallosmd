@@ -5,7 +5,7 @@
    * minimapa de alta fidelidad, sincronización de temas con la paleta original
    * y soporte para sincronización de scroll.
    */
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount, onDestroy } from "svelte";
   import {
     EditorView,
     lineNumbers,
@@ -17,15 +17,20 @@
     crosshairCursor,
     highlightActiveLine,
     keymap,
-  } from '@codemirror/view';
-  import { EditorState, Compartment, type Extension } from '@codemirror/state';
-  import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
-  import { markdown } from '@codemirror/lang-markdown';
-  import { languages } from '@codemirror/language-data';
-  import { foldGutter, bracketMatching } from '@codemirror/language';
-  import { buildEditorExtensions, getPalette } from '../lib/codeThemes';
-  import type { CodeThemeId } from '../types';
-  import { showMinimap } from '@replit/codemirror-minimap';
+  } from "@codemirror/view";
+  import { EditorState, Compartment, type Extension } from "@codemirror/state";
+  import {
+    defaultKeymap,
+    history,
+    historyKeymap,
+    indentWithTab,
+  } from "@codemirror/commands";
+  import { markdown } from "@codemirror/lang-markdown";
+  import { languages } from "@codemirror/language-data";
+  import { foldGutter, bracketMatching } from "@codemirror/language";
+  import { buildEditorExtensions, getPalette } from "../../lib/codeThemes";
+  import type { CodeThemeId } from "../../types";
+  import { showMinimap } from "@replit/codemirror-minimap";
 
   interface Props {
     documentId?: string;
@@ -40,10 +45,10 @@
   }
 
   let {
-    documentId = '',
-    value = '',
+    documentId: _documentId = "",
+    value = "",
     isDark = true,
-    codeTheme = 'vscode',
+    codeTheme = "vscode",
     showMinimapEnabled = true,
     showLineNumbersEnabled = true,
     wordWrapEnabled = true,
@@ -54,22 +59,22 @@
   let editorContainer = $state<HTMLDivElement | null>(null);
   let view = $state<EditorView | null>(null);
 
-  // Compartimentos para reconfiguración dinámica en caliente
   const themeCompartment = new Compartment();
   const minimapCompartment = new Compartment();
   const lineNumbersCompartment = new Compartment();
   const wordWrapCompartment = new Compartment();
 
-  // Tema y resaltado de sintaxis según la paleta de código seleccionada
+  const currentPalette = $derived(getPalette(codeTheme, isDark));
+
   function themeExtensions(): Extension {
-    return buildEditorExtensions(getPalette(codeTheme, isDark), isDark);
+    return buildEditorExtensions(currentPalette, isDark);
   }
 
   function createMinimapExtension() {
-    return showMinimap.compute(['doc'], () => ({
-      create: () => ({ dom: document.createElement('div') }),
-      displayText: 'blocks',
-      showOverlay: 'always',
+    return showMinimap.compute(["doc"], () => ({
+      create: () => ({ dom: document.createElement("div") }),
+      displayText: "blocks",
+      showOverlay: "always",
     }));
   }
 
@@ -114,15 +119,14 @@
       parent: editorContainer,
     });
 
-    // Enlazar evento de scroll para sincronización proporcional
     if (view.scrollDOM) {
-      view.scrollDOM.addEventListener('scroll', (e) => {
-        if (onEditorScroll) onEditorScroll(e);
+      view.scrollDOM.addEventListener("scroll", (e) => {
+        onEditorScroll?.(e);
       });
     }
   }
 
-  // Sincronización de valor externo sin cambiar de documento (ej: checkbox interactivo o importación directa)
+  // Sincronización de valor externo sin cambiar de documento
   $effect(() => {
     const docValue = value;
     if (!view) return;
@@ -131,7 +135,6 @@
       const prevScrollTop = view.scrollDOM ? view.scrollDOM.scrollTop : 0;
       const prevSelection = view.state.selection;
 
-      // Calcular rango mínimo modificado para no destruir el buffer ni el scroll
       let start = 0;
       while (
         start < currentDocString.length &&
@@ -152,8 +155,13 @@
       }
 
       view.dispatch({
-        changes: { from: start, to: oldEnd, insert: docValue.slice(start, newEnd) },
-        selection: prevSelection.main.to <= docValue.length ? prevSelection : undefined,
+        changes: {
+          from: start,
+          to: oldEnd,
+          insert: docValue.slice(start, newEnd),
+        },
+        selection:
+          prevSelection.main.to <= docValue.length ? prevSelection : undefined,
         scrollIntoView: false,
       });
 
@@ -163,7 +171,7 @@
     }
   });
 
-  // Sincronización reactiva del tema (claro/oscuro y paleta de código)
+  // Sincronización reactiva del tema
   $effect(() => {
     const themeExt = themeExtensions();
     if (!view) return;
@@ -215,10 +223,11 @@
     }
   });
 
-  /**
-   * Inserta o envuelve texto en la posición de selección actual.
-   */
-  export function insertSnippet(prefix: string, suffix = '', placeholder = ''): void {
+  export function insertSnippet(
+    prefix: string,
+    suffix = "",
+    placeholder = "",
+  ): void {
     if (!view) return;
 
     const { state } = view;
@@ -250,6 +259,7 @@
   class="editor-wrapper"
   class:hide-line-numbers={!showLineNumbersEnabled}
   class:hide-minimap={!showMinimapEnabled}
+  style="--cm-palette-bg: {currentPalette.bg}; --cm-palette-fg: {currentPalette.fg}; --cm-palette-border: {currentPalette.border};"
   bind:this={editorContainer}
 ></div>
 
@@ -261,15 +271,13 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    background-color: var(--editor-bg, #1e1e1e);
+    background-color: var(--cm-palette-bg, var(--editor-bg, #16181d));
   }
 
-  /* Ocultar números de línea inmediatamente mediante CSS cuando se desactiva */
   .editor-wrapper.hide-line-numbers :global(.cm-gutters) {
     display: none !important;
   }
 
-  /* Ocultar minimapa inmediatamente mediante CSS cuando se desactiva */
   .editor-wrapper.hide-minimap :global(.cm-minimap-gutter),
   .editor-wrapper.hide-minimap :global(.cm-minimap-overlay-container) {
     display: none !important;
@@ -279,28 +287,27 @@
     height: 100%;
     width: 100%;
     outline: none !important;
-    background-color: var(--editor-bg, #1e1e1e) !important;
-    color: var(--editor-text, #d4d4d4) !important;
+    background-color: var(--cm-palette-bg, var(--editor-bg, #16181d));
+    color: var(--cm-palette-fg, var(--editor-text, #e2e8f0));
   }
 
   :global(.cm-scroller) {
     overflow: auto;
     font-family: inherit;
-    background-color: var(--editor-bg, #1e1e1e) !important;
+    background-color: var(--cm-palette-bg, var(--editor-bg, #16181d));
   }
 
   :global(.cm-gutters) {
-    background-color: var(--editor-gutter-bg, #1e1e1e) !important;
-    border-right: 1px solid var(--editor-gutter-border, #2b2d31) !important;
+    background-color: var(--cm-palette-bg, var(--editor-gutter-bg, #16181d));
+    border-right: 1px solid var(--cm-palette-border, var(--editor-gutter-border, #212429));
   }
 
   :global(.cm-minimap-gutter) {
-    background-color: var(--editor-bg, #1e1e1e) !important;
-    border-left: 1px solid var(--border-subtle, #232427) !important;
+    background-color: var(--cm-palette-bg, var(--editor-bg, #16181d)) !important;
+    border-left: 1px solid var(--cm-palette-border, var(--border-subtle, #212429)) !important;
   }
 
   @media (max-width: 768px) {
-    /* En dispositivos móviles, ocultar automáticamente el minimapa para maximizar el ancho útil */
     .editor-wrapper :global(.cm-minimap-gutter),
     .editor-wrapper :global(.cm-minimap-overlay-container) {
       display: none !important;

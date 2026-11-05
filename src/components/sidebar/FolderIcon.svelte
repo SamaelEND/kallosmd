@@ -69,7 +69,6 @@
     flex-shrink: 0;
     line-height: 1;
     vertical-align: middle;
-    color: var(--folder-color, #e4ac03);
     color: var(--folder-color, #eab308);
   }
 
@@ -92,7 +91,6 @@
       transform 0.2s ease;
   }
 
-  /* Animación de la hoja de archivos que asoma */
   .folder-sheet {
     transform-origin: center bottom;
     transition:
@@ -102,13 +100,11 @@
     transform: translateY(3.5px) scale(0.92);
   }
 
-  /* Estado con archivos: la hoja emerge suavemente */
   .has-files .folder-sheet {
     opacity: 0.9;
     transform: translateY(0) scale(1);
   }
 
-  /* Estado abierto: ligero realce táctil */
   .is-open .folder-svg {
     transform: scale(1.04);
   }
