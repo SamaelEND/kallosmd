@@ -175,8 +175,8 @@ function enhanceTaskLists(html: string): string {
 }
 
 /**
- * ES: Preprocesa expresiones KaTeX, notas al pie y alertas GFM antes y después de Marked, y sanitiza el HTML con DOMPurify.
- * EN: Preprocesses KaTeX expressions, footnotes, and GFM alerts before and after Marked, and sanitizes the HTML with DOMPurify.
+ * ES: Preprocesa expresiones KaTeX, notas al pie, resaltado y alertas GFM antes y después de Marked, y sanitiza el HTML con DOMPurify.
+ * EN: Preprocesses KaTeX expressions, footnotes, highlights, and GFM alerts before and after Marked, and sanitizes the HTML with DOMPurify.
  */
 export function processMathAndMarkdown(rawText: string): string {
   // ES: Reinicia el registro de conteo de encabezados al iniciar cada ciclo de procesamiento.
@@ -186,93 +186,188 @@ export function processMathAndMarkdown(rawText: string): string {
   const codePlaceholders: { id: string; raw: string }[] = [];
   const mathPlaceholders: { id: string; html: string }[] = [];
   const footnotePlaceholders: { id: string; html: string }[] = [];
-  let processed = rawText;
 
-  // ES: 1. Protege bloques de código cercados (``` o ~~~) y código en línea (`...`) durante el preprocesamiento.
-  // EN: 1. Protects fenced code blocks (``` or ~~~) and inline code (`...`) during preprocessing.
+  // ES: 1. Transforma sintaxis de resaltado ==texto== a etiquetas semánticas <mark>.
+  // EN: 1. Transforms highlight syntax ==text== to semantic <mark> tags.
+  let processed = rawText.replace(
+    /(^|[^\\])==(?!\s)([\s\S]+?)(?<!\s)==/g,
+    "$1<mark>$2</mark>",
+  );
+
+  // ES: 2. Protege bloques de código cercados (``` o ~~~) incluyendo aquellos dentro de blockquotes.
+  // EN: 2. Protects fenced code blocks (``` or ~~~) including those inside blockquotes.
   processed = processed.replace(
-    /(^|\n)(`{3,}|~{3,})[^\n]*\n[\s\S]*?\n\2[ \t]*(?=\n|$)/g,
+    /(^|\n)([ \t]*(?:>[ \t]*)*)(`{3,}|~{3,})([^\n]*)\n([\s\S]*?)\n\2\3[ \t]*(?=\n|$)/g,
     (match, prefix) => {
-      const block = prefix ? match.slice(prefix.length) : match;
       const id = `%%CODE_BLOCK_${codePlaceholders.length}%%`;
-      codePlaceholders.push({ id, raw: block });
+      const fullBlock = match.slice(prefix.length);
+      codePlaceholders.push({ id, raw: fullBlock });
       return `${prefix}${id}`;
     },
   );
 
-  processed = processed.replace(/(`+)([^`]|[^`][\s\S]*?[^`])\1(?!`)/g, (match) => {
-    const id = `%%CODE_INLINE_${codePlaceholders.length}%%`;
-    codePlaceholders.push({ id, raw: match });
-    return id;
-  });
-
-  // ES: 2. Renderiza y protege fórmulas matemáticas en bloque ($$ ... $$).
-  // EN: 2. Renders and protects block math formulas ($$ ... $$).
-  processed = processed.replace(/\$\$([\s\S]+?)\$\$/g, (_, math) => {
-    const id = `%%KATEX_BLOCK_${mathPlaceholders.length}%%`;
-    try {
-      const rendered = katex.renderToString(math.trim(), {
-        displayMode: true,
-        throwOnError: false,
-      });
-      mathPlaceholders.push({
-        id,
-        html: `<div class="katex-display-wrapper">${rendered}</div>`,
-      });
-    } catch {
-      mathPlaceholders.push({
-        id,
-        html: `<div class="katex-error">$$${escapeHtmlText(math)}$$</div>`,
-      });
-    }
-    return id;
-  });
-
-  // ES: 3. Renderiza y protege fórmulas matemáticas en línea ($ ... $), ignorando importes monetarios simples.
-  // EN: 3. Renders and protects inline math formulas ($ ... $), ignoring simple currency amounts.
+  // ES: 3. Protege código en línea (`...` o ``...``).
+  // EN: 3. Protects inline code (`...` or ``...``).
   processed = processed.replace(
-    /(^|[^\\$])\$(?!\$)([^\$\n\r]+?)\$(?!\$|\d)/g,
-    (match, prefix, math) => {
-      const trimmed = math.trim();
-      if (!trimmed) return match;
-
-      // ES: Ignora cantidades numéricas simples con formato de moneda ($10, $10.50).
-      // EN: Ignores simple numeric currency amounts ($10, $10.50).
-      if (/^\d+([.,]\d{1,2})?$/.test(trimmed)) {
-        return match;
-      }
-
-      // ES: Verifica operadores o funciones matemáticas cuando existen espacios en ambos extremos.
-      // EN: Checks for math operators or functions when spaces exist on both ends.
-      if (
-        /^\s/.test(math) &&
-        /\s$/.test(math) &&
-        !/[\\^_{}=<>+\-*/~]|Mach|\b(sin|cos|tan|log|ln|sqrt|lim|sum|int)\b/.test(
-          trimmed,
-        )
-      ) {
-        return match;
-      }
-
-      const id = `%%KATEX_INLINE_${mathPlaceholders.length}%%`;
-      try {
-        const rendered = katex.renderToString(trimmed, {
-          displayMode: false,
-          throwOnError: false,
-        });
-        mathPlaceholders.push({ id, html: rendered });
-      } catch {
-        mathPlaceholders.push({
-          id,
-          html: `<span class="katex-error">$${escapeHtmlText(math)}$</span>`,
-        });
-      }
-      return prefix + id;
+    /(`+)([\s\S]*?[^`])\1(?!`)/g,
+    (match) => {
+      const id = `%%CODE_INLINE_${codePlaceholders.length}%%`;
+      codePlaceholders.push({ id, raw: match });
+      return id;
     },
   );
 
-  // ES: 4. Procesa definiciones y referencias de notas al pie ([^id]).
-  // EN: 4. Processes footnote definitions and references ([^id]).
+  // ES: 4. Escáner robusto de fórmulas matemáticas (Display Math $$...$$ e Inline Math $...$) consciente de escapes.
+  // EN: 4. Escape-aware robust math scanner (Display Math $$...$$ and Inline Math $...$).
+  let mathProcessed = "";
+  let i = 0;
+  const len = processed.length;
+
+  function countBackslashesBefore(pos: number): number {
+    let count = 0;
+    let p = pos - 1;
+    while (p >= 0 && processed[p] === "\\") {
+      count++;
+      p--;
+    }
+    return count;
+  }
+
+  while (i < len) {
+    // ES: Detección de bloque matemático Display Math ($$ ... $$) no escapado.
+    // EN: Detection of unescaped block math Display Math ($$ ... $$).
+    if (
+      processed[i] === "$" &&
+      processed[i + 1] === "$" &&
+      countBackslashesBefore(i) % 2 === 0
+    ) {
+      let j = i + 2;
+      let foundClosing = false;
+      let hasHeaderBreak = false;
+
+      while (j < len - 1) {
+        // ES: Si se detecta un encabezado Markdown o separador temático, aborta para evitar devorar el documento.
+        // EN: If a Markdown heading or horizontal rule is found, aborts to avoid consuming the document.
+        if (processed[j] === "\n") {
+          const rest = processed.slice(j + 1);
+          if (/^#{1,6}\s|^---+(?=\n|$)/.test(rest)) {
+            hasHeaderBreak = true;
+            break;
+          }
+        }
+        if (
+          processed[j] === "$" &&
+          processed[j + 1] === "$" &&
+          countBackslashesBefore(j) % 2 === 0
+        ) {
+          foundClosing = true;
+          break;
+        }
+        j++;
+      }
+
+      if (foundClosing && !hasHeaderBreak) {
+        const rawMath = processed.slice(i + 2, j);
+        const cleanedMath = rawMath
+          .split("\n")
+          .map((line) => line.replace(/^[ \t]*(?:>[ \t]*)+/, ""))
+          .join("\n")
+          .trim();
+
+        const id = `%%KATEX_BLOCK_${mathPlaceholders.length}%%`;
+        try {
+          const rendered = katex.renderToString(cleanedMath, {
+            displayMode: true,
+            throwOnError: false,
+          });
+          mathPlaceholders.push({
+            id,
+            html: `<div class="katex-display-wrapper">${rendered}</div>`,
+          });
+        } catch {
+          mathPlaceholders.push({
+            id,
+            html: `<div class="katex-error">$$${escapeHtmlText(cleanedMath)}$$</div>`,
+          });
+        }
+        mathProcessed += id;
+        i = j + 2;
+        continue;
+      }
+    }
+
+    // ES: Detección de fórmula matemática en línea Inline Math ($ ... $) no escapada.
+    // EN: Detection of unescaped inline math formula ($ ... $).
+    if (
+      processed[i] === "$" &&
+      processed[i + 1] !== "$" &&
+      countBackslashesBefore(i) % 2 === 0 &&
+      processed[i + 1] !== " " &&
+      processed[i + 1] !== "\t" &&
+      processed[i + 1] !== "\n" &&
+      processed[i + 1] !== "\r"
+    ) {
+      let j = i + 1;
+      let foundClosing = false;
+      let hasLineBreak = false;
+
+      while (j < len) {
+        // ES: Fórmulas en línea no deben cruzar líneas en blanco ni encabezados.
+        // EN: Inline math must not cross blank lines or headings.
+        if (processed[j] === "\n") {
+          if (processed[j + 1] === "\n" || /^#{1,6}\s/.test(processed.slice(j + 1))) {
+            hasLineBreak = true;
+            break;
+          }
+        }
+        if (
+          processed[j] === "$" &&
+          processed[j + 1] !== "$" &&
+          countBackslashesBefore(j) % 2 === 0
+        ) {
+          foundClosing = true;
+          break;
+        }
+        j++;
+      }
+
+      if (foundClosing && !hasLineBreak) {
+        const rawMath = processed.slice(i + 1, j);
+        const trimmed = rawMath.trim();
+        const isPureCurrency = /^\d+([.,]\d{1,2})?$/.test(trimmed);
+
+        if (trimmed && !isPureCurrency) {
+          const id = `%%KATEX_INLINE_${mathPlaceholders.length}%%`;
+          try {
+            const rendered = katex.renderToString(trimmed, {
+              displayMode: false,
+              throwOnError: false,
+            });
+            mathPlaceholders.push({
+              id,
+              html: rendered,
+            });
+          } catch {
+            mathPlaceholders.push({
+              id,
+              html: `<span class="katex-error">$${escapeHtmlText(trimmed)}$</span>`,
+            });
+          }
+          mathProcessed += id;
+          i = j + 1;
+          continue;
+        }
+      }
+    }
+
+    mathProcessed += processed[i];
+    i++;
+  }
+
+  processed = mathProcessed;
+
+  // ES: 5. Procesa definiciones y referencias de notas al pie ([^id]).
+  // EN: 5. Processes footnote definitions and references ([^id]).
   const footnoteNumbers = new Map<string, number>();
   let footnoteCounter = 0;
 
@@ -334,26 +429,26 @@ export function processMathAndMarkdown(rawText: string): string {
     return placeholderId;
   });
 
-  // ES: 5. Restaura los bloques de código protegidos para su procesamiento en Marked.
-  // EN: 5. Restores protected code blocks for processing in Marked.
+  // ES: 6. Restaura los bloques de código protegidos para su procesamiento en Marked.
+  // EN: 6. Restores protected code blocks for processing in Marked.
   for (const item of codePlaceholders) {
     processed = processed.replace(item.id, () => item.raw);
   }
 
-  // ES: 6. Compila el documento Markdown a HTML mediante Marked.
-  // EN: 6. Compiles the Markdown document to HTML using Marked.
+  // ES: 7. Compila el documento Markdown a HTML mediante Marked.
+  // EN: 7. Compiles the Markdown document to HTML using Marked.
   let html = markedInstance.parse(processed) as string;
 
-  // ES: 7. Transforma alertas GFM ([!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION]).
-  // EN: 7. Transforms GFM alerts ([!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION]).
+  // ES: 8. Transforma alertas GFM ([!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION]).
+  // EN: 8. Transforms GFM alerts ([!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION]).
   html = transformGfmAlerts(html);
 
-  // ES: 8. Etiqueta listas de tareas para presentación e impresión.
-  // EN: 8. Tags task lists for display and printing.
+  // ES: 9. Etiqueta listas de tareas para presentación e impresión.
+  // EN: 9. Tags task lists for display and printing.
   html = enhanceTaskLists(html);
 
-  // ES: 9. Restaura el HTML de las notas al pie procesadas.
-  // EN: 9. Restores the HTML of processed footnotes.
+  // ES: 10. Restaura el HTML de las notas al pie procesadas.
+  // EN: 10. Restores the HTML of processed footnotes.
   for (const item of footnotePlaceholders) {
     html = html.replace(
       new RegExp(`<p>\\s*${item.id}\\s*<\\/p>|${item.id}`, "g"),
@@ -361,19 +456,27 @@ export function processMathAndMarkdown(rawText: string): string {
     );
   }
 
-  // ES: 10. Restaura el HTML de las fórmulas matemáticas KaTeX.
-  // EN: 10. Restores the HTML of KaTeX math formulas.
+  // ES: 11. Restaura el HTML de las fórmulas matemáticas KaTeX, evitando anidación inválida de <div> en <p>.
+  // EN: 11. Restores the HTML of KaTeX math formulas, preventing invalid nesting of <div> in <p>.
   for (const item of mathPlaceholders) {
-    html = html.replace(item.id, () => item.html);
+    if (item.id.startsWith("%%KATEX_BLOCK_")) {
+      html = html.replace(
+        new RegExp(`<p>\\s*${item.id}\\s*<\\/p>|${item.id}`, "g"),
+        () => item.html,
+      );
+    } else {
+      html = html.replace(item.id, () => item.html);
+    }
   }
 
-  // ES: 11. Sanitiza el HTML resultante permitiendo etiquetas semánticas, alertas SVG, details y MathML/KaTeX.
-  // EN: 11. Sanitizes the resulting HTML allowing semantic tags, SVG alerts, details, and MathML/KaTeX.
+  // ES: 12. Sanitiza el HTML resultante permitiendo etiquetas semánticas, alertas SVG, details, mark y MathML/KaTeX.
+  // EN: 12. Sanitizes the resulting HTML allowing semantic tags, SVG alerts, details, mark, and MathML/KaTeX.
   return DOMPurify.sanitize(html, {
     ADD_TAGS: [
       "input",
       "details",
       "summary",
+      "mark",
       "svg",
       "path",
       "math",
@@ -390,6 +493,15 @@ export function processMathAndMarkdown(rawText: string): string {
       "mtable",
       "mtr",
       "mtd",
+      "mtext",
+      "mspace",
+      "mover",
+      "munder",
+      "munderover",
+      "msubsup",
+      "mpadded",
+      "mphantom",
+      "menclose",
     ],
     ADD_ATTR: [
       "class",
@@ -412,6 +524,8 @@ export function processMathAndMarkdown(rawText: string): string {
       "height",
       "fill",
       "d",
+      "xmlns",
+      "display",
     ],
   });
 }

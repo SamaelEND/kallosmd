@@ -179,11 +179,11 @@
     if (debounceTimer) {
       clearTimeout(debounceTimer);
       debounceTimer = null;
-      captureOpenDetails();
-      renderedHtml = processMathAndMarkdown(content);
-      await tick();
-      restoreOpenDetails();
     }
+    captureOpenDetails();
+    renderedHtml = processMathAndMarkdown(content);
+    await tick();
+    restoreOpenDetails();
 
     if (scrollContainer) {
       const detailsList =
@@ -196,14 +196,14 @@
       });
     }
 
-    if (isDark) {
-      await renderMermaidContainers(
-        scrollContainer,
-        false,
-        mermaidCache,
-        diagramZoomLevels,
-      );
-    }
+    // ES: Renderiza SIEMPRE los diagramas Mermaid en tema claro optimizado para impresión/PDF.
+    // EN: ALWAYS renders Mermaid diagrams in print-optimized light theme before print/PDF.
+    await renderMermaidContainers(
+      scrollContainer,
+      false,
+      mermaidCache,
+      diagramZoomLevels,
+    );
   }
 
   /**

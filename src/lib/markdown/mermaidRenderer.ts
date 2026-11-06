@@ -32,10 +32,10 @@ export async function configureMermaid(dark: boolean): Promise<Mermaid> {
     startOnLoad: false,
     securityLevel: "strict",
     theme: "base",
-    htmlLabels: false,
+    htmlLabels: true,
     fontFamily: '"Inter", ui-sans-serif, system-ui, -apple-system, sans-serif',
     flowchart: {
-      htmlLabels: false,
+      htmlLabels: true,
       useMaxWidth: false,
       padding: 16,
     },

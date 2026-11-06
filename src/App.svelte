@@ -169,7 +169,7 @@
     if (previewComponent?.prepareForPrint) {
       await previewComponent.prepareForPrint();
       await tick();
-      await new Promise((resolve) => setTimeout(resolve, 80));
+      await new Promise((resolve) => setTimeout(resolve, 200));
     }
 
     window.print();
