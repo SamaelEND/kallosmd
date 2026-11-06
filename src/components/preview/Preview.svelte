@@ -91,23 +91,8 @@
     }
   });
 
-  // ES: Restablece la posición de desplazamiento, bloques desplegables y zoom al cambiar de documento.
-  // EN: Resets scroll position, collapsible blocks, and zoom levels when switching documents.
-  $effect(() => {
-    const currentDocId = documentId;
-    if (currentDocId && currentDocId !== lastDocumentId) {
-      lastDocumentId = currentDocId;
-      previousScrollTop = 0;
-      openDetailsIndices.clear();
-      diagramZoomLevels.clear();
-      if (scrollContainer) {
-        scrollContainer.scrollTop = 0;
-      }
-    }
-  });
-
-  // ES: Compila el contenido Markdown a HTML de forma inmediata en la carga inicial y con debounce al editar.
-  // EN: Compiles Markdown content to HTML immediately on initial load and with debounce when editing.
+  // ES: Compila el contenido Markdown a HTML de forma inmediata en la carga inicial / cambio de documento, y con debounce al editar.
+  // EN: Compiles Markdown content to HTML immediately on initial load / document switch, and with debounce when editing.
   $effect(() => {
     const rawContent = content;
     const currentDocId = documentId;
@@ -188,10 +173,7 @@
    * ES: Calcula la posición de desplazamiento vertical exacta de un elemento dentro del contenedor de scroll.
    * EN: Calculates the exact vertical scroll position of an element within the scroll container.
    */
-  function getElementScrollTop(
-    container: HTMLElement,
-    el: HTMLElement,
-  ): number {
+  function getElementScrollTop(container: HTMLElement, el: HTMLElement): number {
     return (
       el.getBoundingClientRect().top -
       container.getBoundingClientRect().top +
@@ -248,7 +230,8 @@
 
     if (prevEl && !nextEl) {
       const prevTop = getElementScrollTop(scrollContainer, prevEl);
-      const targetTop = prevTop + fraction * (prevEl.offsetHeight || 20);
+      const targetTop =
+        prevTop + fraction * (prevEl.offsetHeight || 20);
       scrollContainer.scrollTop = Math.min(targetTop, maxScroll);
       return;
     }
@@ -273,10 +256,7 @@
    * ES: Obtiene el número de línea de origen y fracción vertical del elemento visible en la parte superior de la vista previa.
    * EN: Retrieves the source line number and vertical fraction of the visible element at the top of the preview.
    */
-  export function getVisibleSourceLine(): {
-    line: number;
-    fraction: number;
-  } | null {
+  export function getVisibleSourceLine(): { line: number; fraction: number } | null {
     if (!scrollContainer) return null;
     const top = scrollContainer.scrollTop;
     const maxScroll =
@@ -320,7 +300,10 @@
       const line = parseInt(prevEl.dataset.sourceLine || "1", 10);
       const prevTop = getElementScrollTop(scrollContainer, prevEl);
       const height = Math.max(1, prevEl.offsetHeight);
-      const fraction = Math.max(0, Math.min(1, (top - prevTop) / height));
+      const fraction = Math.max(
+        0,
+        Math.min(1, (top - prevTop) / height),
+      );
       return { line, fraction };
     }
 
