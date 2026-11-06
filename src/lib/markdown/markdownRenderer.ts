@@ -6,7 +6,7 @@
 import DOMPurify from "dompurify";
 import hljs from "highlight.js/lib/common";
 import katex from "katex";
-import { Marked } from "marked";
+import { Marked, Renderer } from "marked";
 import { generateHeadingSlug } from "./markdownUtils";
 
 const markedInstance = new Marked();
@@ -53,16 +53,18 @@ markedInstance.use({
   gfm: true,
   breaks: true,
   renderer: {
-    heading({ depth, text }) {
-      const slug = generateHeadingSlug(text, renderHeadingCounts);
-      return `<h${depth} id="${slug}">${text}</h${depth}>\n`;
+    heading(token: any) {
+      const slug = generateHeadingSlug(token.text, renderHeadingCounts);
+      const lineAttr = token.startLine ? ` data-source-line="${token.startLine}"` : "";
+      return `<h${token.depth} id="${slug}"${lineAttr}>${token.text}</h${token.depth}>\n`;
     },
-    code({ text, lang }) {
-      if (lang === "mermaid") {
-        return `<div class="mermaid-container" data-mermaid-code="${encodeURIComponent(text)}"></div>\n`;
+    code(token: any) {
+      const lineAttr = token.startLine ? ` data-source-line="${token.startLine}"` : "";
+      if (token.lang === "mermaid") {
+        return `<div class="mermaid-container"${lineAttr} data-mermaid-code="${encodeURIComponent(token.text)}"></div>\n`;
       }
 
-      const rawLang = lang ? lang.trim().toLowerCase().split(/\s+/)[0] : "";
+      const rawLang = token.lang ? token.lang.trim().toLowerCase().split(/\s+/)[0] : "";
       const displayLang = rawLang.replace(/[^a-z0-9\-_+#]/g, "") || "texto";
 
       // ES: Resalta el código según el lenguaje especificado o escapa el texto plano.
@@ -70,19 +72,19 @@ markedInstance.use({
       let highlightedCode = "";
       try {
         if (rawLang && hljs.getLanguage(rawLang)) {
-          highlightedCode = hljs.highlight(text, {
+          highlightedCode = hljs.highlight(token.text, {
             language: rawLang,
             ignoreIllegals: true,
           }).value;
         } else {
-          highlightedCode = escapeHtmlText(text);
+          highlightedCode = escapeHtmlText(token.text);
         }
       } catch {
-        highlightedCode = escapeHtmlText(text);
+        highlightedCode = escapeHtmlText(token.text);
       }
 
       return `
-        <div class="code-block-wrapper">
+        <div class="code-block-wrapper"${lineAttr}>
           <div class="code-header-bar">
             <span class="code-lang-label">${displayLang}</span>
             <button class="code-copy-btn" type="button" title="Copiar código al portapapeles">
@@ -92,6 +94,29 @@ markedInstance.use({
           <pre><code class="hljs language-${displayLang}">${highlightedCode}</code></pre>
         </div>
       `;
+    },
+    paragraph(token: any) {
+      const lineAttr = token.startLine ? ` data-source-line="${token.startLine}"` : "";
+      return `<p${lineAttr}>${this.parser.parseInline(token.tokens || [])}</p>\n`;
+    },
+    blockquote(token: any) {
+      const lineAttr = token.startLine ? ` data-source-line="${token.startLine}"` : "";
+      return `<blockquote${lineAttr}>\n${this.parser.parse(token.tokens || [])}</blockquote>\n`;
+    },
+    table(token: any) {
+      const lineAttr = token.startLine ? ` data-source-line="${token.startLine}"` : "";
+      const defaultHtml = Renderer.prototype.table.call(this, token);
+      return defaultHtml.replace("<table", `<table${lineAttr}`);
+    },
+    list(token: any) {
+      const lineAttr = token.startLine ? ` data-source-line="${token.startLine}"` : "";
+      const tag = token.ordered ? "<ol" : "<ul";
+      const defaultHtml = Renderer.prototype.list.call(this, token);
+      return defaultHtml.replace(tag, `${tag}${lineAttr}`);
+    },
+    hr(token: any) {
+      const lineAttr = token.startLine ? ` data-source-line="${token.startLine}"` : "";
+      return `<hr${lineAttr}>\n`;
     },
   },
 });
@@ -136,16 +161,21 @@ const GFM_ALERT_MAP: Record<string, AlertMeta> = {
  */
 function transformGfmAlerts(html: string): string {
   return html.replace(
-    /<blockquote>\s*<p>\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*(?:<br\s*\/?>\s*)?([\s\S]*?)<\/blockquote>/gi,
-    (match, rawType: string, restHtml: string) => {
+    /<blockquote\b([^>]*)>\s*<p\b[^>]*>\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*(?:<br\s*\/?>\s*)?([\s\S]*?)<\/blockquote>/gi,
+    (match, blockquoteAttrs: string, rawType: string, restHtml: string) => {
       const alertKey = rawType.toUpperCase();
       const meta = GFM_ALERT_MAP[alertKey];
       if (!meta) return match;
 
-      const bodyHtml = `<p>${restHtml}`.replace(/<p>\s*<\/p>/g, "").trim();
+      let bodyHtml = restHtml.trim();
+      if (!bodyHtml.startsWith("<p") && !bodyHtml.startsWith("</p>")) {
+        bodyHtml = `<p>${bodyHtml}`;
+      } else if (bodyHtml.startsWith("</p>")) {
+        bodyHtml = bodyHtml.replace(/^<\/p>\s*/, "");
+      }
 
       return `
-        <div class="markdown-alert ${meta.className}" role="note">
+        <div class="markdown-alert ${meta.className}" role="note"${blockquoteAttrs}>
           <div class="markdown-alert-title">
             ${meta.icon}
             <span>${meta.label}</span>
@@ -175,10 +205,10 @@ function enhanceTaskLists(html: string): string {
 }
 
 /**
- * ES: Preprocesa expresiones KaTeX, notas al pie y alertas GFM antes y después de Marked, y sanitiza el HTML con DOMPurify.
- * EN: Preprocesses KaTeX expressions, footnotes, and GFM alerts before and after Marked, and sanitizes the HTML with DOMPurify.
+ * ES: Canal de procesamiento central de Markdown, matemáticas KaTeX, alertas GFM y notas al pie.
+ * EN: Core processing pipeline for Markdown, KaTeX math, GFM alerts, and footnotes.
  */
-export function processMathAndMarkdown(rawText: string): string {
+function compileMarkdownPipeline(rawText: string): string {
   // ES: Reinicia el registro de conteo de encabezados al iniciar cada ciclo de procesamiento.
   // EN: Resets the heading count registry at the start of each processing cycle.
   renderHeadingCounts.clear();
@@ -186,93 +216,189 @@ export function processMathAndMarkdown(rawText: string): string {
   const codePlaceholders: { id: string; raw: string }[] = [];
   const mathPlaceholders: { id: string; html: string }[] = [];
   const footnotePlaceholders: { id: string; html: string }[] = [];
-  let processed = rawText;
 
-  // ES: 1. Protege bloques de código cercados (``` o ~~~) y código en línea (`...`) durante el preprocesamiento.
-  // EN: 1. Protects fenced code blocks (``` or ~~~) and inline code (`...`) during preprocessing.
+  // ES: 1. Transforma sintaxis de resaltado ==texto== a etiquetas semánticas <mark>.
+  // EN: 1. Transforms highlight syntax ==text== to semantic <mark> tags.
+  let processed = rawText.replace(
+    /(^|[^\\])==(?!\s)([\s\S]+?)(?<!\s)==/g,
+    "$1<mark>$2</mark>",
+  );
+
+  // ES: 2. Protege bloques de código cercados (``` o ~~~) incluyendo aquellos dentro de blockquotes.
+  // EN: 2. Protects fenced code blocks (``` or ~~~) including those inside blockquotes.
   processed = processed.replace(
-    /(^|\n)(`{3,}|~{3,})[^\n]*\n[\s\S]*?\n\2[ \t]*(?=\n|$)/g,
+    /(^|\n)([ \t]*(?:>[ \t]*)*)(`{3,}|~{3,})([^\n]*)\n([\s\S]*?)\n\2\3[ \t]*(?=\n|$)/g,
     (match, prefix) => {
-      const block = prefix ? match.slice(prefix.length) : match;
       const id = `%%CODE_BLOCK_${codePlaceholders.length}%%`;
-      codePlaceholders.push({ id, raw: block });
+      const fullBlock = match.slice(prefix.length);
+      codePlaceholders.push({ id, raw: fullBlock });
       return `${prefix}${id}`;
     },
   );
 
-  processed = processed.replace(/(`+)([^`]|[^`][\s\S]*?[^`])\1(?!`)/g, (match) => {
-    const id = `%%CODE_INLINE_${codePlaceholders.length}%%`;
-    codePlaceholders.push({ id, raw: match });
-    return id;
-  });
-
-  // ES: 2. Renderiza y protege fórmulas matemáticas en bloque ($$ ... $$).
-  // EN: 2. Renders and protects block math formulas ($$ ... $$).
-  processed = processed.replace(/\$\$([\s\S]+?)\$\$/g, (_, math) => {
-    const id = `%%KATEX_BLOCK_${mathPlaceholders.length}%%`;
-    try {
-      const rendered = katex.renderToString(math.trim(), {
-        displayMode: true,
-        throwOnError: false,
-      });
-      mathPlaceholders.push({
-        id,
-        html: `<div class="katex-display-wrapper">${rendered}</div>`,
-      });
-    } catch {
-      mathPlaceholders.push({
-        id,
-        html: `<div class="katex-error">$$${escapeHtmlText(math)}$$</div>`,
-      });
-    }
-    return id;
-  });
-
-  // ES: 3. Renderiza y protege fórmulas matemáticas en línea ($ ... $), ignorando importes monetarios simples.
-  // EN: 3. Renders and protects inline math formulas ($ ... $), ignoring simple currency amounts.
+  // ES: 3. Protege código en línea (`...` o ``...``).
+  // EN: 3. Protects inline code (`...` or ``...``).
   processed = processed.replace(
-    /(^|[^\\$])\$(?!\$)([^\$\n\r]+?)\$(?!\$|\d)/g,
-    (match, prefix, math) => {
-      const trimmed = math.trim();
-      if (!trimmed) return match;
-
-      // ES: Ignora cantidades numéricas simples con formato de moneda ($10, $10.50).
-      // EN: Ignores simple numeric currency amounts ($10, $10.50).
-      if (/^\d+([.,]\d{1,2})?$/.test(trimmed)) {
-        return match;
-      }
-
-      // ES: Verifica operadores o funciones matemáticas cuando existen espacios en ambos extremos.
-      // EN: Checks for math operators or functions when spaces exist on both ends.
-      if (
-        /^\s/.test(math) &&
-        /\s$/.test(math) &&
-        !/[\\^_{}=<>+\-*/~]|Mach|\b(sin|cos|tan|log|ln|sqrt|lim|sum|int)\b/.test(
-          trimmed,
-        )
-      ) {
-        return match;
-      }
-
-      const id = `%%KATEX_INLINE_${mathPlaceholders.length}%%`;
-      try {
-        const rendered = katex.renderToString(trimmed, {
-          displayMode: false,
-          throwOnError: false,
-        });
-        mathPlaceholders.push({ id, html: rendered });
-      } catch {
-        mathPlaceholders.push({
-          id,
-          html: `<span class="katex-error">$${escapeHtmlText(math)}$</span>`,
-        });
-      }
-      return prefix + id;
+    /(`+)([\s\S]*?[^`])\1(?!`)/g,
+    (match) => {
+      const id = `%%CODE_INLINE_${codePlaceholders.length}%%`;
+      codePlaceholders.push({ id, raw: match });
+      return id;
     },
   );
 
-  // ES: 4. Procesa definiciones y referencias de notas al pie ([^id]).
-  // EN: 4. Processes footnote definitions and references ([^id]).
+  // ES: 4. Escáner robusto de fórmulas matemáticas (Display Math $$...$$ e Inline Math $...$) consciente de escapes.
+  // EN: 4. Escape-aware robust math scanner (Display Math $$...$$ and Inline Math $...$).
+  let mathProcessed = "";
+  let i = 0;
+  const len = processed.length;
+
+  function countBackslashesBefore(pos: number): number {
+    let count = 0;
+    let p = pos - 1;
+    while (p >= 0 && processed[p] === "\\") {
+      count++;
+      p--;
+    }
+    return count;
+  }
+
+  while (i < len) {
+    // ES: Detección de bloque matemático Display Math ($$ ... $$) no escapado.
+    // EN: Detection of unescaped block math Display Math ($$ ... $$).
+    if (
+      processed[i] === "$" &&
+      processed[i + 1] === "$" &&
+      countBackslashesBefore(i) % 2 === 0
+    ) {
+      let j = i + 2;
+      let foundClosing = false;
+      let hasHeaderBreak = false;
+
+      while (j < len - 1) {
+        // ES: Si se detecta un encabezado Markdown o separador temático, aborta para evitar devorar el documento.
+        // EN: If a Markdown heading or horizontal rule is found, aborts to avoid consuming the document.
+        if (processed[j] === "\n") {
+          const rest = processed.slice(j + 1);
+          if (/^#{1,6}\s|^---+(?=\n|$)/.test(rest)) {
+            hasHeaderBreak = true;
+            break;
+          }
+        }
+        if (
+          processed[j] === "$" &&
+          processed[j + 1] === "$" &&
+          countBackslashesBefore(j) % 2 === 0
+        ) {
+          foundClosing = true;
+          break;
+        }
+        j++;
+      }
+
+      if (foundClosing && !hasHeaderBreak) {
+        const rawMath = processed.slice(i + 2, j);
+        const cleanedMath = rawMath
+          .split("\n")
+          .map((line) => line.replace(/^[ \t]*(?:>[ \t]*)+/, ""))
+          .join("\n")
+          .trim();
+
+        const lineNum = (processed.slice(0, i).match(/\n/g) || []).length + 1;
+        const id = `%%KATEX_BLOCK_${mathPlaceholders.length}%%`;
+        try {
+          const rendered = katex.renderToString(cleanedMath, {
+            displayMode: true,
+            throwOnError: false,
+          });
+          mathPlaceholders.push({
+            id,
+            html: `<div class="katex-display-wrapper" data-source-line="${lineNum}">${rendered}</div>`,
+          });
+        } catch {
+          mathPlaceholders.push({
+            id,
+            html: `<div class="katex-error" data-source-line="${lineNum}">$$${escapeHtmlText(cleanedMath)}$$</div>`,
+          });
+        }
+        mathProcessed += id;
+        i = j + 2;
+        continue;
+      }
+    }
+
+    // ES: Detección de fórmula matemática en línea Inline Math ($ ... $) no escapada.
+    // EN: Detection of unescaped inline math formula ($ ... $).
+    if (
+      processed[i] === "$" &&
+      processed[i + 1] !== "$" &&
+      countBackslashesBefore(i) % 2 === 0 &&
+      processed[i + 1] !== " " &&
+      processed[i + 1] !== "\t" &&
+      processed[i + 1] !== "\n" &&
+      processed[i + 1] !== "\r"
+    ) {
+      let j = i + 1;
+      let foundClosing = false;
+      let hasLineBreak = false;
+
+      while (j < len) {
+        // ES: Fórmulas en línea no deben cruzar líneas en blanco ni encabezados.
+        // EN: Inline math must not cross blank lines or headings.
+        if (processed[j] === "\n") {
+          if (processed[j + 1] === "\n" || /^#{1,6}\s/.test(processed.slice(j + 1))) {
+            hasLineBreak = true;
+            break;
+          }
+        }
+        if (
+          processed[j] === "$" &&
+          processed[j + 1] !== "$" &&
+          countBackslashesBefore(j) % 2 === 0
+        ) {
+          foundClosing = true;
+          break;
+        }
+        j++;
+      }
+
+      if (foundClosing && !hasLineBreak) {
+        const rawMath = processed.slice(i + 1, j);
+        const trimmed = rawMath.trim();
+        const isPureCurrency = /^\d+([.,]\d{1,2})?$/.test(trimmed);
+
+        if (trimmed && !isPureCurrency) {
+          const id = `%%KATEX_INLINE_${mathPlaceholders.length}%%`;
+          try {
+            const rendered = katex.renderToString(trimmed, {
+              displayMode: false,
+              throwOnError: false,
+            });
+            mathPlaceholders.push({
+              id,
+              html: rendered,
+            });
+          } catch {
+            mathPlaceholders.push({
+              id,
+              html: `<span class="katex-error">$${escapeHtmlText(trimmed)}$</span>`,
+            });
+          }
+          mathProcessed += id;
+          i = j + 1;
+          continue;
+        }
+      }
+    }
+
+    mathProcessed += processed[i];
+    i++;
+  }
+
+  processed = mathProcessed;
+
+  // ES: 5. Procesa definiciones y referencias de notas al pie ([^id]).
+  // EN: 5. Processes footnote definitions and references ([^id]).
   const footnoteNumbers = new Map<string, number>();
   let footnoteCounter = 0;
 
@@ -334,84 +460,132 @@ export function processMathAndMarkdown(rawText: string): string {
     return placeholderId;
   });
 
-  // ES: 5. Restaura los bloques de código protegidos para su procesamiento en Marked.
-  // EN: 5. Restores protected code blocks for processing in Marked.
+  // ES: 6. Restaura los bloques de código protegidos para su procesamiento en Marked.
+  // EN: 6. Restores protected code blocks for processing in Marked.
   for (const item of codePlaceholders) {
     processed = processed.replace(item.id, () => item.raw);
   }
 
-  // ES: 6. Compila el documento Markdown a HTML mediante Marked.
-  // EN: 6. Compiles the Markdown document to HTML using Marked.
-  let html = markedInstance.parse(processed) as string;
+  // ES: 7. Tokeniza y anota líneas fuente para sincronización de scroll entre editor y vista previa.
+  // EN: Tokenizes and annotates source lines for scroll sync between editor and preview.
+  const tokens = markedInstance.lexer(processed);
+  let offset = 0;
+  for (const token of tokens) {
+    const idx = processed.indexOf(token.raw, offset);
+    if (idx !== -1) {
+      (token as any).startLine = (processed.slice(0, idx).match(/\n/g) || []).length + 1;
+      offset = idx + token.raw.length;
+    }
+  }
+  let html = markedInstance.parser(tokens) as string;
 
-  // ES: 7. Transforma alertas GFM ([!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION]).
-  // EN: 7. Transforms GFM alerts ([!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION]).
+  // ES: 8. Transforma alertas GFM ([!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION]).
+  // EN: 8. Transforms GFM alerts ([!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION]).
   html = transformGfmAlerts(html);
 
-  // ES: 8. Etiqueta listas de tareas para presentación e impresión.
-  // EN: 8. Tags task lists for display and printing.
+  // ES: 9. Etiqueta listas de tareas para presentación e impresión.
+  // EN: 9. Tags task lists for display and printing.
   html = enhanceTaskLists(html);
 
-  // ES: 9. Restaura el HTML de las notas al pie procesadas.
-  // EN: 9. Restores the HTML of processed footnotes.
+  // ES: 10. Restaura el HTML de las notas al pie procesadas.
+  // EN: 10. Restores the HTML of processed footnotes.
   for (const item of footnotePlaceholders) {
     html = html.replace(
-      new RegExp(`<p>\\s*${item.id}\\s*<\\/p>|${item.id}`, "g"),
+      new RegExp(`<p\\b[^>]*>\\s*${item.id}\\s*<\\/p>|${item.id}`, "g"),
       () => item.html,
     );
   }
 
-  // ES: 10. Restaura el HTML de las fórmulas matemáticas KaTeX.
-  // EN: 10. Restores the HTML of KaTeX math formulas.
+  // ES: 11. Restaura el HTML de las fórmulas matemáticas KaTeX, evitando anidación inválida de <div> en <p>.
+  // EN: 11. Restores the HTML of KaTeX math formulas, preventing invalid nesting of <div> in <p>.
   for (const item of mathPlaceholders) {
-    html = html.replace(item.id, () => item.html);
+    if (item.id.startsWith("%%KATEX_BLOCK_")) {
+      html = html.replace(
+        new RegExp(`<p\\b[^>]*>\\s*${item.id}\\s*<\\/p>|${item.id}`, "g"),
+        () => item.html,
+      );
+    } else {
+      html = html.replace(item.id, () => item.html);
+    }
   }
 
-  // ES: 11. Sanitiza el HTML resultante permitiendo etiquetas semánticas, alertas SVG, details y MathML/KaTeX.
-  // EN: 11. Sanitizes the resulting HTML allowing semantic tags, SVG alerts, details, and MathML/KaTeX.
-  return DOMPurify.sanitize(html, {
-    ADD_TAGS: [
-      "input",
-      "details",
-      "summary",
-      "svg",
-      "path",
-      "math",
-      "annotation",
-      "semantics",
-      "mrow",
-      "mi",
-      "mo",
-      "mn",
-      "msup",
-      "msub",
-      "mfrac",
-      "msqrt",
-      "mtable",
-      "mtr",
-      "mtd",
-    ],
-    ADD_ATTR: [
-      "class",
-      "style",
-      "data-mermaid-code",
-      "data-task-index",
-      "type",
-      "checked",
-      "disabled",
-      "open",
-      "id",
-      "target",
-      "rel",
-      "role",
-      "aria-hidden",
-      "aria-label",
-      "title",
-      "viewBox",
-      "width",
-      "height",
-      "fill",
-      "d",
-    ],
-  });
+  return html;
+}
+
+export type DompurifyConfig = NonNullable<Parameters<typeof DOMPurify.sanitize>[1]>;
+
+export const DOMPURIFY_CONFIG: DompurifyConfig = {
+  ADD_TAGS: [
+    "input",
+    "details",
+    "summary",
+    "mark",
+    "svg",
+    "path",
+    "math",
+    "annotation",
+    "semantics",
+    "mrow",
+    "mi",
+    "mo",
+    "mn",
+    "msup",
+    "msub",
+    "mfrac",
+    "msqrt",
+    "mtable",
+    "mtr",
+    "mtd",
+    "mtext",
+    "mspace",
+    "mover",
+    "munder",
+    "munderover",
+    "msubsup",
+    "mpadded",
+    "mphantom",
+    "menclose",
+  ],
+  ADD_ATTR: [
+    "class",
+    "style",
+    "data-mermaid-code",
+    "data-task-index",
+    "data-source-line",
+    "type",
+    "checked",
+    "disabled",
+    "open",
+    "id",
+    "target",
+    "rel",
+    "role",
+    "aria-hidden",
+    "aria-label",
+    "title",
+    "viewBox",
+    "width",
+    "height",
+    "fill",
+    "d",
+    "xmlns",
+    "display",
+  ],
+};
+
+/**
+ * ES: Preprocesa y compila Markdown a HTML plano sin sanitizar (apto para Web Workers).
+ * EN: Preprocesses and compiles Markdown to raw HTML without sanitizing (suitable for Web Workers).
+ */
+export function processMathAndMarkdownRaw(rawText: string): string {
+  return compileMarkdownPipeline(rawText);
+}
+
+/**
+ * ES: Preprocesa, compila y sanitiza el Markdown para su visualización segura en la vista previa.
+ * EN: Preprocesses, compiles, and sanitizes Markdown for safe display in the preview.
+ */
+export function processMathAndMarkdown(rawText: string): string {
+  const rawHtml = compileMarkdownPipeline(rawText);
+  return DOMPurify.sanitize(rawHtml, DOMPURIFY_CONFIG) as string;
 }

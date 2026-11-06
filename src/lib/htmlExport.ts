@@ -66,6 +66,7 @@ details summary{font-weight:600;cursor:pointer}
 .footnote-item{display:flex;align-items:baseline;gap:.5em;font-size:.9em;margin:.4em 0;padding:.45em .75em;background:var(--code-bg);border-left:3px solid var(--accent);border-radius:0 4px 4px 0}
 .footnote-num{font-weight:700;color:var(--accent)}
 hr{border:0;border-top:1px solid var(--border);margin:2em 0}
+mark{background-color:rgba(250,204,21,.35);color:inherit;padding:.1em .3em;border-radius:3px}
 code{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88em}
 :not(pre)>code{background:var(--code-bg);padding:.15em .4em;border-radius:5px}
 .code-block-wrapper{border:1px solid var(--code-border);border-radius:8px;overflow:hidden;margin:0 0 1em;background:var(--code-bg)}
