@@ -11,6 +11,7 @@
   word-break: break-word;
   user-select: text;
   -webkit-user-select: text;
+  touch-action: pan-y;
 }
 
 /* Encabezados proporcionados en armonía con el Editor */
@@ -317,6 +318,9 @@
   padding: 1.15rem 1.35rem;
   background-color: transparent;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x pan-y;
 }
 
 .reading-table-content code {
@@ -434,6 +438,8 @@
   display: block;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x pan-y;
   border-collapse: collapse;
   margin: 1.35rem 0;
   font-size: 0.875rem;
@@ -476,6 +482,9 @@
   border: 1px solid var(--reading-border, #2b2d31);
   border-radius: 8px;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x pan-y;
   text-align: center;
 }
 
@@ -556,6 +565,9 @@
   display: flex;
   justify-content: center;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x pan-y;
 }
 
 .reading-table-content .mermaid-syntax-notice {

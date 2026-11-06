@@ -91,19 +91,20 @@
     }
   });
 
-  // ES: Restablece la posición de desplazamiento, bloques desplegables y zoom al cambiar de documento.
-  // EN: Resets scroll position, collapsible blocks, and zoom levels when switching documents.
+  // ES: Restablece la posición de desplazamiento, bloques desplegables y zoom al conmutar a un documento diferente.
+  // EN: Resets scroll position, collapsible blocks, and zoom levels when switching to a different document.
   $effect(() => {
     const currentDocId = documentId;
-    if (currentDocId && currentDocId !== lastDocumentId) {
-      lastDocumentId = currentDocId;
-      previousScrollTop = 0;
+    if (!currentDocId) return;
+
+    if (lastDocumentId && currentDocId !== lastDocumentId) {
       openDetailsIndices.clear();
       diagramZoomLevels.clear();
       if (scrollContainer) {
         scrollContainer.scrollTop = 0;
       }
     }
+    lastDocumentId = currentDocId;
   });
 
   // ES: Compila el contenido Markdown a HTML de forma inmediata en la carga inicial y con debounce al editar.
@@ -293,8 +294,13 @@
   .preview-scroll-container {
     width: 100%;
     height: 100%;
+    min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
+    overscroll-behavior-y: contain;
+    overscroll-behavior-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
     background-color: var(--reading-bg, #1e1f22);
     color: var(--reading-text, #e8e6e1);
   }

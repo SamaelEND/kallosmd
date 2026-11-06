@@ -375,14 +375,17 @@
 
 <style>
   .studio-root {
+    position: fixed;
+    inset: 0;
     display: flex;
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
+    height: 100%;
     height: 100dvh;
     overflow: hidden;
     background-color: var(--bg-app, #151617);
     color: var(--text-primary, #e8e6e1);
     padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   .studio-main {
@@ -417,6 +420,7 @@
 
   .preview-pane {
     background-color: var(--bg-reader, #1e1f22);
+    overscroll-behavior-y: contain;
   }
 
   .hidden-pane {

@@ -203,9 +203,17 @@ html.no-transitions *::after {
   padding: 0;
 }
 
+/* ES: Configuración del marco raíz de la aplicación para anclar el viewport y prevenir desplazamientos de la ventana.
+   EN: Root application frame setup to anchor viewport and prevent window-level scrolling. */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 html,
 body,
 #app {
+  position: fixed;
+  inset: 0;
   width: 100%;
   height: 100%;
   height: 100dvh;
@@ -222,7 +230,8 @@ body,
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Evitar retraso de 300ms en taps y deshabilitar selección accidental en controles táctiles */
+/* ES: Previene retraso de toque táctil de 300ms y deshabilita selección accidental en controles.
+   EN: Prevents 300ms tap delay and disables accidental text selection on controls. */
 button,
 [role="button"],
 .tappable {
