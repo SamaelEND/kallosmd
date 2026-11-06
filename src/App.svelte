@@ -107,8 +107,8 @@
     `;
   });
 
-  // ES: Sincronización proporcional de desplazamiento entre los paneles de edición y vista previa.
-  // EN: Proportional scroll synchronization between the editor and preview panels.
+  // ES: Sincronización inteligente por líneas/bloques entre editor y vista previa.
+  // EN: Smart line/block-based scroll synchronization between editor and preview.
   let activeScrollSource: "editor" | "preview" | null = null;
   let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -122,20 +122,34 @@
 
     activeScrollSource = source;
 
-    const maxEditor = editorEl.scrollHeight - editorEl.clientHeight;
-    const maxPreview = previewEl.scrollHeight - previewEl.clientHeight;
-    if (maxEditor > 0 && maxPreview > 0) {
-      if (source === "editor") {
-        previewEl.scrollTop = (editorEl.scrollTop / maxEditor) * maxPreview;
+    if (source === "editor") {
+      const lineInfo = editorComponent?.getVisibleLineRange?.();
+      if (lineInfo && previewComponent?.scrollToSourceLine) {
+        previewComponent.scrollToSourceLine(lineInfo.line, lineInfo.fraction);
       } else {
-        editorEl.scrollTop = (previewEl.scrollTop / maxPreview) * maxEditor;
+        const maxEditor = editorEl.scrollHeight - editorEl.clientHeight;
+        const maxPreview = previewEl.scrollHeight - previewEl.clientHeight;
+        if (maxEditor > 0 && maxPreview > 0) {
+          previewEl.scrollTop = (editorEl.scrollTop / maxEditor) * maxPreview;
+        }
+      }
+    } else {
+      const lineInfo = previewComponent?.getVisibleSourceLine?.();
+      if (lineInfo && editorComponent?.scrollToSourceLine) {
+        editorComponent.scrollToSourceLine(lineInfo.line, lineInfo.fraction);
+      } else {
+        const maxEditor = editorEl.scrollHeight - editorEl.clientHeight;
+        const maxPreview = previewEl.scrollHeight - previewEl.clientHeight;
+        if (maxEditor > 0 && maxPreview > 0) {
+          editorEl.scrollTop = (previewEl.scrollTop / maxPreview) * maxEditor;
+        }
       }
     }
 
     if (scrollTimeout) clearTimeout(scrollTimeout);
     scrollTimeout = setTimeout(() => {
       activeScrollSource = null;
-    }, 60);
+    }, 80);
   }
 
   function handleInsertSnippet(
@@ -357,15 +371,17 @@
         class:hidden-pane={viewMode === "editor"}
         aria-label="Vista previa de lectura"
       >
-        <Preview
-          bind:this={previewComponent}
-          documentId={documentStore.activeId}
-          content={activeContent}
-          {isDark}
-          codeTheme={settings.codeTheme}
-          fontSize={settings.fontSize}
-          onContainerScroll={() => syncScroll("preview")}
-        />
+        {#key documentStore.activeId}
+          <Preview
+            bind:this={previewComponent}
+            documentId={documentStore.activeId}
+            content={activeContent}
+            {isDark}
+            codeTheme={settings.codeTheme}
+            fontSize={settings.fontSize}
+            onContainerScroll={() => syncScroll("preview")}
+          />
+        {/key}
       </section>
     </div>
 
