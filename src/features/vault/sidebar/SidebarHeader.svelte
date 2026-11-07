@@ -8,12 +8,12 @@
   <div class="header-brand">
     <img
       src="/md-studio-icon-32.png"
-      alt="Markdown Studio Logo"
+      alt="Kallos Markdown Logo"
       class="brand-logo"
       width="24"
       height="24"
     />
-    <h2 class="sidebar-title">Markdown Studio</h2>
+    <h2 class="sidebar-title">Kallos Markdown</h2>
   </div>
 </div>
 

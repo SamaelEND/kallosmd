@@ -1,4 +1,4 @@
-# Markdown Studio — Editor Markdown & Previsualizador en Vivo
+# Kallos Markdown (Markdown Studio) — Editor Markdown & Previsualizador en Vivo
 
 <div align="center">
 
@@ -12,7 +12,7 @@
 
 </div>
 
-> **Markdown Studio** es un entorno moderno, de alto rendimiento y 100% en el cliente para la redacción y previsualización de Markdown, diseñado para brindar máxima claridad, cero distracciones, soberanía total de datos y una experiencia ergonómica de escritura y lectura.
+> **Kallos Markdown** (*Kallos MD*) es un entorno moderno, de alto rendimiento y 100% en el cliente para la redacción y previsualización de Markdown, diseñado para brindar máxima claridad, cero distracciones, soberanía total de datos y una experiencia ergonómica de escritura y lectura. Anteriormente conocido como Markdown Studio.
 
 Construido con **Svelte 5** (Runas), **TypeScript**, **Vite 8** y **CodeMirror 6**, cuenta con una arquitectura modular limpia en 3 capas (`core/`, `features/`, `shared/`), un lienzo interactivo en **Modo Híbrido Live Preview**, edición dividida con scroll sincronizado, renderizado matemático mediante **KaTeX** local, diagramas vectoriales interactivos con **Mermaid**, extensiones **GFM** (tablas, alertas y notas al pie), exportación profesional a **PDF** y **HTML5 autónomo**, gestión de carpetas anidadas y almacenamiento 100% offline respaldado en **IndexedDB**.
 

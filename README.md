@@ -1,4 +1,4 @@
-# Markdown Studio — Markdown Editor & Live Preview
+# Kallos Markdown (Markdown Studio) — Online Markdown Editor & Live Preview
 
 <div align="center">
 
@@ -12,7 +12,7 @@
 
 </div>
 
-> **Markdown Studio** is a modern, high-performance, client-side Markdown workspace designed for clarity, zero distractions, complete data sovereignty, and an ergonomic writing experience.
+> **Kallos Markdown** (*Kallos MD*) is a modern, high-performance, client-side Markdown workspace designed for clarity, zero distractions, complete data sovereignty, and an ergonomic writing experience. Formerly known as Markdown Studio.
 
 Built with **Svelte 5** (Runes), **TypeScript**, **Vite 8**, and **CodeMirror 6**, it features an Obsidian-free, clean-room modular 3-layer architecture (`core/`, `features/`, `shared/`), an interactive **Hybrid Live Preview** canvas, synchronized split-view editing, mathematical typesetting via self-hosted **KaTeX**, interactive vector diagrams with **Mermaid**, **GFM** extensions (tables, callouts, and footnotes), print-ready **PDF** and standalone **HTML5** export, nested folder management, and 100% offline-first storage backed by **IndexedDB**.
 
