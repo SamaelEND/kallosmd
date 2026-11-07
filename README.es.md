@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Demo en Vivo](https://img.shields.io/badge/Demo%20en%20Vivo-markdown--studio.xyz-blue?style=for-the-badge&logo=safari)](https://markdown-studio.xyz)
+[![Demo en Vivo](https://img.shields.io/badge/Demo%20en%20Vivo-kallosmd.xyz-blue?style=for-the-badge&logo=safari)](https://kallosmd.xyz)
 [![Licencia: AGPL v3](https://img.shields.io/badge/Licencia-AGPL_v3-blue.svg?style=for-the-badge)](./LICENSE)
 [![Svelte](https://img.shields.io/badge/Svelte-5.57.2-orange?style=for-the-badge&logo=svelte)](https://svelte.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.0-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
@@ -176,8 +176,8 @@ markdown-studio/
 ### Instalación
 1. Clona el repositorio:
    ```bash
-   git clone https://github.com/SamaelEND/markdown-studio.git
-   cd markdown-studio
+   git clone https://github.com/SamaelEND/kallosmd.git
+   cd kallosmd
    ```
 
 2. Instala las dependencias:

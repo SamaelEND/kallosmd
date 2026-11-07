@@ -2,17 +2,17 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>https://markdown-studio.xyz/</loc>
+    <loc>https://kallosmd.xyz/</loc>
     <lastmod>2026-11-07</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://markdown-studio.xyz/" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://markdown-studio.xyz/es/" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://markdown-studio.xyz/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://kallosmd.xyz/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://kallosmd.xyz/es/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://kallosmd.xyz/" />
   </url>
   <url>
-    <loc>https://markdown-studio.xyz/es/</loc>
+    <loc>https://kallosmd.xyz/es/</loc>
     <lastmod>2026-11-07</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://markdown-studio.xyz/" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://markdown-studio.xyz/es/" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://markdown-studio.xyz/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://kallosmd.xyz/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://kallosmd.xyz/es/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://kallosmd.xyz/" />
   </url>
 </urlset>

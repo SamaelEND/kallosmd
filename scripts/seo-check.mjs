@@ -66,14 +66,14 @@ function validateLandingPage(relPath, expectedLang, expectedCanonical) {
   )
 
   assert(
-    /<link\s+rel="alternate"\s+hreflang="en"\s+href="https:\/\/markdown-studio\.xyz\/"/i.test(html) &&
-    /<link\s+rel="alternate"\s+hreflang="es"\s+href="https:\/\/markdown-studio\.xyz\/es\/"/i.test(html) &&
-    /<link\s+rel="alternate"\s+hreflang="x-default"\s+href="https:\/\/markdown-studio\.xyz\/"/i.test(html),
+    /<link\s+rel="alternate"\s+hreflang="en"\s+href="https:\/\/kallosmd\.xyz\/"/i.test(html) &&
+    /<link\s+rel="alternate"\s+hreflang="es"\s+href="https:\/\/kallosmd\.xyz\/es\/"/i.test(html) &&
+    /<link\s+rel="alternate"\s+hreflang="x-default"\s+href="https:\/\/kallosmd\.xyz\/"/i.test(html),
     `${relPath} incluye hreflang recíprocos (en, es, x-default)`,
   )
 
   assert(
-    /<meta\s+property="og:image"\s+content="https:\/\/markdown-studio\.xyz\/og-image\.png"/i.test(html) &&
+    /<meta\s+property="og:image"\s+content="https:\/\/kallosmd\.xyz\/og-image\.png"/i.test(html) &&
     /<meta\s+property="og:image:width"\s+content="1200"/i.test(html) &&
     /<meta\s+property="og:image:height"\s+content="630"/i.test(html),
     `${relPath} configura og:image 1200x630`,
@@ -88,8 +88,10 @@ function validateLandingPage(relPath, expectedLang, expectedCanonical) {
     try {
       const parsed = JSON.parse(jsonLdMatch[1])
       assert(
-        parsed['@type'] === 'WebApplication' && parsed.inLanguage === expectedLang,
-        `${relPath} JSON-LD es válido y coincide con inLanguage="${expectedLang}"`,
+        parsed['@type'] === 'WebApplication' &&
+          parsed.inLanguage === expectedLang &&
+          parsed.url === expectedCanonical,
+        `${relPath} JSON-LD es válido y coincide con inLanguage="${expectedLang}" y url="${expectedCanonical}"`,
       )
     } catch {
       assert(false, `${relPath} JSON-LD parsea como JSON válido`)
@@ -102,8 +104,8 @@ function validateLandingPage(relPath, expectedLang, expectedCanonical) {
   assert(words >= 500, `${relPath} contiene suficiente contenido semántico (${words} palabras ≥ 500)`)
 }
 
-validateLandingPage('index.html', 'en', 'https://markdown-studio.xyz/')
-validateLandingPage('es/index.html', 'es', 'https://markdown-studio.xyz/es/')
+validateLandingPage('index.html', 'en', 'https://kallosmd.xyz/')
+validateLandingPage('es/index.html', 'es', 'https://kallosmd.xyz/es/')
 
 const rootHtml = readFileSync(resolve(distDir, 'index.html'), 'utf-8')
 assert(
@@ -131,8 +133,8 @@ assert(existsSync(sitemapPath), 'sitemap.xml existe en dist/')
 if (existsSync(sitemapPath)) {
   const sitemap = readFileSync(sitemapPath, 'utf-8')
   assert(
-    sitemap.includes('https://markdown-studio.xyz/') &&
-    sitemap.includes('https://markdown-studio.xyz/es/') &&
+    sitemap.includes('https://kallosmd.xyz/') &&
+    sitemap.includes('https://kallosmd.xyz/es/') &&
     !sitemap.includes('/app/'),
     'sitemap.xml lista / y /es/ con alternates y excluye /app/',
   )

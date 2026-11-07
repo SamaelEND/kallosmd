@@ -13,7 +13,7 @@
   import FormatShortcutsBar from "./FormatShortcutsBar.svelte";
   import MoreToolsMenu from "./MoreToolsMenu.svelte";
 
-  const GITHUB_REPO_URL = "https://github.com/SamaelEND/markdown-studio";
+  const GITHUB_REPO_URL = "https://github.com/SamaelEND/kallosmd";
 
   interface Props {
     sidebarOpen: boolean;

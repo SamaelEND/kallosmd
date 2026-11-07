@@ -1,5 +1,5 @@
 {
-  "name": "markdown-studio",
+  "name": "kallosmd",
   "description": "Free online Markdown editor with live preview, LaTeX math (KaTeX), Mermaid diagrams, and PDF/HTML export. Local-first and private.",
   "keywords": [
     "markdown",
@@ -14,15 +14,17 @@
     "svelte",
     "local-first",
     "offline",
-    "privacy"
+    "privacy",
+    "kallos",
+    "kallosmd"
   ],
-  "homepage": "https://markdown-studio.xyz",
+  "homepage": "https://kallosmd.xyz",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/SamaelEND/markdown-studio.git"
+    "url": "git+https://github.com/SamaelEND/kallosmd.git"
   },
   "bugs": {
-    "url": "https://github.com/SamaelEND/markdown-studio/issues"
+    "url": "https://github.com/SamaelEND/kallosmd/issues"
   },
   "license": "AGPL-3.0-only",
   "author": "Manuel Alvarez",
