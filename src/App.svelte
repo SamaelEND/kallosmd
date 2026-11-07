@@ -141,7 +141,7 @@
     if (typeof document !== "undefined") document.title = docTitle;
 
     const previousMode = viewMode;
-    if (previousMode === "editor") {
+    if (previousMode === "editor" || previousMode === "live") {
       documentStore.setViewMode("preview");
       await tick();
       await new Promise((resolve) => setTimeout(resolve, 60));
@@ -158,7 +158,9 @@
     if (previewComponent?.restoreAfterPrint) {
       await previewComponent.restoreAfterPrint();
     }
-    if (previousMode === "editor") documentStore.setViewMode("editor");
+    if (previousMode === "editor" || previousMode === "live") {
+      documentStore.setViewMode(previousMode);
+    }
     if (typeof document !== "undefined") document.title = originalTitle;
   }
 
@@ -169,7 +171,7 @@
       : "documento";
 
     const previousMode = viewMode;
-    if (previousMode === "editor") {
+    if (previousMode === "editor" || previousMode === "live") {
       documentStore.setViewMode("preview");
       await tick();
       await new Promise((resolve) => setTimeout(resolve, 60));
@@ -182,7 +184,9 @@
       "text/html",
     );
 
-    if (previousMode === "editor") documentStore.setViewMode("editor");
+    if (previousMode === "editor" || previousMode === "live") {
+      documentStore.setViewMode(previousMode);
+    }
   }
 
   function handleDragOver(e: DragEvent): void {
@@ -290,8 +294,9 @@
             value={activeContent}
             {isDark}
             codeTheme={settings.codeTheme}
-            showMinimapEnabled={settings.minimap}
-            showLineNumbersEnabled={settings.lineNumbers}
+            liveModeEnabled={viewMode === "live"}
+            showMinimapEnabled={settings.minimap && viewMode !== "live"}
+            showLineNumbersEnabled={settings.lineNumbers && viewMode !== "live"}
             wordWrapEnabled={settings.wordWrap}
             onChange={(val) => documentStore.updateActiveContent(val)}
             onEditorScroll={() => syncScroll("editor")}
@@ -313,7 +318,7 @@
       <section
         class="pane preview-pane"
         style="width: {viewMode === 'split' ? 100 - splitRatio + '%' : '100%'};"
-        class:hidden-pane={viewMode === "editor"}
+        class:hidden-pane={viewMode === "editor" || viewMode === "live"}
         aria-label="Vista previa de lectura"
       >
         {#key documentStore.activeId}

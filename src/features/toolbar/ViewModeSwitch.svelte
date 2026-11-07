@@ -1,8 +1,8 @@
 <script lang="ts">
   /**
-   * Selector segmentado de modo de vista (Editor, Dividido, Lectura).
+   * Selector segmentado de modo de vista (Live, Editor, Dividido, Lectura).
    */
-  import { Code, Columns2, Eye } from "lucide-svelte";
+  import { Code, Columns2, Eye, Sparkles } from "lucide-svelte";
   import { i18n } from "../../shared/i18n/i18n.svelte";
   import type { ViewMode } from "../../core/types";
 
@@ -20,11 +20,22 @@
   <button
     type="button"
     class="seg-btn"
+    class:active={currentViewMode === "live"}
+    onclick={() => onSelectMode("live")}
+    title={t.toolbar.liveTitle}
+  >
+    <Sparkles size={14} />
+    <span class="seg-label">{t.toolbar.live}</span>
+  </button>
+
+  <button
+    type="button"
+    class="seg-btn"
     class:active={currentViewMode === "editor"}
     onclick={() => onSelectMode("editor")}
     title={t.toolbar.editorTitle}
   >
-    <Code size={15} />
+    <Code size={14} />
     <span class="seg-label">{t.toolbar.editor}</span>
   </button>
 
@@ -35,7 +46,7 @@
     onclick={() => onSelectMode("split")}
     title={t.toolbar.splitTitle}
   >
-    <Columns2 size={15} />
+    <Columns2 size={14} />
     <span class="seg-label">{t.toolbar.split}</span>
   </button>
 
@@ -46,41 +57,46 @@
     onclick={() => onSelectMode("preview")}
     title={t.toolbar.previewTitle}
   >
-    <Eye size={15} />
+    <Eye size={14} />
     <span class="seg-label">{t.toolbar.preview}</span>
   </button>
 </div>
 
 <style>
   .segmented-control {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
     align-items: center;
     background-color: var(--bg-elevated, #24272c);
     border: 1px solid var(--border-color, #2b3038);
-    border-radius: 6px;
-    padding: 2px;
-    gap: 2px;
-    flex-shrink: 0;
+    border-radius: 7px;
+    padding: 3px;
+    gap: 3px;
+    width: 100%;
   }
 
   .seg-btn {
     border: none;
     background: transparent;
     color: var(--text-secondary, #94a3b8);
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: var(--ui-font-sm, 0.75rem);
+    padding: 6px 6px;
+    border-radius: 5px;
+    font-size: 0.72rem;
     font-weight: 500;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 5px;
+    justify-content: center;
+    gap: 3px;
     cursor: pointer;
     transition: all 0.12s ease;
     font-family: inherit;
+    min-width: 0;
   }
 
   .seg-btn:hover {
     color: var(--text-primary, #ffffff);
+    background-color: rgba(255, 255, 255, 0.03);
   }
 
   .seg-btn.active {
@@ -90,13 +106,18 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
   }
 
-  @media (max-width: 1024px) {
-    .seg-label {
-      display: none;
-    }
+  .seg-label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
   }
 
   @media (max-width: 640px) {
+    .segmented-control {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
     .seg-btn-split {
       display: none !important;
     }

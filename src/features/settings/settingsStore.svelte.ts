@@ -27,8 +27,14 @@ class SettingsStore {
     try {
       const rawTheme = localStorage.getItem(STORAGE_KEYS.THEME);
       const savedTheme: ThemeMode = rawTheme === "light" ? "light" : "dark";
-      const savedViewMode =
-        (localStorage.getItem(STORAGE_KEYS.VIEW_MODE) as ViewMode) || "split";
+      const rawViewMode = localStorage.getItem(STORAGE_KEYS.VIEW_MODE);
+      const savedViewMode: ViewMode =
+        rawViewMode === "live" ||
+        rawViewMode === "editor" ||
+        rawViewMode === "split" ||
+        rawViewMode === "preview"
+          ? rawViewMode
+          : "live";
       const savedFontSize =
         (localStorage.getItem(STORAGE_KEYS.FONT_SIZE) as FontSize) || "medium";
       const rawCodeTheme = localStorage.getItem(STORAGE_KEYS.CODE_THEME);

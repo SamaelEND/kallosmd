@@ -14,7 +14,7 @@ export const STORAGE_KEYS = {
   ACTIVE_ID: "md_studio_active_id_v1",
   THEME: "md_studio_theme_v1",
   SYNC_SCROLL: "md_studio_sync_scroll_v1",
-  VIEW_MODE: "md_studio_view_mode_v1",
+  VIEW_MODE: "md_studio_view_mode_v2",
   FONT_SIZE: "md_studio_font_size_v1",
   CODE_THEME: "md_studio_code_theme_v1",
   LINE_NUMBERS: "md_studio_line_numbers_v1",
@@ -30,7 +30,7 @@ export const STORAGE_KEYS = {
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: "dark",
-  viewMode: "split",
+  viewMode: "live",
   fontSize: "medium",
   codeTheme: DEFAULT_CODE_THEME,
   syncScroll: true,

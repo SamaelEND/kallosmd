@@ -29,15 +29,19 @@
   import {
     buildEditorExtensions,
     getPalette,
+    paletteToCssText,
   } from "../../shared/utils/codeThemes";
   import type { CodeThemeId } from "../../core/types";
   import { showMinimap } from "@replit/codemirror-minimap";
+  import { createLivePreviewExtension } from "./live-preview/livePlugin";
+  import "../preview/styles/preview-content.css";
 
   interface Props {
     documentId?: string;
     value: string;
     isDark?: boolean;
     codeTheme?: CodeThemeId;
+    liveModeEnabled?: boolean;
     showMinimapEnabled?: boolean;
     showLineNumbersEnabled?: boolean;
     wordWrapEnabled?: boolean;
@@ -50,6 +54,7 @@
     value = "",
     isDark = true,
     codeTheme = "vscode",
+    liveModeEnabled = false,
     showMinimapEnabled = true,
     showLineNumbersEnabled = true,
     wordWrapEnabled = true,
@@ -61,11 +66,16 @@
   let view = $state<EditorView | null>(null);
 
   const themeCompartment = new Compartment();
+  const livePreviewCompartment = new Compartment();
   const minimapCompartment = new Compartment();
   const lineNumbersCompartment = new Compartment();
   const wordWrapCompartment = new Compartment();
 
   const currentPalette = $derived(getPalette(codeTheme, isDark));
+
+  // ES: Variables CSS de tokens (--tok-*, --code-*) para que los bloques de código renderizados en Live Preview tengan colores de sintaxis.
+  // EN: Token CSS variables (--tok-*, --code-*) so code blocks rendered in Live Preview get syntax colors.
+  const codeVars = $derived(paletteToCssText(currentPalette));
 
   function themeExtensions(): Extension {
     return buildEditorExtensions(currentPalette, isDark);
@@ -87,6 +97,7 @@
     if (!editorContainer) return;
 
     const currentThemeExt = themeExtensions();
+    const livePreviewExt = liveModeEnabled ? createLivePreviewExtension() : [];
     const minimapExt = showMinimapEnabled ? createMinimapExtension() : [];
     const lineNumbersExt = showLineNumbersEnabled
       ? [lineNumbers(), highlightActiveLineGutter(), foldGutter()]
@@ -106,6 +117,7 @@
         highlightActiveLine(),
         markdown({ codeLanguages: languages }),
         themeCompartment.of(currentThemeExt),
+        livePreviewCompartment.of(livePreviewExt),
         minimapCompartment.of(minimapExt),
         lineNumbersCompartment.of(lineNumbersExt),
         wordWrapCompartment.of(wordWrapExt),
@@ -184,6 +196,17 @@
     if (!view) return;
     view.dispatch({
       effects: themeCompartment.reconfigure(themeExt),
+    });
+  });
+
+  // ES: Activa o desactiva el modo híbrido Live Preview sin afectar el modo Editor o Dividido.
+  // EN: Reactively enables or disables Live Preview mode without affecting Editor or Split mode.
+  $effect(() => {
+    const isLive = liveModeEnabled;
+    if (!view) return;
+    const liveExt = isLive ? createLivePreviewExtension() : [];
+    view.dispatch({
+      effects: livePreviewCompartment.reconfigure(liveExt),
     });
   });
 
@@ -338,7 +361,7 @@
   class="editor-wrapper"
   class:hide-line-numbers={!showLineNumbersEnabled}
   class:hide-minimap={!showMinimapEnabled}
-  style="--cm-palette-bg: {currentPalette.bg}; --cm-palette-fg: {currentPalette.fg}; --cm-palette-border: {currentPalette.border};"
+  style="--cm-palette-bg: {currentPalette.bg}; --cm-palette-fg: {currentPalette.fg}; --cm-palette-border: {currentPalette.border}; {codeVars}"
   bind:this={editorContainer}
 ></div>
 

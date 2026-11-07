@@ -8,6 +8,7 @@
   interface Props {
     label: string;
     checked: boolean;
+    disabled?: boolean;
     onToggle: () => void;
     title?: string;
     class?: string;
@@ -17,6 +18,7 @@
   let {
     label,
     checked = false,
+    disabled = false,
     onToggle,
     title,
     class: customClass = "",
@@ -27,8 +29,12 @@
 <button
   type="button"
   class="menu-tool-toggle {customClass}"
-  onclick={onToggle}
-  aria-pressed={checked}
+  class:is-disabled={disabled}
+  {disabled}
+  onclick={() => {
+    if (!disabled) onToggle();
+  }}
+  aria-pressed={checked && !disabled}
   {title}
 >
   <div class="menu-tool-info">
@@ -37,9 +43,9 @@
     {/if}
     <span>{label}</span>
   </div>
-  <span class="toggle-pill" class:on={checked}>
+  <span class="toggle-pill" class:on={checked && !disabled}>
     <span class="pill-dot" aria-hidden="true"></span>
-    {checked ? "ON" : "OFF"}
+    {checked && !disabled ? "ON" : "OFF"}
   </span>
 </button>
 
@@ -59,8 +65,13 @@
     font-family: inherit;
   }
 
-  .menu-tool-toggle:hover {
+  .menu-tool-toggle:hover:not(:disabled) {
     background-color: var(--bg-hover, #282c35);
+  }
+
+  .menu-tool-toggle.is-disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
   }
 
   .menu-tool-info {

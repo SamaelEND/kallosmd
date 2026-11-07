@@ -1,29 +1,17 @@
 <script lang="ts">
   /**
    * Componente orquestador Toolbar de Markdown Studio.
-   * Coordina la fila principal de herramientas, los menús desplegables y la barra de formato Markdown.
+   * Coordina la fila principal de herramientas, los menús desplegables ('...' y Exportar) y la barra de formato Markdown.
    */
-  import {
-    ListOrdered,
-    Map,
-    Moon,
-    Palette,
-    PanelLeft,
-    Sun,
-  } from "lucide-svelte";
+  import { Moon, PanelLeft, Sun } from "lucide-svelte";
   import { downloadTextFile } from "../preview/export/htmlExport";
   import { documentStore } from "../vault/vaultStore.svelte";
   import { i18n } from "../../shared/i18n/i18n.svelte";
   import type { CodeThemeId, ViewMode } from "../../core/types";
   import Button from "../../shared/ui/Button.svelte";
-  import DropdownMenu from "../../shared/ui/DropdownMenu.svelte";
-  import GithubIcon from "../../shared/ui/GithubIcon.svelte";
-  import CodeThemePicker from "./CodeThemePicker.svelte";
   import ExportMenu from "./ExportMenu.svelte";
   import FormatShortcutsBar from "./FormatShortcutsBar.svelte";
-  import LanguagePicker from "./LanguagePicker.svelte";
   import MoreToolsMenu from "./MoreToolsMenu.svelte";
-  import ViewModeSwitch from "./ViewModeSwitch.svelte";
 
   const GITHUB_REPO_URL = "https://github.com/SamaelEND/markdown-studio";
 
@@ -48,9 +36,7 @@
   }: Props = $props();
 
   let exportMenuOpen = $state(false);
-  let codeThemeOpen = $state(false);
   let moreMenuOpen = $state(false);
-  let langPickerOpen = $state(false);
 
   const t = $derived(i18n.current);
   const activeDoc = $derived(documentStore.activeDocument);
@@ -63,7 +49,7 @@
       window.innerWidth <= 640 &&
       documentStore.settings.viewMode === "split"
     ) {
-      documentStore.setViewMode("editor");
+      documentStore.setViewMode("live");
     }
   });
 
@@ -73,8 +59,6 @@
 
   function setCodeTheme(id: CodeThemeId): void {
     documentStore.updateSettings({ codeTheme: id });
-    codeThemeOpen = false;
-    moreMenuOpen = false;
   }
 
   function exportMarkdown(): void {
@@ -84,10 +68,8 @@
 
   function handleWindowClick(e: MouseEvent): void {
     const target = e.target as HTMLElement;
-    if (!target.closest(".code-theme-wrap")) codeThemeOpen = false;
     if (!target.closest(".export-menu-wrap")) exportMenuOpen = false;
     if (!target.closest(".more-menu-wrap")) moreMenuOpen = false;
-    if (!target.closest(".lang-picker-wrap")) langPickerOpen = false;
   }
 </script>
 
@@ -116,94 +98,6 @@
     </div>
 
     <div class="toolbar-right">
-      <ViewModeSwitch {currentViewMode} onSelectMode={setView} />
-
-      <button
-        type="button"
-        class="sync-toggle-btn desktop-sync-btn"
-        class:active={documentStore.settings.syncScroll}
-        onclick={() =>
-          documentStore.updateSettings({
-            syncScroll: !documentStore.settings.syncScroll,
-          })}
-        title={documentStore.settings.syncScroll
-          ? t.toolbar.syncScrollActive
-          : t.toolbar.syncScrollInactive}
-        aria-pressed={documentStore.settings.syncScroll}
-        aria-label={t.toolbar.syncScrollAria}
-      >
-        <span class="sync-status-dot" aria-hidden="true"></span>
-        <span class="sync-pill-text">SYNC</span>
-      </button>
-
-      <div class="code-theme-wrap desktop-theme-btn">
-        <Button
-          variant="ghost"
-          size="icon"
-          active={codeThemeOpen}
-          onclick={(e) => {
-            e.stopPropagation();
-            codeThemeOpen = !codeThemeOpen;
-          }}
-          title={t.toolbar.codePaletteTitle}
-          ariaHaspopup="true"
-          ariaExpanded={codeThemeOpen}
-        >
-          <Palette size={16} />
-        </Button>
-
-        {#if codeThemeOpen}
-          <DropdownMenu>
-            <CodeThemePicker
-              selectedTheme={documentStore.settings.codeTheme}
-              isDark={documentStore.isDark}
-              showDescription={true}
-              onSelect={setCodeTheme}
-            />
-          </DropdownMenu>
-        {/if}
-      </div>
-
-      <Button
-        variant="ghost"
-        size="icon"
-        active={documentStore.settings.lineNumbers}
-        class="desktop-linenum-btn"
-        onclick={() =>
-          documentStore.updateSettings({
-            lineNumbers: !documentStore.settings.lineNumbers,
-          })}
-        title={documentStore.settings.lineNumbers
-          ? t.toolbar.lineNumbersActive
-          : t.toolbar.lineNumbersInactive}
-        ariaLabel={t.toolbar.lineNumbersAria}
-      >
-        <ListOrdered size={16} />
-      </Button>
-
-      {#if currentViewMode !== "preview"}
-        <Button
-          variant="ghost"
-          size="icon"
-          active={documentStore.settings.minimap}
-          class="desktop-minimap-btn"
-          onclick={() =>
-            documentStore.updateSettings({
-              minimap: !documentStore.settings.minimap,
-            })}
-          title={documentStore.settings.minimap
-            ? i18n.locale === "es"
-              ? "Ocultar minimapa"
-              : "Hide minimap"
-            : i18n.locale === "es"
-              ? "Mostrar minimapa"
-              : "Show minimap"}
-          ariaLabel="Minimapa"
-        >
-          <Map size={16} />
-        </Button>
-      {/if}
-
       <Button
         variant="ghost"
         size="icon"
@@ -220,51 +114,34 @@
         {/if}
       </Button>
 
-      <div class="desktop-lang-picker">
-        <LanguagePicker
-          isOpen={langPickerOpen}
-          onToggleOpen={(e) => {
-            e.stopPropagation();
-            langPickerOpen = !langPickerOpen;
-          }}
-          onSelectLocale={(loc) => {
-            i18n.setLocale(loc);
-            langPickerOpen = false;
-          }}
-        />
-      </div>
-
-      <Button
-        variant="ghost"
-        size="icon"
-        href={GITHUB_REPO_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        class="desktop-tablet-github"
-        title={t.toolbar.githubTitle}
-        ariaLabel={t.toolbar.githubAria}
-      >
-        <GithubIcon size={16} />
-      </Button>
-
       <MoreToolsMenu
         isOpen={moreMenuOpen}
+        {currentViewMode}
         syncScroll={documentStore.settings.syncScroll}
         lineNumbers={documentStore.settings.lineNumbers}
+        minimap={documentStore.settings.minimap}
         codeTheme={documentStore.settings.codeTheme}
         isDark={documentStore.isDark}
         githubUrl={GITHUB_REPO_URL}
         onToggleOpen={(e) => {
           e.stopPropagation();
+          exportMenuOpen = false;
           moreMenuOpen = !moreMenuOpen;
         }}
-        onToggleSyncScroll={() =>
+        onSelectViewMode={setView}
+        onToggleSyncScroll={() => {
+          if (currentViewMode !== "split") return;
           documentStore.updateSettings({
             syncScroll: !documentStore.settings.syncScroll,
-          })}
+          });
+        }}
         onToggleLineNumbers={() =>
           documentStore.updateSettings({
             lineNumbers: !documentStore.settings.lineNumbers,
+          })}
+        onToggleMinimap={() =>
+          documentStore.updateSettings({
+            minimap: !documentStore.settings.minimap,
           })}
         onSelectCodeTheme={setCodeTheme}
         onClose={() => (moreMenuOpen = false)}
@@ -275,6 +152,7 @@
         includePdfUrl={Boolean(documentStore.settings.includePdfUrl)}
         onToggleOpen={(e) => {
           e.stopPropagation();
+          moreMenuOpen = false;
           exportMenuOpen = !exportMenuOpen;
         }}
         onExportMarkdown={() => {
@@ -335,7 +213,7 @@
     flex-direction: column;
     justify-content: center;
     min-width: 0;
-    max-width: 280px;
+    max-width: 320px;
     line-height: 1.25;
   }
 
@@ -361,82 +239,9 @@
     margin-left: auto;
   }
 
-  .code-theme-wrap {
-    position: relative;
-  }
-
-  .sync-toggle-btn {
-    height: 30px;
-    padding: 0 8px;
-    border-radius: 6px;
-    border: 1px solid var(--border-color, #262a33);
-    background-color: transparent;
-    color: var(--text-faint, #64748b);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-    cursor: pointer;
-    transition: all 0.14s ease;
-    font-family: inherit;
-    user-select: none;
-  }
-
-  .sync-toggle-btn:hover {
-    background-color: var(--bg-hover, #282c35);
-    color: var(--text-primary, #f1f5f9);
-  }
-
-  .sync-status-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background-color: var(--text-faint, #64748b);
-    opacity: 0.45;
-    transition: all 0.15s ease;
-  }
-
-  .sync-pill-text {
-    font-size: var(--ui-font-2xs, 0.65625rem);
-    font-weight: 700;
-    letter-spacing: 0.04em;
-  }
-
-  .sync-toggle-btn.active {
-    background-color: var(--accent-soft, rgba(95, 179, 163, 0.16));
-    border-color: var(--accent-color, #5fb3a3);
-    color: var(--accent-color, #5fb3a3);
-  }
-
-  .sync-toggle-btn.active .sync-status-dot {
-    background-color: var(--accent-color, #5fb3a3);
-    opacity: 1;
-    box-shadow: 0 0 6px var(--accent-color, #5fb3a3);
-  }
-
   @media (max-width: 640px) {
-    .desktop-sync-btn,
-    .desktop-theme-btn,
-    .desktop-lang-picker,
-    .toolbar-right :global(.desktop-linenum-btn),
-    .toolbar-right :global(.desktop-minimap-btn),
-    .toolbar-right :global(.desktop-tablet-github) {
-      display: none !important;
-    }
-
     .title-readonly-wrap {
-      max-width: 130px;
-    }
-  }
-
-  @media (min-width: 641px) and (max-width: 1024px) {
-    .desktop-theme-btn,
-    .toolbar-right :global(.desktop-linenum-btn) {
-      display: none !important;
-    }
-
-    .title-readonly-wrap {
-      max-width: 200px;
+      max-width: 160px;
     }
   }
 </style>

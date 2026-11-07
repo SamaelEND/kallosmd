@@ -1,5 +1,6 @@
 /**
- * Procesador de definiciones y referencias de notas al pie ([^id]).
+ * ES: Procesador de definiciones y referencias de notas al pie ([^id]).
+ * EN: Processor for footnote definitions and references ([^id]).
  */
 
 export interface FootnotePlaceholder {
@@ -20,7 +21,8 @@ function sanitizeFootnoteSlug(rawId: string): string {
 }
 
 /**
- * Extrae las definiciones `[^id]: texto` y referencias `[^id]` reemplazándolas por placeholders.
+ * ES: Extrae las definiciones `[^id]: texto` y referencias `[^id]` reemplazándolas por placeholders.
+ * EN: Extracts `[^id]: text` definitions and `[^id]` references, replacing them with placeholders.
  */
 export function extractAndRenderFootnotes(
   input: string,
@@ -29,20 +31,32 @@ export function extractAndRenderFootnotes(
   const footnotePlaceholders: FootnotePlaceholder[] = [];
   const footnoteNumbers = new Map<string, number>();
   let footnoteCounter = 0;
+  let hasExplicitRefs = false;
+
+  const refOrderRegex = /\[\^([^\]]+)\](?!:)/g;
+  let refMatch: RegExpExecArray | null;
+  while ((refMatch = refOrderRegex.exec(input)) !== null) {
+    hasExplicitRefs = true;
+    const key = refMatch[1].trim();
+    if (!footnoteNumbers.has(key)) {
+      footnoteCounter += 1;
+      footnoteNumbers.set(key, footnoteCounter);
+    }
+  }
 
   function getFootnoteNumber(rawId: string): number {
     const key = rawId.trim();
     const existing = footnoteNumbers.get(key);
     if (existing !== undefined) return existing;
+    if (!hasExplicitRefs && /^\d+$/.test(key)) {
+      const explicitNum = Number(key);
+      footnoteNumbers.set(key, explicitNum);
+      if (explicitNum > footnoteCounter) footnoteCounter = explicitNum;
+      return explicitNum;
+    }
     footnoteCounter += 1;
     footnoteNumbers.set(key, footnoteCounter);
     return footnoteCounter;
-  }
-
-  const refOrderRegex = /\[\^([^\]]+)\](?!:)/g;
-  let refMatch: RegExpExecArray | null;
-  while ((refMatch = refOrderRegex.exec(input)) !== null) {
-    getFootnoteNumber(refMatch[1]);
   }
 
   let processed = input.replace(

@@ -72,31 +72,25 @@ markedInstance.use({
         : "";
       const displayLang = rawLang.replace(/[^a-z0-9\-_+#]/g, "") || "texto";
 
+      // Elimina saltos de línea superfluos iniciales y finales del bloque de código
+      const cleanCode = (token.text || "").replace(/^\n+|\n+$/g, "");
+
       let highlightedCode = "";
       try {
         if (rawLang && hljs.getLanguage(rawLang)) {
-          highlightedCode = hljs.highlight(token.text, {
+          highlightedCode = hljs.highlight(cleanCode, {
             language: rawLang,
             ignoreIllegals: true,
           }).value;
         } else {
-          highlightedCode = escapeHtmlText(token.text);
+          highlightedCode = escapeHtmlText(cleanCode);
         }
       } catch {
-        highlightedCode = escapeHtmlText(token.text);
+        highlightedCode = escapeHtmlText(cleanCode);
       }
 
-      return `
-        <div class="code-block-wrapper"${lineAttr}>
-          <div class="code-header-bar">
-            <span class="code-lang-label">${displayLang}</span>
-            <button class="code-copy-btn" type="button" title="Copiar código al portapapeles">
-              <span class="copy-text">Copiar</span>
-            </button>
-          </div>
-          <pre><code class="hljs language-${displayLang}">${highlightedCode}</code></pre>
-        </div>
-      `;
+      // Emite HTML continuo sin saltos de línea ni indentación para evitar nodos de texto no deseados
+      return `<div class="code-block-wrapper"${lineAttr}><div class="code-header-bar"><span class="code-lang-label">${displayLang}</span><button class="code-copy-btn" type="button" title="Copiar código al portapapeles"><span class="copy-text">Copiar</span></button></div><pre><code class="hljs language-${displayLang}">${highlightedCode}</code></pre></div>\n`;
     },
     paragraph(token: any) {
       const lineAttr = token.startLine
@@ -115,7 +109,8 @@ markedInstance.use({
         ? ` data-source-line="${token.startLine}"`
         : "";
       const defaultHtml = Renderer.prototype.table.call(this, token);
-      return defaultHtml.replace("<table", `<table${lineAttr}`);
+      const tableWithLine = defaultHtml.replace("<table", `<table${lineAttr}`);
+      return `<div class="table-container">${tableWithLine}</div>\n`;
     },
     list(token: any) {
       const lineAttr = token.startLine
@@ -265,6 +260,7 @@ export const DOMPURIFY_CONFIG: DompurifyConfig = {
     "d",
     "xmlns",
     "display",
+    "align",
   ],
 };
 

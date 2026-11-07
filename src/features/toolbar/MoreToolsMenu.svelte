@@ -1,46 +1,57 @@
 <script lang="ts">
   /**
-   * Menú desplegable de 3 puntos horizontales ('...') para Tablet y Móvil.
-   * Agrupa las herramientas secundarias (SYNC, Números de línea, Paleta de código, Idioma y GitHub en móvil).
+   * Menú desplegable de 3 puntos horizontales ('...') ubicado junto a Exportar.
+   * Agrupa los modos de vista (Live, Editor, Split, Preview) y las herramientas secundarias
+   * tanto en escritorio como en móvil.
    */
   import { Languages, MoreHorizontal } from "lucide-svelte";
   import { i18n } from "../../shared/i18n/i18n.svelte";
-  import type { CodeThemeId } from "../../core/types";
+  import type { CodeThemeId, ViewMode } from "../../core/types";
   import Button from "../../shared/ui/Button.svelte";
   import DropdownMenu from "../../shared/ui/DropdownMenu.svelte";
   import ToggleSwitchItem from "../../shared/ui/ToggleSwitchItem.svelte";
   import GithubIcon from "../../shared/ui/GithubIcon.svelte";
   import CodeThemePicker from "./CodeThemePicker.svelte";
+  import ViewModeSwitch from "./ViewModeSwitch.svelte";
 
   interface Props {
     isOpen: boolean;
+    currentViewMode: ViewMode;
     syncScroll: boolean;
     lineNumbers: boolean;
+    minimap: boolean;
     codeTheme: CodeThemeId;
     isDark: boolean;
     githubUrl: string;
     onToggleOpen: (e: MouseEvent) => void;
+    onSelectViewMode: (mode: ViewMode) => void;
     onToggleSyncScroll: () => void;
     onToggleLineNumbers: () => void;
+    onToggleMinimap: () => void;
     onSelectCodeTheme: (id: CodeThemeId) => void;
     onClose: () => void;
   }
 
   let {
     isOpen,
+    currentViewMode,
     syncScroll,
     lineNumbers,
+    minimap,
     codeTheme,
     isDark,
     githubUrl,
     onToggleOpen,
+    onSelectViewMode,
     onToggleSyncScroll,
     onToggleLineNumbers,
+    onToggleMinimap,
     onSelectCodeTheme,
     onClose,
   }: Props = $props();
 
   const t = $derived(i18n.current);
+  const isSplitMode = $derived(currentViewMode === "split");
 </script>
 
 <div class="more-menu-wrap">
@@ -59,11 +70,29 @@
 
   {#if isOpen}
     <DropdownMenu>
+      <span class="menu-title">{t.moreTools.viewModeLabel}</span>
+      <div class="view-mode-box">
+        <ViewModeSwitch
+          {currentViewMode}
+          onSelectMode={(mode) => {
+            onSelectViewMode(mode);
+          }}
+        />
+      </div>
+
+      <div class="menu-divider"></div>
+
       <span class="menu-title">{t.moreTools.title}</span>
 
       <ToggleSwitchItem
         label={t.moreTools.syncScroll}
-        checked={syncScroll}
+        checked={isSplitMode && syncScroll}
+        disabled={!isSplitMode}
+        title={isSplitMode
+          ? syncScroll
+            ? t.toolbar.syncScrollActive
+            : t.toolbar.syncScrollInactive
+          : t.moreTools.syncScrollSplitOnly}
         onToggle={onToggleSyncScroll}
       />
 
@@ -71,6 +100,13 @@
         label={t.moreTools.lineNumbers}
         checked={lineNumbers}
         onToggle={onToggleLineNumbers}
+      />
+
+      <ToggleSwitchItem
+        label={t.moreTools.minimap}
+        checked={minimap}
+        class="desktop-only-minimap-item"
+        onToggle={onToggleMinimap}
       />
 
       <div class="menu-divider"></div>
@@ -97,7 +133,7 @@
         onSelect={onSelectCodeTheme}
       />
 
-      <div class="menu-divider mobile-github-divider"></div>
+      <div class="menu-divider"></div>
 
       <Button
         variant="menu-item"
@@ -119,9 +155,13 @@
     position: relative;
   }
 
+  .view-mode-box {
+    padding: 2px 6px 4px;
+  }
+
   .menu-title {
-    padding: 4px 10px 6px;
-    font-size: 0.7rem;
+    padding: 4px 10px 4px;
+    font-size: 0.68rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--text-faint, #64748b);
@@ -170,26 +210,8 @@
     color: var(--accent-color, #5fb3a3);
   }
 
-  .more-menu-wrap :global(.github-menu-option) {
-    display: none;
-  }
-
-  .mobile-github-divider {
-    display: none;
-  }
-
-  @media (max-width: 640px) {
-    .more-menu-wrap :global(.github-menu-option) {
-      display: flex !important;
-    }
-
-    .mobile-github-divider {
-      display: block !important;
-    }
-  }
-
-  @media (min-width: 1025px) {
-    .more-menu-wrap :global(.more-tools-btn) {
+  @media (max-width: 768px) {
+    .more-menu-wrap :global(.desktop-only-minimap-item) {
       display: none !important;
     }
   }
