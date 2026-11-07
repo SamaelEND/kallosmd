@@ -1,0 +1,194 @@
+/* =========================================================
+   Estilos de bloques de código, tokens de sintaxis y tablas (Preview).
+   ========================================================= */
+
+/* Bloques de código con barra superior y botón de copiar */
+.reading-table-content .code-block-wrapper {
+  margin: 1.75rem 0;
+  border: 1px solid var(--code-border, var(--reading-border, #262a33));
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: color-mix(in srgb, var(--code-bg, #16181d) 85%, var(--reading-pre-bg, #121418) 15%);
+}
+
+.reading-table-content .code-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background-color: color-mix(in srgb, var(--code-bg, #1a1b1d) 94%, var(--code-fg, #888));
+  border-bottom: 1px solid var(--code-border, var(--reading-border, #2b2d31));
+  font-size: 0.75rem;
+}
+
+.reading-table-content .code-lang-label {
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--reading-muted, #9b9a94);
+}
+
+.reading-table-content .code-copy-btn {
+  border: none;
+  background: transparent;
+  color: var(--reading-muted, #9b9a94);
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 3px 8px;
+  border-radius: 4px;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.reading-table-content .code-copy-btn:hover {
+  background-color: var(--reading-hover, #2e3034);
+  color: var(--reading-text, #e8e6e1);
+}
+
+.reading-table-content .code-copy-btn.copied {
+  color: #4ade80 !important;
+}
+
+.reading-table-content pre {
+  margin: 0;
+  padding: 1.15rem 1.35rem;
+  background-color: transparent;
+  overflow-x: auto;
+}
+
+.reading-table-content code {
+  font-family: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.reading-table-content pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  font-family: "JetBrains Mono", ui-monospace, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.9em;
+  line-height: 1.68;
+  background: transparent;
+  padding: 0;
+}
+
+/* Colores de tokens desde la paleta activa (--tok-*, --code-*) */
+.reading-table-content .hljs {
+  color: var(--tok-base);
+}
+
+.reading-table-content .hljs-keyword,
+.reading-table-content .hljs-selector-tag,
+.reading-table-content .hljs-literal,
+.reading-table-content .hljs-doctag {
+  color: var(--tok-keyword);
+}
+
+.reading-table-content .hljs-built_in,
+.reading-table-content .hljs-type,
+.reading-table-content .hljs-class .hljs-title,
+.reading-table-content .hljs-title.class_,
+.reading-table-content .hljs-meta,
+.reading-table-content .hljs-meta .hljs-keyword {
+  color: var(--tok-type);
+}
+
+.reading-table-content .hljs-title,
+.reading-table-content .hljs-title.function_,
+.reading-table-content .hljs-function,
+.reading-table-content .hljs-section {
+  color: var(--tok-function);
+}
+
+.reading-table-content .hljs-variable,
+.reading-table-content .hljs-template-variable,
+.reading-table-content .hljs-params,
+.reading-table-content .hljs-property,
+.reading-table-content .hljs-symbol,
+.reading-table-content .hljs-selector-id,
+.reading-table-content .hljs-selector-class,
+.reading-table-content .hljs-selector-attr {
+  color: var(--tok-variable);
+}
+
+.reading-table-content .hljs-attr,
+.reading-table-content .hljs-attribute,
+.reading-table-content .hljs-name {
+  color: var(--tok-attr);
+}
+
+.reading-table-content .hljs-tag {
+  color: var(--tok-tag);
+}
+
+.reading-table-content .hljs-string,
+.reading-table-content .hljs-meta .hljs-string {
+  color: var(--tok-string);
+}
+
+.reading-table-content .hljs-number,
+.reading-table-content .hljs-bullet {
+  color: var(--tok-number);
+}
+
+.reading-table-content .hljs-regexp,
+.reading-table-content .hljs-link {
+  color: var(--tok-regexp);
+}
+
+.reading-table-content .hljs-comment,
+.reading-table-content .hljs-quote {
+  color: var(--tok-comment);
+  font-style: italic;
+}
+
+.reading-table-content .hljs-addition {
+  color: var(--tok-add);
+}
+
+.reading-table-content .hljs-deletion {
+  color: var(--tok-del);
+}
+
+.reading-table-content .hljs-emphasis {
+  font-style: italic;
+}
+
+.reading-table-content .hljs-strong {
+  font-weight: 700;
+}
+
+.reading-table-content :not(pre)>code {
+  padding: 0.2em 0.45em;
+  border-radius: 4px;
+  background-color: var(--reading-code-bg, #121315);
+  color: var(--reading-code-text, #7cc9bb);
+  border: 1px solid var(--reading-border-subtle, #232427);
+}
+
+/* Tablas con desplazamiento horizontal táctil */
+.reading-table-content table {
+  width: 100%;
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-collapse: collapse;
+  margin: 1.35rem 0;
+  font-size: 0.875rem;
+}
+
+.reading-table-content th,
+.reading-table-content td {
+  padding: 0.55rem 0.85rem;
+  border: 1px solid var(--reading-border, #2b2d31);
+  text-align: left;
+}
+
+.reading-table-content th {
+  background-color: var(--bg-surface, #1a1b1d);
+  font-weight: 600;
+}
+
+.reading-table-content tr:nth-child(even) {
+  background-color: var(--reading-table-stripe, #1b1c1f);
+}

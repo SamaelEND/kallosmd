@@ -1,0 +1,6 @@
+/* =========================================================
+   Punto de entrada de estilos del panel de lectura (Preview).
+   ========================================================= */
+@import "./preview-typography.css";
+@import "./preview-code-tables.css";
+@import "./preview-math-diagrams.css";

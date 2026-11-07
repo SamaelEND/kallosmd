@@ -1,0 +1,172 @@
+/* =========================================================
+   Fuentes locales autónomas (100% Offline) y tokens de color (Dark / Light).
+   ========================================================= */
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/inter-latin-wght-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/inter-latin-ext-wght-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/inter-latin-wght-italic.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url('/fonts/jetbrains-mono-latin-wght-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root,
+html[data-theme="dark"],
+html.dark {
+  --ui-font-2xs: 0.65625rem;
+  --ui-font-xs: 0.6875rem;
+  --ui-font-sm: 0.75rem;
+  --ui-font-base: 0.78125rem;
+  --ui-font-md: 0.8125rem;
+
+  --bg-app: #131519;
+  --bg-surface: #16181d;
+  --bg-reader: #16181d;
+  --bg-elevated: #20232a;
+  --bg-hover: #282c35;
+  --bg-input: #181b20;
+  --bg-active-item: #1e293b;
+  --border-active-item: rgba(59, 130, 246, 0.35);
+  --border-color: #262a33;
+  --border-subtle: #212429;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-faint: #64748b;
+  --accent-color: #5fb3a3;
+  --accent-hover: #7cc9bb;
+  --accent-ink: #0e1a18;
+  --accent-soft: rgba(95, 179, 163, 0.16);
+  --danger-color: #e5736a;
+  --warn-color: #d9a441;
+  --code-bg: #121418;
+  --code-border: #262a33;
+  --code-text: #7cc9bb;
+  --blockquote-bg: rgba(95, 179, 163, 0.08);
+  --diagram-bg: #181b20;
+  --diagram-border: #262a33;
+
+  --editor-bg: #16181d;
+  --editor-gutter-bg: #16181d;
+  --editor-gutter-border: #212429;
+  --editor-text: #e2e8f0;
+  --editor-caret: #4fc1ff;
+  --editor-selection: rgba(38, 79, 120, 0.65);
+
+  --reading-bg: var(--bg-reader);
+  --reading-sidebar-bg: var(--bg-surface);
+  --reading-toolbar-bg: var(--bg-surface);
+  --reading-statusbar-bg: var(--bg-app);
+  --reading-text: var(--text-primary);
+  --reading-heading: #f8fafc;
+  --reading-muted: var(--text-secondary);
+  --reading-border: var(--border-color);
+  --reading-border-subtle: var(--border-subtle);
+  --reading-accent: var(--accent-color);
+  --reading-accent-hover: var(--accent-hover);
+  --reading-btn-bg: var(--bg-elevated);
+  --reading-hover: var(--bg-hover);
+  --reading-input-bg: var(--bg-input);
+  --reading-quote-bg: var(--blockquote-bg);
+  --reading-quote-text: #cbd5e1;
+  --reading-code-bg: var(--code-bg);
+  --reading-code-text: var(--code-text);
+  --reading-pre-bg: #121418;
+  --reading-table-stripe: #191c22;
+  --reading-link: var(--accent-color);
+  --reading-link-hover: var(--accent-hover);
+  --reading-math-bg: #181b20;
+  --reading-diagram-bg: var(--diagram-bg);
+
+  color-scheme: dark;
+}
+
+html[data-theme="light"],
+html.light {
+  --bg-app: #f0efea;
+  --bg-surface: #f7f6f2;
+  --bg-reader: #fcfbf8;
+  --bg-elevated: #e8e6df;
+  --bg-hover: #deddd5;
+  --bg-input: #ffffff;
+  --bg-active-item: rgba(59, 130, 246, 0.12);
+  --border-active-item: rgba(59, 130, 246, 0.35);
+  --border-color: #dcdad2;
+  --border-subtle: #e6e4dc;
+  --text-primary: #25241f;
+  --text-secondary: #6b6a63;
+  --text-faint: #98968d;
+  --accent-color: #1f7a6d;
+  --accent-hover: #17625a;
+  --accent-ink: #ffffff;
+  --accent-soft: rgba(31, 122, 109, 0.14);
+  --danger-color: #c8372d;
+  --warn-color: #a8730f;
+  --code-bg: #f4f2eb;
+  --code-border: #dcdad2;
+  --code-text: #1f7a6d;
+  --blockquote-bg: rgba(31, 122, 109, 0.06);
+  --diagram-bg: #fcfbf8;
+  --diagram-border: #dcdad2;
+
+  --editor-bg: #fcfbf8;
+  --editor-gutter-bg: #f4f3ee;
+  --editor-gutter-border: #e2e0d8;
+  --editor-text: #24292e;
+  --editor-caret: #0066b8;
+  --editor-selection: rgba(173, 214, 255, 0.65);
+
+  --reading-bg: var(--bg-reader);
+  --reading-sidebar-bg: var(--bg-surface);
+  --reading-toolbar-bg: var(--bg-surface);
+  --reading-statusbar-bg: var(--bg-app);
+  --reading-text: var(--text-primary);
+  --reading-heading: var(--text-primary);
+  --reading-muted: var(--text-secondary);
+  --reading-border: var(--border-color);
+  --reading-border-subtle: var(--border-subtle);
+  --reading-accent: var(--accent-color);
+  --reading-accent-hover: var(--accent-hover);
+  --reading-btn-bg: var(--bg-elevated);
+  --reading-hover: var(--bg-hover);
+  --reading-input-bg: #ffffff;
+  --reading-quote-bg: var(--blockquote-bg);
+  --reading-quote-text: #413f38;
+  --reading-code-bg: var(--code-bg);
+  --reading-code-text: var(--code-text);
+  --reading-pre-bg: #ffffff;
+  --reading-table-stripe: #f8f6f0;
+  --reading-link: var(--accent-color);
+  --reading-link-hover: var(--accent-hover);
+  --reading-math-bg: #f7f5ed;
+  --reading-diagram-bg: var(--diagram-bg);
+
+  color-scheme: light;
+}

@@ -1,0 +1,160 @@
+/* =========================================================
+   Fórmulas KaTeX y Diagramas Mermaid Vectoriales en Impresión / PDF
+   ========================================================= */
+
+@media print {
+  .reading-table-content .katex-display-wrapper {
+    overflow: visible !important;
+    border: 1px solid #d0d7de !important;
+    background-color: #f6f8fa !important;
+    color: #1f2328 !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .reading-table-content .katex {
+    color: #1f2328 !important;
+  }
+
+  .reading-table-content .katex .katex-mathml {
+    display: none !important;
+  }
+
+  .reading-table-content .mermaid-container,
+  .reading-table-content .mermaid-container * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .reading-table-content .mermaid-container {
+    overflow: hidden !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+    background-color: #ffffff !important;
+    margin: 1.15rem 0 !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .reading-table-content .mermaid-svg-viewport {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    overflow: hidden !important;
+    padding: 0.85rem !important;
+    margin: 0 auto !important;
+    background-color: #ffffff !important;
+  }
+
+  .reading-table-content .mermaid-svg-viewport svg {
+    display: block !important;
+    max-width: 100% !important;
+    max-height: 195mm !important;
+    height: auto !important;
+    margin: 0 auto !important;
+    background-color: transparent !important;
+    background: transparent !important;
+  }
+
+  .reading-table-content .mermaid-container svg>rect:first-child,
+  .reading-table-content .mermaid-container svg .background {
+    fill: transparent !important;
+    background: transparent !important;
+  }
+
+  .reading-table-content .mermaid-container svg .node rect,
+  .reading-table-content .mermaid-container svg .node circle,
+  .reading-table-content .mermaid-container svg .node ellipse,
+  .reading-table-content .mermaid-container svg .node polygon,
+  .reading-table-content .mermaid-container svg .node path,
+  .reading-table-content .mermaid-container svg .node .label-container,
+  .reading-table-content .mermaid-container svg .node .basic {
+    fill: #ffffff !important;
+    stroke: #1f7a6d !important;
+    stroke-width: 1.5px !important;
+  }
+
+  .reading-table-content .mermaid-container svg .node text,
+  .reading-table-content .mermaid-container svg .node tspan,
+  .reading-table-content .mermaid-container svg .node .label,
+  .reading-table-content .mermaid-container svg .node .nodeLabel,
+  .reading-table-content .mermaid-container svg .node span,
+  .reading-table-content .mermaid-container svg .node p,
+  .reading-table-content .mermaid-container svg .node div,
+  .reading-table-content .mermaid-container svg .label text,
+  .reading-table-content .mermaid-container svg .label tspan,
+  .reading-table-content .mermaid-container svg .label span {
+    fill: #1f2328 !important;
+    color: #1f2328 !important;
+  }
+
+  .reading-table-content .mermaid-container svg .cluster rect {
+    fill: rgba(31, 122, 109, 0.04) !important;
+    stroke: #1f7a6d !important;
+    stroke-width: 1.2px !important;
+  }
+
+  .reading-table-content .mermaid-container svg .cluster-label text,
+  .reading-table-content .mermaid-container svg .cluster-label span,
+  .reading-table-content .mermaid-container svg .cluster text {
+    fill: #1f7a6d !important;
+    color: #1f7a6d !important;
+    font-weight: 600 !important;
+  }
+
+  .reading-table-content .mermaid-container svg .edgePath .path,
+  .reading-table-content .mermaid-container svg .flowchart-link,
+  .reading-table-content .mermaid-container svg path.link,
+  .reading-table-content .mermaid-container svg .connection,
+  .reading-table-content .mermaid-container svg line.actor-line {
+    stroke: #1f7a6d !important;
+    stroke-width: 1.5px !important;
+  }
+
+  .reading-table-content .mermaid-container svg .marker,
+  .reading-table-content .mermaid-container svg marker path,
+  .reading-table-content .mermaid-container svg .arrowheadPath {
+    fill: #1f7a6d !important;
+    stroke: #1f7a6d !important;
+  }
+
+  .reading-table-content .mermaid-container svg .edgeLabel,
+  .reading-table-content .mermaid-container svg .edgeLabel rect,
+  .reading-table-content .mermaid-container svg .edgeLabel .label-container {
+    background-color: #ffffff !important;
+    fill: #ffffff !important;
+    opacity: 1 !important;
+  }
+
+  .reading-table-content .mermaid-container svg .edgeLabel text,
+  .reading-table-content .mermaid-container svg .edgeLabel span,
+  .reading-table-content .mermaid-container svg .edgeLabel p {
+    fill: #1f2328 !important;
+    color: #1f2328 !important;
+  }
+
+  .reading-table-content .mermaid-container svg .actor,
+  .reading-table-content .mermaid-container svg .actor rect {
+    fill: #f6f8fa !important;
+    stroke: #1f7a6d !important;
+    stroke-width: 1.5px !important;
+  }
+
+  .reading-table-content .mermaid-container svg text.actor,
+  .reading-table-content .mermaid-container svg .actor text,
+  .reading-table-content .mermaid-container svg .actor span {
+    fill: #1f2328 !important;
+    color: #1f2328 !important;
+  }
+
+  .reading-table-content .mermaid-container svg .messageLine0,
+  .reading-table-content .mermaid-container svg .messageLine1 {
+    stroke: #1f7a6d !important;
+    stroke-width: 1.5px !important;
+  }
+
+  .reading-table-content .mermaid-container svg .messageText {
+    fill: #1f2328 !important;
+    stroke: none !important;
+  }
+}

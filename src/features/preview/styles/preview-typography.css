@@ -1,0 +1,287 @@
+/* =========================================================
+   Estilos tipográficos, citas, alertas GFM, listas, notas al pie y enlaces (Preview).
+   ========================================================= */
+
+.reading-table-content {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 1.35rem 2.25rem 6rem;
+  font-family: inherit;
+  word-break: break-word;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* Encabezados proporcionados en armonía con el Editor */
+.reading-table-content h1,
+.reading-table-content h2,
+.reading-table-content h3,
+.reading-table-content h4,
+.reading-table-content h5,
+.reading-table-content h6 {
+  color: var(--reading-heading, #f5f4ef);
+  font-weight: 650;
+  line-height: 1.32;
+  margin-top: 1.75rem;
+  margin-bottom: 0.65rem;
+  scroll-margin-top: 2rem;
+}
+
+.reading-table-content h1 {
+  font-size: 1.625rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--reading-border, #2b2d31);
+  margin-top: 0.25rem;
+}
+
+.reading-table-content h2 {
+  font-size: 1.3rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--reading-border-subtle, #232427);
+}
+
+.reading-table-content h3 {
+  font-size: 1.1rem;
+}
+
+.reading-table-content h4,
+.reading-table-content h5,
+.reading-table-content h6 {
+  font-size: 0.96rem;
+}
+
+.reading-table-content p {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.highlight-anchor-target {
+  background-color: var(--accent-soft, rgba(95, 179, 163, 0.15));
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+/* Citas / Blockquotes (simples y anidadas) */
+.reading-table-content blockquote {
+  margin: 1.25rem 0;
+  padding: 0.75rem 1.25rem;
+  border-left: 4px solid var(--reading-accent, #5fb3a3);
+  background-color: var(--reading-quote-bg, rgba(95, 179, 163, 0.08));
+  border-radius: 0 6px 6px 0;
+  color: var(--reading-quote-text, #c9c7bf);
+  font-style: italic;
+}
+
+.reading-table-content blockquote blockquote {
+  margin: 0.65rem 0 0.25rem 0.5rem;
+  background-color: rgba(95, 179, 163, 0.06);
+}
+
+.reading-table-content blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+/* Alertas GFM (Callouts: NOTE, TIP, IMPORTANT, WARNING, CAUTION) */
+.reading-table-content .markdown-alert {
+  margin: 1.25rem 0;
+  padding: 0.85rem 1.15rem;
+  border-left: 4px solid #3b82f6;
+  border-radius: 0 8px 8px 0;
+  background-color: rgba(59, 130, 246, 0.08);
+  color: var(--reading-text, #e8e6e1);
+}
+
+.reading-table-content .markdown-alert-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 650;
+  font-size: 0.92em;
+  margin-bottom: 0.4rem;
+  line-height: 1.3;
+}
+
+.reading-table-content .markdown-alert-icon {
+  flex-shrink: 0;
+}
+
+.reading-table-content .markdown-alert-body p:last-child {
+  margin-bottom: 0;
+}
+
+.reading-table-content .markdown-alert-note {
+  border-left-color: #3b82f6;
+  background-color: rgba(59, 130, 246, 0.09);
+}
+
+.reading-table-content .markdown-alert-note .markdown-alert-title {
+  color: #3b82f6;
+}
+
+.reading-table-content .markdown-alert-tip {
+  border-left-color: #22c55e;
+  background-color: rgba(34, 197, 94, 0.09);
+}
+
+.reading-table-content .markdown-alert-tip .markdown-alert-title {
+  color: #16a34a;
+}
+
+.reading-table-content .markdown-alert-important {
+  border-left-color: #a855f7;
+  background-color: rgba(168, 85, 247, 0.09);
+}
+
+.reading-table-content .markdown-alert-important .markdown-alert-title {
+  color: #9333ea;
+}
+
+.reading-table-content .markdown-alert-warning {
+  border-left-color: #f59e0b;
+  background-color: rgba(245, 158, 11, 0.1);
+}
+
+.reading-table-content .markdown-alert-warning .markdown-alert-title {
+  color: #d97706;
+}
+
+.reading-table-content .markdown-alert-caution {
+  border-left-color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.reading-table-content .markdown-alert-caution .markdown-alert-title {
+  color: #dc2626;
+}
+
+/* Listas y tareas interactivas */
+.reading-table-content ul,
+.reading-table-content ol {
+  padding-left: 1.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.reading-table-content ul.contains-task-list {
+  padding-left: 0.5rem;
+}
+
+.reading-table-content li {
+  margin-bottom: 0.4rem;
+}
+
+.reading-table-content li.task-list-item {
+  list-style: none;
+}
+
+.reading-table-content .task-checkbox {
+  margin-right: 0.55rem;
+  cursor: pointer;
+  vertical-align: middle;
+  width: 15px;
+  height: 15px;
+  accent-color: var(--reading-accent, #5fb3a3);
+}
+
+/* Elementos desplegables HTML5 (<details> / <summary>) */
+.reading-table-content details {
+  margin: 1rem 0;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--reading-border, #262a33);
+  border-radius: 8px;
+  background-color: var(--bg-surface, #16181d);
+}
+
+.reading-table-content details summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--reading-heading, #f8fafc);
+  user-select: none;
+  outline: none;
+}
+
+.reading-table-content details[open] summary {
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--reading-border-subtle, #212429);
+}
+
+/* Microformatos semánticos (<kbd>, <mark>, <abbr>) y Notas al Pie */
+.reading-table-content kbd {
+  display: inline-block;
+  padding: 0.12em 0.45em;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.8em;
+  line-height: 1.2;
+  color: var(--reading-text, #f1f5f9);
+  background-color: var(--bg-elevated, #20232a);
+  border: 1px solid var(--reading-border, #262a33);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+}
+
+.reading-table-content mark {
+  background-color: rgba(250, 204, 21, 0.32);
+  color: inherit;
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+}
+
+.reading-table-content abbr[title] {
+  text-decoration: underline dotted;
+  cursor: help;
+}
+
+.reading-table-content .footnote-ref a {
+  font-size: 0.78em;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 0 2px;
+  color: var(--reading-accent, #5fb3a3);
+}
+
+.reading-table-content .footnote-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  font-size: 0.88em;
+  color: var(--reading-muted, #94a3b8);
+  margin: 0.5rem 0;
+  padding: 0.45rem 0.75rem;
+  background-color: var(--bg-surface, #16181d);
+  border-left: 3px solid var(--reading-border, #262a33);
+  border-radius: 0 6px 6px 0;
+}
+
+.reading-table-content .footnote-num {
+  font-weight: 650;
+  color: var(--reading-accent, #5fb3a3);
+  flex-shrink: 0;
+}
+
+.reading-table-content .footnote-body {
+  flex: 1;
+}
+
+.reading-table-content .footnote-backref {
+  text-decoration: none;
+  margin-left: 0.3rem;
+  font-size: 0.9em;
+}
+
+/* Enlaces y separadores */
+.reading-table-content a {
+  color: var(--reading-accent, #5fb3a3);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.15s ease;
+}
+
+.reading-table-content a:hover {
+  color: var(--reading-accent-hover, #7cc9bb);
+}
+
+.reading-table-content hr {
+  border: none;
+  border-top: 1px solid var(--reading-border, #2b2d31);
+  margin: 2.5rem 0;
+}

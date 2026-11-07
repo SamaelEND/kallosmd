@@ -1,24 +1,23 @@
 <script lang="ts">
   /**
-   * ES: Componente principal que coordina los paneles del área de trabajo, sincronización de desplazamiento, exportación y atajos globales.
-   * EN: Main component coordinating workspace panels, scroll synchronization, export, and global shortcuts.
+   * Componente principal que coordina los paneles del área de trabajo, sincronización de desplazamiento, exportación y atajos globales.
    */
   import { onDestroy, onMount, tick } from "svelte";
-  import Editor from "./components/editor/Editor.svelte";
-  import Preview from "./components/preview/Preview.svelte";
-  import Sidebar from "./components/sidebar/Sidebar.svelte";
-  import Toolbar from "./components/toolbar/Toolbar.svelte";
-  import DropOverlay from "./components/workspace/DropOverlay.svelte";
-  import Resizer from "./components/workspace/Resizer.svelte";
-  import StatusBar from "./components/workspace/StatusBar.svelte";
-  import { buildHtmlDocument, downloadTextFile } from "./lib/htmlExport";
+  import Editor from "./features/editor/Editor.svelte";
+  import Preview from "./features/preview/Preview.svelte";
+  import Sidebar from "./features/vault/sidebar/Sidebar.svelte";
+  import Toolbar from "./features/toolbar/Toolbar.svelte";
+  import DropOverlay from "./features/workspace/DropOverlay.svelte";
+  import Resizer from "./features/workspace/Resizer.svelte";
+  import StatusBar from "./features/workspace/StatusBar.svelte";
+  import { buildHtmlDocument, downloadTextFile } from "./features/preview/export/htmlExport";
   import {
     computeDocumentStats,
     isValidImportFile,
     readTextFile,
     type DocumentStats,
-  } from "./lib/utils/formatters";
-  import { documentStore } from "./stores/documents.svelte";
+  } from "./shared/utils/formatters";
+  import { documentStore } from "./features/vault/vaultStore.svelte";
 
   let sidebarOpen = $state(
     typeof window !== "undefined" ? window.innerWidth > 768 : true,
@@ -36,8 +35,6 @@
   const splitRatio = $derived(settings.splitRatio);
   const viewMode = $derived(settings.viewMode);
 
-  // ES: Estadísticas del documento actualizadas de forma inmediata al cambiar de archivo y con debounce al escribir.
-  // EN: Document statistics updated immediately on file switch and debounced while typing.
   let stats = $state<DocumentStats>({ lines: 0, words: 0, readingTime: 0 });
   let lastStatsDocId = "";
   let statsDebounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -56,24 +53,19 @@
       return;
     }
 
-    if (statsDebounceTimer) {
-      clearTimeout(statsDebounceTimer);
-    }
+    if (statsDebounceTimer) clearTimeout(statsDebounceTimer);
     statsDebounceTimer = setTimeout(() => {
       stats = computeDocumentStats(text);
     }, 150);
   });
 
-  // ES: Sincroniza el atributo data-theme y la clase de tema en el elemento raíz <html>.
-  // EN: Synchronizes the data-theme attribute and theme class on the root <html> element.
   $effect(() => {
     if (typeof document !== "undefined") {
       documentStore.applyTheme(isDark ? "dark" : "light");
     }
   });
 
-  // ES: Actualiza la regla de estilo de impresión para mostrar u ocultar la URL en el pie de página del PDF.
-  // EN: Updates the print style rule to show or hide the URL in the PDF footer.
+  // Actualiza la regla de estilo de impresión para mostrar u ocultar la URL en el pie de página del PDF.
   $effect(() => {
     if (typeof document === "undefined") return;
     let styleEl = document.getElementById(
@@ -93,22 +85,9 @@
       ? JSON.stringify(currentUrl)
       : '""';
 
-    styleEl.textContent = `
-      @media print {
-        @page {
-          @bottom-left {
-            content: ${urlContent};
-            font-size: 8.5pt;
-            font-family: inherit;
-            color: rgba(110, 119, 129, 0.65);
-          }
-        }
-      }
-    `;
+    styleEl.textContent = `@media print { @page { @bottom-left { content: ${urlContent}; font-size: 8.5pt; font-family: inherit; color: rgba(110, 119, 129, 0.65); } } }`;
   });
 
-  // ES: Sincronización inteligente por líneas/bloques entre editor y vista previa.
-  // EN: Smart line/block-based scroll synchronization between editor and preview.
   let activeScrollSource: "editor" | "preview" | null = null;
   let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -121,28 +100,22 @@
     if (!editorEl || !previewEl) return;
 
     activeScrollSource = source;
+    const maxEditor = editorEl.scrollHeight - editorEl.clientHeight;
+    const maxPreview = previewEl.scrollHeight - previewEl.clientHeight;
 
     if (source === "editor") {
       const lineInfo = editorComponent?.getVisibleLineRange?.();
       if (lineInfo && previewComponent?.scrollToSourceLine) {
         previewComponent.scrollToSourceLine(lineInfo.line, lineInfo.fraction);
-      } else {
-        const maxEditor = editorEl.scrollHeight - editorEl.clientHeight;
-        const maxPreview = previewEl.scrollHeight - previewEl.clientHeight;
-        if (maxEditor > 0 && maxPreview > 0) {
-          previewEl.scrollTop = (editorEl.scrollTop / maxEditor) * maxPreview;
-        }
+      } else if (maxEditor > 0 && maxPreview > 0) {
+        previewEl.scrollTop = (editorEl.scrollTop / maxEditor) * maxPreview;
       }
     } else {
       const lineInfo = previewComponent?.getVisibleSourceLine?.();
       if (lineInfo && editorComponent?.scrollToSourceLine) {
         editorComponent.scrollToSourceLine(lineInfo.line, lineInfo.fraction);
-      } else {
-        const maxEditor = editorEl.scrollHeight - editorEl.clientHeight;
-        const maxPreview = previewEl.scrollHeight - previewEl.clientHeight;
-        if (maxEditor > 0 && maxPreview > 0) {
-          editorEl.scrollTop = (previewEl.scrollTop / maxPreview) * maxEditor;
-        }
+      } else if (maxEditor > 0 && maxPreview > 0) {
+        editorEl.scrollTop = (previewEl.scrollTop / maxPreview) * maxEditor;
       }
     }
 
@@ -160,18 +133,12 @@
     editorComponent?.insertSnippet?.(prefix, suffix, placeholder);
   }
 
-  /**
-   * ES: Prepara el documento y ejecuta el diálogo de impresión del navegador para exportar a PDF.
-   * EN: Prepares the document and triggers the browser print dialog to export to PDF.
-   */
   async function handleExportPdf(): Promise<void> {
     const originalTitle = typeof document !== "undefined" ? document.title : "";
     const docTitle = activeDoc?.title
       ? activeDoc.title.replace(/\.md$/i, "")
       : "documento";
-    if (typeof document !== "undefined") {
-      document.title = docTitle;
-    }
+    if (typeof document !== "undefined") document.title = docTitle;
 
     const previousMode = viewMode;
     if (previousMode === "editor") {
@@ -191,19 +158,10 @@
     if (previewComponent?.restoreAfterPrint) {
       await previewComponent.restoreAfterPrint();
     }
-
-    if (previousMode === "editor") {
-      documentStore.setViewMode("editor");
-    }
-    if (typeof document !== "undefined") {
-      document.title = originalTitle;
-    }
+    if (previousMode === "editor") documentStore.setViewMode("editor");
+    if (typeof document !== "undefined") document.title = originalTitle;
   }
 
-  /**
-   * ES: Exporta la vista previa activa como un documento HTML5 autónomo.
-   * EN: Exports the active preview as a self-contained HTML5 document.
-   */
   async function handleExportHtml(): Promise<void> {
     if (!previewComponent) return;
     const title = activeDoc?.title
@@ -224,13 +182,9 @@
       "text/html",
     );
 
-    if (previousMode === "editor") {
-      documentStore.setViewMode("editor");
-    }
+    if (previousMode === "editor") documentStore.setViewMode("editor");
   }
 
-  // ES: Gestión global de arrastrar y soltar para importar archivos de texto Markdown.
-  // EN: Global drag-and-drop handling for importing Markdown text files.
   function handleDragOver(e: DragEvent): void {
     e.preventDefault();
     isDraggingFile = true;
@@ -264,40 +218,31 @@
 
   function handleGlobalKeyDown(event: KeyboardEvent): void {
     const isMeta = event.ctrlKey || event.metaKey;
+    const key = event.key.toLowerCase();
 
-    if (isMeta && event.key.toLowerCase() === "b") {
+    if (isMeta && key === "b") {
       event.preventDefault();
       sidebarOpen = !sidebarOpen;
-    }
-
-    if (isMeta && event.key.toLowerCase() === "s") {
+    } else if (isMeta && key === "s") {
       event.preventDefault();
       documentStore.flushPendingSave();
       saveNoticeVisible = true;
       setTimeout(() => {
         saveNoticeVisible = false;
       }, 1800);
-    }
-
-    if (isMeta && event.key.toLowerCase() === "p") {
+    } else if (isMeta && key === "p") {
       event.preventDefault();
       handleExportPdf();
     }
   }
 
   onMount(() => {
-    if (window.innerWidth <= 1024) {
-      sidebarOpen = false;
-    }
+    if (window.innerWidth <= 1024) sidebarOpen = false;
   });
 
   onDestroy(() => {
-    if (statsDebounceTimer) {
-      clearTimeout(statsDebounceTimer);
-    }
-    if (scrollTimeout) {
-      clearTimeout(scrollTimeout);
-    }
+    if (statsDebounceTimer) clearTimeout(statsDebounceTimer);
+    if (scrollTimeout) clearTimeout(scrollTimeout);
   });
 </script>
 

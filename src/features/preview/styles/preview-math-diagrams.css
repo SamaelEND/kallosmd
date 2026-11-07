@@ -1,0 +1,142 @@
+/* =========================================================
+   Estilos de fórmulas KaTeX, diagramas Mermaid y ajustes responsive (Preview).
+   ========================================================= */
+
+/* Fórmulas matemáticas KaTeX y aislamiento de capas auxiliares para selección de texto */
+.reading-table-content .katex-display-wrapper {
+  margin: 1.75rem 0;
+  padding: 1.25rem 1.5rem;
+  background-color: var(--reading-math-bg, #18191c);
+  border: 1px solid var(--reading-border, #2b2d31);
+  border-radius: 8px;
+  overflow-x: auto;
+  text-align: center;
+}
+
+.reading-table-content .katex {
+  font-size: 1.1em;
+}
+
+.reading-table-content .katex .katex-mathml {
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: none;
+}
+
+.reading-table-content .katex .pstrut {
+  pointer-events: none;
+}
+
+.reading-table-content .katex-error {
+  color: var(--danger-color, #e5736a);
+  font-family: monospace;
+  font-size: 0.85em;
+}
+
+/* Contenedores Mermaid con zoom interactivo */
+.reading-table-content .mermaid-container {
+  margin: 2rem 0;
+  border: 1px solid var(--reading-border, #2b2d31);
+  border-radius: 8px;
+  background-color: var(--reading-diagram-bg, #1a1b1d);
+  overflow: hidden;
+}
+
+.reading-table-content .mermaid-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background-color: var(--bg-surface, #1a1b1d);
+  border-bottom: 1px solid var(--reading-border, #2b2d31);
+}
+
+.reading-table-content .mermaid-type-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--reading-muted, #9b9a94);
+  letter-spacing: 0.05em;
+}
+
+.reading-table-content .mermaid-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.reading-table-content .mermaid-btn {
+  border: 1px solid var(--reading-border, #2b2d31);
+  background-color: var(--bg-elevated, #26282b);
+  color: var(--reading-text, #e8e6e1);
+  width: 26px;
+  height: 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease;
+}
+
+.reading-table-content .mermaid-btn:hover {
+  background-color: var(--reading-hover, #2e3034);
+  color: var(--reading-accent, #5fb3a3);
+}
+
+.reading-table-content .mermaid-svg-viewport {
+  padding: 1.5rem;
+  display: flex;
+  justify-content: center;
+  overflow-x: auto;
+}
+
+.reading-table-content .mermaid-syntax-notice {
+  display: block;
+  padding: 4px 12px;
+  background-color: var(--warn-color, #d9a441);
+  color: #000000;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.reading-table-content .mermaid-error {
+  padding: 1rem;
+  background-color: rgba(229, 115, 106, 0.1);
+  border-radius: 6px;
+  color: var(--danger-color, #e5736a);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 768px) {
+  .reading-table-content {
+    padding: 1.5rem 1rem 6rem;
+  }
+
+  .reading-table-content h1 {
+    font-size: 1.75rem;
+  }
+
+  .reading-table-content h2 {
+    font-size: 1.35rem;
+  }
+
+  .reading-table-content h3 {
+    font-size: 1.15rem;
+  }
+
+  .reading-table-content .mermaid-svg-viewport {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .reading-table-content .code-header-bar {
+    padding: 6px 10px;
+  }
+
+  .reading-table-content pre {
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+  }
+}
