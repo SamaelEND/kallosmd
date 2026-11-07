@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en" data-theme="dark" class="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: http:; media-src 'self' data: blob: https: http:; connect-src 'self' ws: wss:; object-src 'none'; base-uri 'self'; form-action 'none';" />
+  <script>
+    // ES: Aplica el tema guardado en localStorage antes del primer pintado del DOM.
+    (function () {
+      try {
+        var t = localStorage.getItem('md_studio_theme_v1');
+        if (t === 'light') {
+          document.documentElement.setAttribute('data-theme', 'light');
+          document.documentElement.classList.remove('dark');
+          document.documentElement.classList.add('light');
+        }
+      } catch (_) { }
+    })();
+  </script>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/md-studio-icon-32.png" />
+  <link rel="icon" type="image/png" sizes="64x64" href="/md-studio-icon-64.png" />
+  <link rel="apple-touch-icon" sizes="128x128" href="/md-studio-icon-128.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#151617" />
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f0efea" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Markdown Studio — Workspace</title>
+  <meta name="description" content="Markdown Studio interactive workspace with hybrid live preview, KaTeX math, Mermaid diagrams, and PDF export." />
+  <meta name="robots" content="noindex, follow" />
+  <link rel="canonical" href="https://markdown-studio.xyz/" />
+</head>
+
+<body>
+  <div id="app"></div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
+</html>
+

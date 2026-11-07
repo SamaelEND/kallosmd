@@ -28,12 +28,25 @@ class I18nStore {
   }
 
   /**
-   * Inicializa el idioma desde localStorage o la configuración del navegador.
+   * Inicializa el idioma desde parámetro URL (?lang=en|es), localStorage o el navegador.
    */
   private initLocale(): void {
     if (typeof window === "undefined") return;
 
     try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlLang = urlParams.get("lang");
+      if (urlLang === "es" || urlLang === "en") {
+        this.locale = urlLang;
+        localStorage.setItem(LOCALE_STORAGE_KEY, urlLang);
+        this.applyDocumentLang(urlLang);
+        urlParams.delete("lang");
+        const newQuery = urlParams.toString();
+        const cleanUrl = window.location.pathname + (newQuery ? `?${newQuery}` : "") + window.location.hash;
+        window.history.replaceState({}, "", cleanUrl);
+        return;
+      }
+
       const saved = localStorage.getItem(LOCALE_STORAGE_KEY) as SupportedLocale | null;
       if (saved === "es" || saved === "en") {
         this.locale = saved;

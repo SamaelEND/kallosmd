@@ -2,35 +2,35 @@
   "name": "Markdown Studio",
   "short_name": "MD Studio",
   "description": "Free Online Markdown Editor & Live Preview with KaTeX, Mermaid and PDF, HTML Export",
-  "start_url": "./",
-  "scope": "./",
+  "start_url": "/app/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#151617",
   "theme_color": "#151617",
   "icons": [
     {
-      "src": "./md-studio-icon-32.png",
+      "src": "/md-studio-icon-32.png",
       "sizes": "32x32",
       "type": "image/png"
     },
     {
-      "src": "./md-studio-icon-64.png",
+      "src": "/md-studio-icon-64.png",
       "sizes": "64x64",
       "type": "image/png"
     },
     {
-      "src": "./md-studio-icon-128.png",
+      "src": "/md-studio-icon-128.png",
       "sizes": "128x128",
       "type": "image/png"
     },
     {
-      "src": "./md-studio-icon-256.png",
+      "src": "/md-studio-icon-256.png",
       "sizes": "256x256",
       "type": "image/png"
     },
     {
-      "src": "./md-studio-icon-512.png",
+      "src": "/md-studio-icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

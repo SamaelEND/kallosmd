@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="es" data-theme="dark" class="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; object-src 'none'; base-uri 'self'; form-action 'none';" />
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('md_studio_theme_v1');
+        if (t === 'light') {
+          document.documentElement.setAttribute('data-theme', 'light');
+          document.documentElement.classList.remove('dark');
+          document.documentElement.classList.add('light');
+        }
+      } catch (_) { }
+    })();
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#151617" />
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f4f0" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/md-studio-icon-32.png" />
+  <link rel="icon" type="image/png" sizes="64x64" href="/md-studio-icon-64.png" />
+  <link rel="apple-touch-icon" sizes="128x128" href="/md-studio-icon-128.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="stylesheet" href="/landing.css" />
+
+  <title>Markdown Studio – Editor Markdown Online con Vista Previa</title>
+  <meta name="description"
+    content="Editor Markdown online gratuito con vista previa en vivo, fórmulas LaTeX (KaTeX), diagramas Mermaid y exportación a PDF. Privado y sin registro." />
+  <meta name="author" content="Manuel Alvarez" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+
+  <link rel="canonical" href="https://markdown-studio.xyz/es/" />
+  <link rel="alternate" hreflang="en" href="https://markdown-studio.xyz/" />
+  <link rel="alternate" hreflang="es" href="https://markdown-studio.xyz/es/" />
+  <link rel="alternate" hreflang="x-default" href="https://markdown-studio.xyz/" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://markdown-studio.xyz/es/" />
+  <meta property="og:site_name" content="Markdown Studio" />
+  <meta property="og:locale" content="es_ES" />
+  <meta property="og:locale:alternate" content="en_US" />
+  <meta property="og:title" content="Markdown Studio – Editor Markdown Online con Vista Previa" />
+  <meta property="og:description"
+    content="Editor Markdown online gratuito con vista previa en vivo, fórmulas LaTeX (KaTeX), diagramas Mermaid y exportación a PDF. Privado y sin registro." />
+  <meta property="og:image" content="https://markdown-studio.xyz/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Markdown Studio – Editor Markdown Online con Vista Previa en Vivo, Fórmulas KaTeX, Diagramas Mermaid y Exportación a PDF" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Markdown Studio – Editor Markdown Online con Vista Previa" />
+  <meta name="twitter:description"
+    content="Editor Markdown online gratuito con vista previa en vivo, fórmulas LaTeX (KaTeX), diagramas Mermaid y exportación a PDF. Privado y sin registro." />
+  <meta name="twitter:image" content="https://markdown-studio.xyz/og-image.png" />
+  <meta name="twitter:image:alt" content="Markdown Studio – Editor Markdown Online con Vista Previa en Vivo, Fórmulas KaTeX, Diagramas Mermaid y Exportación a PDF" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Markdown Studio",
+    "url": "https://markdown-studio.xyz/es/",
+    "description": "Editor Markdown online gratuito con vista previa en vivo, fórmulas LaTeX (KaTeX), diagramas Mermaid y exportación a PDF. Privado y sin registro.",
+    "applicationCategory": "DeveloperApplication",
+    "applicationSubCategory": "TextEditor",
+    "operatingSystem": "Any",
+    "inLanguage": "es",
+    "isAccessibleForFree": true,
+    "license": "https://www.gnu.org/licenses/agpl-3.0.html",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "featureList": [
+      "Modo Híbrido Live Preview en el lienzo de escritura y Vista Dividida con scroll sincronizado",
+      "Renderizado de fórmulas matemáticas LaTeX mediante KaTeX en línea y en bloque",
+      "Diagramas vectoriales Mermaid interactivos con zoom y exportación SVG/PNG",
+      "Soporte completo para tablas GFM, alertas/callouts, listas de tareas y notas al pie",
+      "Resaltado de sintaxis de código multi-lenguaje con temas personalizables",
+      "Exportación limpia de Markdown a PDF e informes HTML5 autónomos offline",
+      "Almacenamiento 100% local en el navegador con IndexedDB sin cuentas ni rastreadores"
+    ]
+  }
+  </script>
+</head>
+
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="/es/" class="brand-link" aria-label="Inicio de Markdown Studio">
+        <img src="/md-studio-icon-32.png" alt="Logotipo de Markdown Studio" width="28" height="28" class="brand-icon" />
+        <span>Markdown Studio</span>
+      </a>
+      <nav class="nav-actions" aria-label="Selector de idioma y navegación principal">
+        <div class="lang-switcher" role="group" aria-label="Selector de idioma">
+          <a href="/" hreflang="en" lang="en">EN</a>
+          <span class="lang-active" aria-current="page">ES</span>
+        </div>
+        <a href="/app/?lang=es" class="btn-primary">Abrir el editor →</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <span class="hero-badge">100% Local y Privado • Gratuito y Open Source • Sin Registro</span>
+      <h1>Editor Markdown Online con Vista Previa en Vivo, LaTeX y Mermaid</h1>
+      <p class="hero-lead">
+        Escribe, previsualiza y organiza documentación técnica directamente en tu navegador. <strong>Markdown Studio</strong>
+        combina un modo híbrido <em>Live Preview</em> interactivo en un único lienzo, vista dividida con desplazamiento
+        sincronizado, ecuaciones LaTeX con KaTeX, diagramas Mermaid interactivos y exportación limpia de Markdown a PDF,
+        sin servidores externos y con privacidad absoluta.
+      </p>
+      <div class="hero-cta">
+        <a href="/app/?lang=es" class="btn-primary">Abrir el editor Markdown</a>
+        <a href="https://github.com/SamaelEND/markdown-studio" class="btn-secondary" rel="noopener noreferrer">Ver código en GitHub</a>
+      </div>
+    </section>
+
+    <section class="section-block">
+      <h2>Cuatro Modos de Escritura y Previsualización en Vivo</h2>
+      <p>
+        Tanto si prefieres editar código fuente Markdown puro, escribir sobre un lienzo híbrido sin distracciones o
+        comparar el texto original junto al resultado final, Markdown Studio se adapta a tu flujo de trabajo:
+      </p>
+      <div class="grid-cards">
+        <article class="card">
+          <h3>Modo Híbrido Live Preview (WYSIWYG)</h3>
+          <p>
+            Los encabezados, tablas GFM, fórmulas matemáticas, tarjetas de código con botón de copiado y diagramas
+            Mermaid se renderizan en el mismo lienzo mientras escribes, revelando las marcas Markdown y los colores de
+            sintaxis únicamente en la línea o bloque donde está tu cursor, con ancho de hoja ajustable y atajo
+            <code>Ctrl + E</code> para alternar entre código crudo y vista renderizada.
+          </p>
+        </article>
+        <article class="card">
+          <h3>Vista Dividida con Scroll Sincronizado</h3>
+          <p>
+            Edita con la potencia de CodeMirror 6 a la izquierda mientras observas el documento maquetado en tiempo real
+            a la derecha, con sincronización proporcional de desplazamiento línea por línea y divisor ajustable.
+          </p>
+        </article>
+        <article class="card">
+          <h3>Editor de Código y Mesa de Lectura</h3>
+          <p>
+            Alterna con un clic entre el editor monoespaciado con números de línea y minimapa vectorial, o el modo
+            Lectura libre de controles para revisar manuales, apuntes y especificaciones extensas.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section-block">
+      <h2>Diseñado para Documentación Técnica: Fórmulas KaTeX, Mermaid y GFM</h2>
+      <p>
+        Los editores de texto convencionales suelen fallar al combinar notación matemática, diagramas de arquitectura y
+        bloques de código. Markdown Studio procesa todo localmente en milisegundos:
+      </p>
+      <div class="grid-cards">
+        <article class="card">
+          <h3>Editor Markdown con LaTeX (KaTeX)</h3>
+          <p>
+            Escribe expresiones en línea como <code>$E = mc^2$</code> o matrices y sistemas de ecuaciones en bloques
+            <code>$$...$$</code>. El renderizado utiliza fuentes KaTeX alojadas localmente sin depender de CDNs externos.
+          </p>
+        </article>
+        <article class="card">
+          <h3>Diagramas Mermaid en SVG Interactivo</h3>
+          <p>
+            Genera diagramas de flujo, secuencias, clases y estados dentro de bloques <code>```mermaid</code>. Explora
+            diagramas complejos a pantalla completa con zoom, arrastre y descarga directa en SVG o PNG.
+          </p>
+        </article>
+        <article class="card">
+          <h3>Tablas GFM, Callouts y Notas al Pie</h3>
+          <p>
+            Soporte nativo para tablas GitHub Flavored Markdown, listas de tareas interactivas (<code>- [x]</code>),
+            notas al pie enlazadas (<code>[^1]</code>) y bloques de alerta (<code>[!NOTE]</code>, <code>[!TIP]</code>,
+            <code>[!IMPORTANT]</code>, <code>[!WARNING]</code> y <code>[!CAUTION]</code>).
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section-block">
+      <h2>Convertir Markdown a PDF y HTML5 Autónomo</h2>
+      <p>
+        ¿Necesitas entregar un informe técnico, trabajo académico o documentación de proyecto? Markdown Studio incorpora
+        reglas de impresión y empaquetado profesional listas para usar:
+      </p>
+      <ul>
+        <li><strong>Exportación limpia de Markdown a PDF:</strong> Pulsa <code>Ctrl + P</code> (o usa el menú de exportación) para obtener un PDF con colores de sintaxis de código conservados, diagramas Mermaid vectoriales nítidos, despliegue automático de bloques <code>&lt;details&gt;</code> y saltos de página inteligentes.</li>
+        <li><strong>Exportación a HTML5 autónomo (Offline):</strong> Genera un único archivo <code>.html</code> independiente con hojas de estilo y fuentes KaTeX incrustadas en Base64 que se abre en cualquier navegador sin conexión.</li>
+        <li><strong>Importación y descarga directa <code>.md</code>:</strong> Arrastra tus archivos <code>.md</code> o <code>.txt</code> al espacio de trabajo y descarga tus documentos en formato Markdown estándar cuando quieras.</li>
+      </ul>
+    </section>
+
+    <section class="section-block">
+      <h2>Privacidad Total: Almacenamiento 100% Local en tu Navegador</h2>
+      <p>
+        A diferencia de las plataformas en la nube que exigen crear una cuenta y almacenan tus textos en servidores de
+        terceros, Markdown Studio es un <strong>editor Markdown privado y sin registro</strong>. Todas tus carpetas y
+        documentos se guardan directamente en la base de datos <strong>IndexedDB</strong> de tu propio navegador.
+      </p>
+      <p>
+        No incluye analíticas ocultas, píxeles de seguimiento ni telemetría. Una vez cargada la aplicación, todo el
+        entorno —incluyendo fuentes tipográficas, resaltado de sintaxis, KaTeX y Mermaid— funciona 100% en local.
+      </p>
+    </section>
+
+    <section class="section-block">
+      <h2>¿Para Quién es Markdown Studio?</h2>
+      <ul>
+        <li><strong>Desarrolladores y Arquitectos de Software:</strong> Redacta archivos README, decisiones de arquitectura (ADRs), diagramas Mermaid y fragmentos de código en Python, TypeScript, JavaScript, Rust, Go, SQL o Bash.</li>
+        <li><strong>Estudiantes, Investigadores y Docentes:</strong> Combina apuntes con demostraciones matemáticas en LaTeX, referencias al pie y tablas comparativas listas para imprimir en PDF.</li>
+        <li><strong>Escritores Técnicos y Equipos de Producto:</strong> Organiza múltiples documentos en carpetas anidadas con buscador instantáneo, tabla de contenidos (TOC) automática y temas claro/oscuro.</li>
+      </ul>
+    </section>
+
+    <section class="section-block">
+      <h2>Preguntas Frecuentes (FAQ)</h2>
+      <div class="faq-list">
+        <details class="faq-item" open>
+          <summary>¿Markdown Studio es totalmente gratuito y sin registro?</summary>
+          <p>
+            Sí. Markdown Studio es 100% gratuito, de código abierto bajo licencia AGPL-3.0 y no solicita correo
+            electrónico ni creación de cuenta. Puedes abrir el editor y empezar a escribir al instante.
+          </p>
+        </details>
+        <details class="faq-item">
+          <summary>¿Dónde se guardan mis documentos Markdown?</summary>
+          <p>
+            Todos tus archivos y carpetas se almacenan localmente en tu navegador mediante IndexedDB. Tus notas nunca se
+            envían a ningún servidor y puedes descargarlas como <code>.md</code>, <code>.html</code> autónomo o PDF en
+            cualquier momento.
+          </p>
+        </details>
+        <details class="faq-item">
+          <summary>¿Cómo puedo pasar un archivo Markdown con fórmulas y diagramas a PDF?</summary>
+          <p>
+            Abre tu documento en el editor, haz clic en el menú de exportación de la barra superior (o presiona
+            <code>Ctrl + P</code> / <code>Cmd + P</code>) y selecciona Exportar a PDF / Imprimir. El motor ajusta
+            automáticamente las ecuaciones KaTeX y los diagramas Mermaid para el papel.
+          </p>
+        </details>
+        <details class="faq-item">
+          <summary>¿Puedo cambiar el idioma de la interfaz entre español e inglés?</summary>
+          <p>
+            Sí. Tanto las páginas informativas como el editor cuentan con soporte nativo para español e inglés sin
+            conexión, y puedes alternar el idioma en cualquier momento desde la barra superior.
+          </p>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>
+      <strong>Markdown Studio</strong> • Software Libre (<a href="https://github.com/SamaelEND/markdown-studio/blob/main/LICENSE" rel="noopener noreferrer">AGPL-3.0</a>) •
+      <a href="/app/?lang=es">Abrir el editor</a> •
+      <a href="/" hreflang="en" lang="en">English Version</a>
+    </p>
+  </footer>
+</body>
+
+</html>
+

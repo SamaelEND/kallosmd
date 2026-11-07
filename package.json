@@ -1,22 +1,31 @@
 {
   "name": "markdown-studio",
-  "description": "High-performance Markdown editor and live preview studio built with Svelte 5, CodeMirror 6, KaTeX, and Mermaid.",
+  "description": "Free online Markdown editor with live preview, LaTeX math (KaTeX), Mermaid diagrams, and PDF/HTML export. Local-first and private.",
   "keywords": [
     "markdown",
     "markdown-editor",
-    "markdown-preview",
-    "md",
-    "mark-down",
-    "markdown-viewer",
-    "markdown-live-preview",
-    "markdown-to-pdf",
+    "live-preview",
+    "wysiwyg",
     "katex",
     "latex",
     "mermaid",
-    "mermaid-diagrams",
-    "split-view",
-    "codemirror"
+    "markdown-to-pdf",
+    "codemirror",
+    "svelte",
+    "local-first",
+    "offline",
+    "privacy"
   ],
+  "homepage": "https://markdown-studio.xyz",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SamaelEND/markdown-studio.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SamaelEND/markdown-studio/issues"
+  },
+  "license": "AGPL-3.0-only",
+  "author": "Manuel Alvarez",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -24,7 +33,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json"
+    "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
+    "seo:check": "node scripts/seo-check.mjs"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
