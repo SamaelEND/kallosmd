@@ -1,15 +1,18 @@
 <script lang="ts">
   /**
-   * Encabezado del panel lateral con marca de aplicación y botón para ocultar.
+   * Encabezado del panel lateral con marca de aplicación y logotipo oficial.
    */
-  import { FileText } from "lucide-svelte";
 </script>
 
 <div class="sidebar-header">
   <div class="header-brand">
-    <div class="brand-badge">
-      <FileText size={16} />
-    </div>
+    <img
+      src="/md-studio-icon-32.png"
+      alt="Markdown Studio Logo"
+      class="brand-logo"
+      width="24"
+      height="24"
+    />
     <h2 class="sidebar-title">Markdown Studio</h2>
   </div>
 </div>
@@ -29,16 +32,13 @@
     gap: 10px;
   }
 
-  .brand-badge {
-    width: 26px;
-    height: 26px;
-    border-radius: 7px;
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
-    color: #ffffff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  .brand-logo {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    object-fit: contain;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    flex-shrink: 0;
   }
 
   .sidebar-title {
