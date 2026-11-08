@@ -6,7 +6,11 @@
 import {
   DEFAULT_DOCUMENT_TITLE,
   DEFAULT_MARKDOWN,
+  getDefaultDocumentTitle,
+  getDefaultGuideMarkdown,
+  isDefaultGuideContent,
 } from "../../core/markdown/defaultDocument";
+import { i18n } from "../../shared/i18n/i18n.svelte";
 import {
   extractFirstH1,
   extractHeadings,
@@ -55,6 +59,10 @@ class DocumentStore {
     }
     this.initDatabase();
 
+    i18n.onLocaleChange((locale) => {
+      this.syncDefaultGuideLocale(locale);
+    });
+
     if (typeof window !== "undefined") {
       window.addEventListener("beforeunload", () => this.flushPendingSave());
     }
@@ -72,10 +80,11 @@ class DocumentStore {
       const dbFolders = await this.storage.getAllFolders();
 
       if (dbDocs.length === 0) {
+        const locale = i18n.locale;
         const initialDoc: DocumentItem = {
           id: generateId(),
-          title: DEFAULT_DOCUMENT_TITLE,
-          content: DEFAULT_MARKDOWN,
+          title: getDefaultDocumentTitle(locale),
+          content: getDefaultGuideMarkdown(locale),
           createdAt: Date.now(),
           updatedAt: Date.now(),
           folderId: null,
@@ -87,6 +96,7 @@ class DocumentStore {
 
       this.documents = dbDocs;
       this.folders = dbFolders;
+      this.syncDefaultGuideLocale(i18n.locale);
 
       const exists = this.documents.some((d) => d.id === this.activeId);
       if (!exists && this.documents.length > 0) {
@@ -405,6 +415,31 @@ class DocumentStore {
 
   resetSplitRatio(): void {
     settingsStore.resetSplitRatio();
+  }
+
+  /**
+   * Sincroniza el documento de guía de ejemplo inicial cuando el usuario cambia el idioma.
+   * Solo modifica el documento si no tiene título personalizado y su contenido/título coincide con una guía de ejemplo.
+   */
+  syncDefaultGuideLocale(locale: "es" | "en"): void {
+    const targetDoc = this.documents.find(
+      (d) => !d.hasCustomTitle && isDefaultGuideContent(d.content, d.title),
+    );
+    if (!targetDoc) return;
+
+    const newContent = getDefaultGuideMarkdown(locale);
+    const newTitle = getDefaultDocumentTitle(locale);
+
+    if (targetDoc.content !== newContent || targetDoc.title !== newTitle) {
+      targetDoc.content = newContent;
+      targetDoc.title = newTitle;
+      targetDoc.updatedAt = Date.now();
+      this.storage.saveDocument(targetDoc);
+      if (targetDoc.id === this.activeId) {
+        this.refreshDerivedMetadata(targetDoc);
+        writeActiveDocumentCache(targetDoc);
+      }
+    }
   }
 }
 

@@ -22,9 +22,30 @@ class I18nStore {
   current = $derived<TranslationSchema>(translations[this.locale]);
 
   readonly supportedLocales: LocaleOption[] = SUPPORTED_LOCALES;
+  private localeChangeListeners: Array<(locale: SupportedLocale) => void> = [];
 
   constructor() {
     this.initLocale();
+  }
+
+  /**
+   * Registra un observador que se ejecuta al conmutar el idioma activo.
+   */
+  onLocaleChange(listener: (locale: SupportedLocale) => void): () => void {
+    this.localeChangeListeners.push(listener);
+    return () => {
+      this.localeChangeListeners = this.localeChangeListeners.filter((l) => l !== listener);
+    };
+  }
+
+  private notifyLocaleChanged(locale: SupportedLocale): void {
+    for (const listener of this.localeChangeListeners) {
+      try {
+        listener(locale);
+      } catch (e) {
+        console.error("Error en listener de cambio de idioma:", e);
+      }
+    }
   }
 
   /**
@@ -79,6 +100,7 @@ class I18nStore {
         console.warn("Error guardando locale en localStorage:", e);
       }
       this.applyDocumentLang(newLocale);
+      this.notifyLocaleChanged(newLocale);
     }
   }
 

@@ -110,7 +110,7 @@ validateLandingPage('es/index.html', 'es', 'https://kallosmd.xyz/es/')
 const rootHtml = readFileSync(resolve(distDir, 'index.html'), 'utf-8')
 assert(
   rootHtml.includes('google-site-verification') &&
-  rootHtml.includes('X2qo0v9Hs-mlRzuW0hbKbN2zPOcVICbCQ-4LcujKwNg'),
+  rootHtml.includes('NJvrlc4len2JA7Ygy5pxu7tNoUf8YpuKrrtc82a3sTI'),
   'index.html conserva google-site-verification',
 )
 
