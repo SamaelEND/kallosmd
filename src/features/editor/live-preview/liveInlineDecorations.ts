@@ -107,7 +107,17 @@ export function addInlineDecorations(
     }
   };
 
-  markSymmetric(/(`+)([^`]+?)\1/g, "cm-live-inline-code");
+  markSymmetric(/(?<!\\)(`+)([^`]+?)\1/g, "cm-live-inline-code");
+
+  // ES: Oculta la barra invertida de escape en \` literales fuera de bloques de código.
+  // EN: Hides the escape backslash in literal \` outside code spans.
+  for (const m of slice.matchAll(/\\`/g)) {
+    const s = m.index!;
+    if (!isFree(s, s + 2)) continue;
+    if (countBackslashesBefore(slice, s) % 2 !== 0) continue;
+    occupied.push([s, s + 2]);
+    decos.push(Decoration.replace({}).range(base + s, base + s + 1));
+  }
 
   // ES: Fórmulas matemáticas KaTeX inline ($...$) respetando signos de dólar escapados (\$).
   // EN: Inline KaTeX math formulas ($...$) respecting escaped dollar signs (\$).

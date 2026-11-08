@@ -8,7 +8,16 @@ import {
   DEFAULT_SETTINGS,
   STORAGE_KEYS,
 } from "../../core/markdown/defaultDocument";
-import type { FontSize, Settings, ThemeMode, ViewMode } from "../../core/types";
+import type {
+  FontSize,
+  PdfCvMargin,
+  PdfFontFamily,
+  PdfFormatPreset,
+  PdfPaperSize,
+  Settings,
+  ThemeMode,
+  ViewMode,
+} from "../../core/types";
 
 class SettingsStore {
   settings = $state<Settings>(DEFAULT_SETTINGS);
@@ -53,6 +62,37 @@ class SettingsStore {
       const rawPdfUrl = localStorage.getItem(STORAGE_KEYS.INCLUDE_PDF_URL);
       const savedIncludePdfUrl =
         rawPdfUrl !== null ? rawPdfUrl === "true" : true;
+      const rawPdfPreset = localStorage.getItem(STORAGE_KEYS.PDF_PRESET);
+      const savedPdfPreset: PdfFormatPreset =
+        rawPdfPreset === "cv" || rawPdfPreset === "apa7"
+          ? rawPdfPreset
+          : "standard";
+      const rawPaperSize = localStorage.getItem(STORAGE_KEYS.PDF_PAPER_SIZE);
+      const savedPdfPaperSize: PdfPaperSize =
+        rawPaperSize === "a4" ? "a4" : "letter";
+      const rawPdfFont = localStorage.getItem(STORAGE_KEYS.PDF_FONT_FAMILY);
+      const savedPdfFontFamily: PdfFontFamily =
+        rawPdfFont === "arial" ||
+        rawPdfFont === "calibri" ||
+        rawPdfFont === "times" ||
+        rawPdfFont === "georgia"
+          ? rawPdfFont
+          : "system";
+      const rawCvMargin = localStorage.getItem(STORAGE_KEYS.PDF_CV_MARGIN);
+      const savedPdfCvMargin: PdfCvMargin =
+        rawCvMargin === "compact" ? "compact" : "normal";
+      const rawFontSizePt = parseFloat(
+        localStorage.getItem(STORAGE_KEYS.PDF_FONT_SIZE_PT) || "",
+      );
+      const defaultPresetPt = savedPdfPreset === "apa7" ? 12 : 11;
+      const savedPdfFontSizePt =
+        Number.isFinite(rawFontSizePt) &&
+        rawFontSizePt >= 8 &&
+        rawFontSizePt <= 16
+          ? rawFontSizePt
+          : defaultPresetPt;
+      const savedPdfFontSizeCustom =
+        localStorage.getItem(STORAGE_KEYS.PDF_FONT_SIZE_CUSTOM) === "true";
 
       this.settings = {
         theme: savedTheme,
@@ -65,6 +105,12 @@ class SettingsStore {
         splitRatio: Math.max(15, Math.min(85, savedSplitRatio)),
         wordWrap: true,
         includePdfUrl: savedIncludePdfUrl,
+        pdfPreset: savedPdfPreset,
+        pdfPaperSize: savedPdfPaperSize,
+        pdfFontFamily: savedPdfFontFamily,
+        pdfFontSizePt: savedPdfFontSizePt,
+        pdfFontSizeCustom: savedPdfFontSizeCustom,
+        pdfCvMargin: savedPdfCvMargin,
       };
 
       this.applyTheme(savedTheme);
@@ -103,6 +149,30 @@ class SettingsStore {
       localStorage.setItem(
         STORAGE_KEYS.INCLUDE_PDF_URL,
         String(Boolean(this.settings.includePdfUrl)),
+      );
+      localStorage.setItem(
+        STORAGE_KEYS.PDF_PRESET,
+        this.settings.pdfPreset || "standard",
+      );
+      localStorage.setItem(
+        STORAGE_KEYS.PDF_PAPER_SIZE,
+        this.settings.pdfPaperSize || "letter",
+      );
+      localStorage.setItem(
+        STORAGE_KEYS.PDF_FONT_FAMILY,
+        this.settings.pdfFontFamily || "system",
+      );
+      localStorage.setItem(
+        STORAGE_KEYS.PDF_FONT_SIZE_PT,
+        String(this.settings.pdfFontSizePt ?? 11),
+      );
+      localStorage.setItem(
+        STORAGE_KEYS.PDF_FONT_SIZE_CUSTOM,
+        String(Boolean(this.settings.pdfFontSizeCustom)),
+      );
+      localStorage.setItem(
+        STORAGE_KEYS.PDF_CV_MARGIN,
+        this.settings.pdfCvMargin || "normal",
       );
     } catch (error) {
       console.error("Error al guardar configuración en localStorage:", error);

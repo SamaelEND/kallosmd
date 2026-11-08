@@ -120,7 +120,7 @@
   }
 
   .reading-table-content {
-    font-size: 11pt !important;
+    font-size: var(--pdf-base-font-size, 11pt) !important;
     line-height: 1.6 !important;
     color: #1f2328 !important;
   }

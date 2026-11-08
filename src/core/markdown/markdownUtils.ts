@@ -16,6 +16,21 @@ export function normalizeDocTitle(rawTitle: string): string {
 }
 
 /**
+ * ES: Elimina marcas de formato Markdown en línea (código, énfasis, enlaces, imágenes, escapes y HTML) conservando el texto visible.
+ * EN: Strips inline Markdown formatting marks (code, emphasis, links, images, escapes, and HTML) while preserving visible text.
+ */
+export function stripInlineMarkdownFormatting(rawText: string): string {
+  return rawText
+    .replace(/<[^>]+>/g, "")
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/\\([\\`*_{}[\]()#+\-.!])/g, "$1")
+    .replace(/(`+)([\s\S]*?)\1/g, "$2")
+    .replace(/[*_`~[\]]/g, "")
+    .trim();
+}
+
+/**
  * ES: Extrae el primer encabezado de nivel 1 (# Título) ignorando bloques de código.
  * EN: Extracts the first level 1 heading (# Title) ignoring code blocks.
  */
@@ -35,8 +50,7 @@ export function extractFirstH1(markdown: string): string | null {
     // EN: Detects level 1 heading (# Heading) excluding deeper heading levels.
     const match = line.match(/^#\s+(.+)$/);
     if (match) {
-      const clean = match[1]
-        .replace(/[*_`~[\]]/g, "")
+      const clean = stripInlineMarkdownFormatting(match[1])
         .replace(/[\\/:*?"<>|]/g, "")
         .trim();
       if (clean) return clean;
@@ -54,10 +68,7 @@ export function generateHeadingSlug(
   rawText: string,
   slugCounts?: Map<string, number>,
 ): string {
-  const plainText = rawText
-    .replace(/<[^>]+>/g, "")
-    .replace(/[*_`~[\]]/g, "")
-    .trim();
+  const plainText = stripInlineMarkdownFormatting(rawText);
 
   let slug = plainText
     .toLowerCase()
@@ -98,12 +109,13 @@ export function extractHeadings(markdown: string): TocHeading[] {
     const match = line.match(/^(#{1,6})\s+(.+)$/);
     if (match) {
       const level = match[1].length;
-      const rawText = match[2].trim().replace(/[*_`~[\]]/g, "");
-      const uniqueId = generateHeadingSlug(rawText, slugCounts);
+      const rawHeading = match[2].trim();
+      const plainText = stripInlineMarkdownFormatting(rawHeading);
+      const uniqueId = generateHeadingSlug(rawHeading, slugCounts);
 
       headings.push({
         id: uniqueId,
-        text: rawText,
+        text: plainText,
         level,
       });
     }

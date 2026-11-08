@@ -1,7 +1,9 @@
 /* =========================================================
-   Punto de entrada global de estilos de Markdown Studio.
+   ES: Punto de entrada global de estilos de Markdown Studio.
+   EN: Global stylesheet entry point for Markdown Studio.
    ========================================================= */
 @import "./shared/styles/variables.css";
 @import "./shared/styles/base.css";
 @import "./shared/styles/print-document.css";
+@import "./shared/styles/print-presets.css";
 @import "./shared/styles/print-diagrams.css";

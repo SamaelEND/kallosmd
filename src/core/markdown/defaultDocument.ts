@@ -1,5 +1,6 @@
 /**
- * Constantes de almacenamiento, configuración por defecto y guías de estrés en español e inglés.
+ * ES: Constantes de almacenamiento, configuración por defecto y guías de estrés en español e inglés.
+ * EN: Storage constants, default settings, and stress-test guides in Spanish and English.
  */
 
 import type { Settings } from "../types";
@@ -8,7 +9,8 @@ import defaultGuideEs from "./defaultGuide.es.md?raw";
 import defaultGuideEn from "./defaultGuide.en.md?raw";
 
 /**
- * Claves estándar de almacenamiento en localStorage para preferencias y caché de UI.
+ * ES: Claves estándar de almacenamiento en localStorage para preferencias y caché de UI.
+ * EN: Standard localStorage keys for UI preferences and cache.
  */
 export const STORAGE_KEYS = {
   DOCS: "md_studio_docs_v1",
@@ -22,6 +24,12 @@ export const STORAGE_KEYS = {
   MINIMAP: "md_studio_minimap_v1",
   SPLIT_RATIO: "md_studio_split_ratio_v1",
   INCLUDE_PDF_URL: "md_studio_include_pdf_url_v1",
+  PDF_PRESET: "md_studio_pdf_preset_v1",
+  PDF_PAPER_SIZE: "md_studio_pdf_paper_size_v1",
+  PDF_FONT_FAMILY: "md_studio_pdf_font_family_v1",
+  PDF_FONT_SIZE_PT: "md_studio_pdf_font_size_pt_v1",
+  PDF_FONT_SIZE_CUSTOM: "md_studio_pdf_font_size_custom_v1",
+  PDF_CV_MARGIN: "md_studio_pdf_cv_margin_v1",
   TRANSITIONAL_DOCS: "md_studio_documents_v1",
   TRANSITIONAL_SETTINGS: "md_studio_settings_v1",
   ACTIVE_DOC_CACHE: "md_studio_active_cache_v1",
@@ -40,6 +48,12 @@ export const DEFAULT_SETTINGS: Settings = {
   splitRatio: 50,
   wordWrap: true,
   includePdfUrl: true,
+  pdfPreset: "standard",
+  pdfPaperSize: "letter",
+  pdfFontFamily: "system",
+  pdfFontSizePt: 11,
+  pdfFontSizeCustom: false,
+  pdfCvMargin: "normal",
 };
 
 export const DEFAULT_DOCUMENT_TITLE_ES =
@@ -53,21 +67,24 @@ export const DEFAULT_DOCUMENT_TITLE = DEFAULT_DOCUMENT_TITLE_ES;
 export const DEFAULT_MARKDOWN: string = defaultGuideEs;
 
 /**
- * Retorna el título inicial adecuado según el idioma activo ('es' o 'en').
+ * ES: Retorna el título inicial adecuado según el idioma activo ('es' o 'en').
+ * EN: Returns the appropriate initial document title for the active locale ('es' or 'en').
  */
 export function getDefaultDocumentTitle(locale: "es" | "en"): string {
   return locale === "en" ? DEFAULT_DOCUMENT_TITLE_EN : DEFAULT_DOCUMENT_TITLE_ES;
 }
 
 /**
- * Retorna la guía Markdown de prueba de estrés según el idioma activo ('es' o 'en').
+ * ES: Retorna la guía Markdown de prueba de estrés según el idioma activo ('es' o 'en').
+ * EN: Returns the stress-test Markdown guide for the active locale ('es' or 'en').
  */
 export function getDefaultGuideMarkdown(locale: "es" | "en"): string {
   return locale === "en" ? defaultGuideEn : defaultGuideEs;
 }
 
 /**
- * Comprueba si un documento corresponde a la guía de ejemplo inicial sin modificar.
+ * ES: Comprueba si un documento corresponde a la guía de ejemplo inicial sin modificar.
+ * EN: Checks whether a document matches the unmodified initial sample guide.
  */
 export function isDefaultGuideContent(content: string, title?: string): boolean {
   const trimmed = content.trim();

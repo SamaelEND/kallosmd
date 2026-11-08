@@ -1,0 +1,250 @@
+/* =========================================================
+   ES: Perfiles Tipográficos y de Formato para Exportación PDF (Estándar, CV y APA 7.ª)
+   EN: Typographic and Format Presets for PDF Export (Standard, CV, and APA 7th)
+   ========================================================= */
+
+@media print {
+  /* ---------------------------------------------------------
+     ES: 1. Selección de Familia Tipográfica y Escala Base en pt
+     EN: 1. Font Family Selection and Base Scale in pt
+     --------------------------------------------------------- */
+  .reading-table-content {
+    font-size: var(--pdf-base-font-size, 11pt) !important;
+  }
+
+  html[data-pdf-font="system"] .reading-table-content {
+    font-family: var(--font-sans, "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif) !important;
+  }
+
+  html[data-pdf-font="arial"] .reading-table-content {
+    font-family: Arial, "Helvetica Neue", Helvetica, "Liberation Sans", sans-serif !important;
+  }
+
+  html[data-pdf-font="calibri"] .reading-table-content {
+    font-family: Calibri, "Carlito", "Segoe UI", Arial, sans-serif !important;
+  }
+
+  html[data-pdf-font="georgia"] .reading-table-content {
+    font-family: Georgia, "Liberation Serif", Cambria, Times, serif !important;
+  }
+
+  html[data-pdf-font="times"] .reading-table-content {
+    font-family: "Times New Roman", Times, "Liberation Serif", "Nimbus Roman", serif !important;
+  }
+
+  /* ES: Escala proporcional de encabezados en modo Estándar respecto al tamaño base elegido.
+     EN: Proportional heading scale in Standard mode relative to the chosen base font size. */
+  .reading-table-content h1 {
+    font-size: 1.55em !important;
+  }
+
+  .reading-table-content h2 {
+    font-size: 1.3em !important;
+  }
+
+  .reading-table-content h3 {
+    font-size: 1.12em !important;
+  }
+
+  .reading-table-content h4,
+  .reading-table-content h5,
+  .reading-table-content h6 {
+    font-size: 1em !important;
+  }
+
+  /* ---------------------------------------------------------
+     ES: 2. Perfil Currículum Vitae (CV)
+         - Interlineado: 1.15 (compacto)
+         - Separación: Espacio extra entre bloques (sin sangría)
+         - Alineación: Izquierda
+         - Encabezados proporcionales (em) respecto al tamaño base
+     EN: 2. Curriculum Vitae (CV) Preset
+         - Line spacing: 1.15 (compact)
+         - Separation: Extra space between blocks (no first-line indent)
+         - Alignment: Left
+         - Proportional headings (em) relative to base font size
+     --------------------------------------------------------- */
+  html[data-pdf-preset="cv"] .reading-table-content {
+    line-height: 1.15 !important;
+    text-align: left !important;
+    color: #111827 !important;
+  }
+
+  html[data-pdf-preset="cv"] .reading-table-content p {
+    margin-top: 0 !important;
+    margin-bottom: 0.55em !important;
+    text-indent: 0 !important;
+    line-height: 1.15 !important;
+    text-align: left !important;
+  }
+
+  html[data-pdf-preset="cv"] .reading-table-content ul,
+  html[data-pdf-preset="cv"] .reading-table-content ol {
+    margin-top: 0.15em !important;
+    margin-bottom: 0.55em !important;
+    padding-left: 1.25em !important;
+    line-height: 1.15 !important;
+  }
+
+  html[data-pdf-preset="cv"] .reading-table-content li {
+    margin-bottom: 0.18em !important;
+    line-height: 1.15 !important;
+    text-align: left !important;
+  }
+
+  html[data-pdf-preset="cv"] .reading-table-content h1 {
+    font-size: 1.5em !important;
+    font-weight: 700 !important;
+    line-height: 1.15 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0.35em !important;
+    padding-bottom: 0.2em !important;
+    border-bottom: 1.5px solid #1f2328 !important;
+    text-align: left !important;
+  }
+
+  html[data-pdf-preset="cv"] .reading-table-content h2 {
+    font-size: 1.12em !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+    line-height: 1.15 !important;
+    margin-top: 0.75em !important;
+    margin-bottom: 0.3em !important;
+    padding-bottom: 0.15em !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+    text-align: left !important;
+  }
+
+  html[data-pdf-preset="cv"] .reading-table-content h3,
+  html[data-pdf-preset="cv"] .reading-table-content h4,
+  html[data-pdf-preset="cv"] .reading-table-content h5,
+  html[data-pdf-preset="cv"] .reading-table-content h6 {
+    font-size: 1em !important;
+    font-weight: 700 !important;
+    line-height: 1.15 !important;
+    margin-top: 0.45em !important;
+    margin-bottom: 0.15em !important;
+    border-bottom: none !important;
+    text-align: left !important;
+  }
+
+  html[data-pdf-preset="cv"] .reading-table-content hr {
+    margin: 0.65em 0 !important;
+  }
+
+  /* ---------------------------------------------------------
+     ES: 3. Perfil Documento Científico (APA 7.ª Edición)
+         - Márgenes: 2.54 cm exactos en @page
+         - Interlineado: Doble (2.0)
+         - Separación: Sin espacio extra entre párrafos; sangría de 1.27 cm
+         - Alineación: Izquierda (margen derecho irregular)
+     EN: 3. Scientific Document Preset (APA 7th Edition)
+         - Margins: Exact 2.54 cm in @page
+         - Line spacing: Double (2.0)
+         - Separation: No extra space between paragraphs; 1.27 cm indent
+         - Alignment: Left (ragged right margin)
+     --------------------------------------------------------- */
+  html[data-pdf-preset="apa7"] .reading-table-content {
+    line-height: 2 !important;
+    text-align: left !important;
+    color: #000000 !important;
+  }
+
+  html[data-pdf-preset="apa7"] .reading-table-content p {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    text-indent: 1.27cm !important;
+    line-height: 2 !important;
+    text-align: left !important;
+  }
+
+  /* ES: Evitar sangría dentro de tablas, alertas o citas en bloque donde no aplica sangría de 1.ª línea.
+     EN: Avoid first-line indent inside tables, alerts, or blockquotes where first-line indent does not apply. */
+  html[data-pdf-preset="apa7"] .reading-table-content td p,
+  html[data-pdf-preset="apa7"] .reading-table-content th p,
+  html[data-pdf-preset="apa7"] .reading-table-content .markdown-alert p,
+  html[data-pdf-preset="apa7"] .reading-table-content blockquote p:first-child {
+    text-indent: 0 !important;
+  }
+
+  /* ES: Niveles de encabezado APA 7.ª (proporcionales 1em al cuerpo, interlineado doble, sin líneas divisorias).
+     EN: APA 7th heading levels (proportional 1em to body, double spacing, no divider lines). */
+  html[data-pdf-preset="apa7"] .reading-table-content h1,
+  html[data-pdf-preset="apa7"] .reading-table-content h2,
+  html[data-pdf-preset="apa7"] .reading-table-content h3,
+  html[data-pdf-preset="apa7"] .reading-table-content h4,
+  html[data-pdf-preset="apa7"] .reading-table-content h5,
+  html[data-pdf-preset="apa7"] .reading-table-content h6 {
+    font-size: 1em !important;
+    line-height: 2 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    color: #000000 !important;
+  }
+
+  /* ES: Nivel 1 APA 7: Centrado, Negrita / EN: APA 7 Level 1: Centered, Bold */
+  html[data-pdf-preset="apa7"] .reading-table-content h1 {
+    text-align: center !important;
+    font-weight: 700 !important;
+    text-indent: 0 !important;
+  }
+
+  /* ES: Nivel 2 APA 7: Izquierda, Negrita / EN: APA 7 Level 2: Flush Left, Bold */
+  html[data-pdf-preset="apa7"] .reading-table-content h2 {
+    text-align: left !important;
+    font-weight: 700 !important;
+    text-indent: 0 !important;
+  }
+
+  /* ES: Nivel 3 APA 7: Izquierda, Negrita Cursiva / EN: APA 7 Level 3: Flush Left, Bold Italic */
+  html[data-pdf-preset="apa7"] .reading-table-content h3 {
+    text-align: left !important;
+    font-weight: 700 !important;
+    font-style: italic !important;
+    text-indent: 0 !important;
+  }
+
+  /* ES: Nivel 4 APA 7: Sangría 1.27 cm, Negrita / EN: APA 7 Level 4: Indented 1.27 cm, Bold */
+  html[data-pdf-preset="apa7"] .reading-table-content h4 {
+    text-align: left !important;
+    font-weight: 700 !important;
+    text-indent: 1.27cm !important;
+  }
+
+  /* ES: Nivel 5 APA 7: Sangría 1.27 cm, Negrita Cursiva / EN: APA 7 Level 5: Indented 1.27 cm, Bold Italic */
+  html[data-pdf-preset="apa7"] .reading-table-content h5,
+  html[data-pdf-preset="apa7"] .reading-table-content h6 {
+    text-align: left !important;
+    font-weight: 700 !important;
+    font-style: italic !important;
+    text-indent: 1.27cm !important;
+  }
+
+  /* ES: Cita en bloque APA 7.ª: sangría izquierda de 1.27 cm, interlineado doble, sin borde ni fondo.
+     EN: APA 7th blockquote: 1.27 cm left margin, double spacing, no border or background. */
+  html[data-pdf-preset="apa7"] .reading-table-content blockquote {
+    margin: 0 0 0 1.27cm !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    color: #000000 !important;
+    font-style: normal !important;
+    line-height: 2 !important;
+  }
+
+  html[data-pdf-preset="apa7"] .reading-table-content ul,
+  html[data-pdf-preset="apa7"] .reading-table-content ol {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-left: 1.27cm !important;
+    line-height: 2 !important;
+  }
+
+  html[data-pdf-preset="apa7"] .reading-table-content li {
+    line-height: 2 !important;
+    text-align: left !important;
+  }
+}

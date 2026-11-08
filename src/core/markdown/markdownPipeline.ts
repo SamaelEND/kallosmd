@@ -1,6 +1,8 @@
 /**
- * Motor orquestador de procesamiento y sanitización de Markdown, Highlight.js y DOMPurify.
- * Delega el escaneo matemático KaTeX en mathScanner.ts, alertas GFM en gfmAlerts.ts y notas al pie en footnotes.ts.
+ * ES: Motor orquestador de procesamiento y sanitización de Markdown, Highlight.js y DOMPurify.
+ *     Delega el escaneo matemático KaTeX en mathScanner.ts, alertas GFM en gfmAlerts.ts y notas al pie en footnotes.ts.
+ * EN: Orchestrator engine for Markdown processing and sanitization, Highlight.js, and DOMPurify.
+ *     Delegates KaTeX math scanning to mathScanner.ts, GFM alerts to gfmAlerts.ts, and footnotes to footnotes.ts.
  */
 
 import DOMPurify from "dompurify";
@@ -16,30 +18,34 @@ import { extractAndRenderMath, restoreMathPlaceholders } from "./mathScanner";
 
 const markedInstance = new Marked();
 
-// Registro de conteo de slugs para desambiguar encabezados duplicados en el mismo documento.
+// ES: Registro de conteo de slugs para desambiguar encabezados duplicados en el mismo documento.
+// EN: Slug count registry to disambiguate duplicate headings within the same document.
 const renderHeadingCounts = new Map<string, number>();
 
-// Configura directivas de seguridad en atributos de enlaces externos y elementos input.
-DOMPurify.addHook("afterSanitizeAttributes", (node) => {
-  if (node.tagName === "A" && node.hasAttribute("href")) {
-    const href = node.getAttribute("href") || "";
-    if (
-      href.startsWith("http://") ||
-      href.startsWith("https://") ||
-      href.startsWith("//")
-    ) {
-      node.setAttribute("target", "_blank");
-      node.setAttribute("rel", "noopener noreferrer");
+// ES: En entorno de navegador configura directivas de seguridad en enlaces externos e inputs.
+// EN: In browser environment, configures security directives on external links and inputs.
+if (typeof DOMPurify?.addHook === "function") {
+  DOMPurify.addHook("afterSanitizeAttributes", (node) => {
+    if (node.tagName === "A" && node.hasAttribute("href")) {
+      const href = node.getAttribute("href") || "";
+      if (
+        href.startsWith("http://") ||
+        href.startsWith("https://") ||
+        href.startsWith("//")
+      ) {
+        node.setAttribute("target", "_blank");
+        node.setAttribute("rel", "noopener noreferrer");
+      }
     }
-  }
 
-  if (node.tagName === "INPUT") {
-    const type = node.getAttribute("type");
-    if (type !== "checkbox") {
-      node.remove();
+    if (node.tagName === "INPUT") {
+      const type = node.getAttribute("type");
+      if (type !== "checkbox") {
+        node.remove();
+      }
     }
-  }
-});
+  });
+}
 
 function escapeHtmlText(text: string): string {
   return text
@@ -57,7 +63,12 @@ markedInstance.use({
       const lineAttr = token.startLine
         ? ` data-source-line="${token.startLine}"`
         : "";
-      return `<h${token.depth} id="${slug}"${lineAttr}>${token.text}</h${token.depth}>\n`;
+      // ES: Procesa los tokens inline para renderizar `código`, **negrita**, *cursiva* y [enlaces](url) dentro de encabezados.
+      // EN: Parses inline tokens to render `code`, **bold**, *italic*, and [links](url) inside headings.
+      const inlineHtml = token.tokens
+        ? this.parser.parseInline(token.tokens)
+        : token.text;
+      return `<h${token.depth} id="${slug}"${lineAttr}>${inlineHtml}</h${token.depth}>\n`;
     },
     code(token: any) {
       const lineAttr = token.startLine
@@ -72,7 +83,8 @@ markedInstance.use({
         : "";
       const displayLang = rawLang.replace(/[^a-z0-9\-_+#]/g, "") || "texto";
 
-      // Elimina saltos de línea superfluos iniciales y finales del bloque de código
+      // ES: Elimina saltos de línea superfluos iniciales y finales del bloque de código.
+      // EN: Strips superfluous leading and trailing newlines from the code block.
       const cleanCode = (token.text || "").replace(/^\n+|\n+$/g, "");
 
       let highlightedCode = "";
@@ -89,7 +101,8 @@ markedInstance.use({
         highlightedCode = escapeHtmlText(cleanCode);
       }
 
-      // Emite HTML continuo sin saltos de línea ni indentación para evitar nodos de texto no deseados
+      // ES: Emite HTML continuo sin saltos de línea ni indentación para evitar nodos de texto no deseados.
+      // EN: Emits continuous HTML without newlines or indentation to prevent unwanted text nodes.
       return `<div class="code-block-wrapper"${lineAttr}><div class="code-header-bar"><span class="code-lang-label">${displayLang}</span><button class="code-copy-btn" type="button" title="Copiar código al portapapeles"><span class="copy-text">Copiar</span></button></div><pre><code class="hljs language-${displayLang}">${highlightedCode}</code></pre></div>\n`;
     },
     paragraph(token: any) {
@@ -130,20 +143,23 @@ markedInstance.use({
 });
 
 /**
- * Canal de procesamiento central de Markdown, matemáticas KaTeX, alertas GFM y notas al pie.
+ * ES: Canal de procesamiento central de Markdown, matemáticas KaTeX, alertas GFM y notas al pie.
+ * EN: Core processing pipeline for Markdown, KaTeX math, GFM alerts, and footnotes.
  */
 function compileMarkdownPipeline(rawText: string): string {
   renderHeadingCounts.clear();
 
   const codePlaceholders: { id: string; raw: string }[] = [];
 
-  // 1. Transforma sintaxis de resaltado ==texto== a etiquetas semánticas <mark>.
+  // ES: 1. Transforma sintaxis de resaltado ==texto== a etiquetas semánticas <mark>.
+  // EN: 1. Transforms ==text== highlight syntax into semantic <mark> tags.
   let processed = rawText.replace(
     /(^|[^\\])==(?!\s)([\s\S]+?)(?<!\s)==/g,
     "$1<mark>$2</mark>",
   );
 
-  // 2. Protege bloques de código cercados (``` o ~~~) incluyendo aquellos dentro de blockquotes.
+  // ES: 2. Protege bloques de código cercados (``` o ~~~) incluyendo aquellos dentro de blockquotes.
+  // EN: 2. Protects fenced code blocks (``` or ~~~) including those inside blockquotes.
   processed = processed.replace(
     /(^|\n)([ \t]*(?:>[ \t]*)*)(`{3,}|~{3,})([^\n]*)\n([\s\S]*?)\n\2\3[ \t]*(?=\n|$)/g,
     (match, prefix) => {
@@ -154,29 +170,37 @@ function compileMarkdownPipeline(rawText: string): string {
     },
   );
 
-  // 3. Protege código en línea (`...` o ``...``).
-  processed = processed.replace(/(`+)([\s\S]*?[^`])\1(?!`)/g, (match) => {
-    const id = `%%CODE_INLINE_${codePlaceholders.length}%%`;
-    codePlaceholders.push({ id, raw: match });
-    return id;
-  });
+  // ES: 3. Protege código en línea (`...` o ``...``) ignorando acentos graves escapados (\`).
+  // EN: 3. Protects inline code (`...` or ``...``) while ignoring escaped backticks (\`).
+  processed = processed.replace(
+    /(?<![\\`])((?:\\\\)*)(`+)([\s\S]*?[^`])\2(?!`)/g,
+    (_match, slashes: string, ticks: string, inner: string) => {
+      const id = `%%CODE_INLINE_${codePlaceholders.length}%%`;
+      codePlaceholders.push({ id, raw: `${ticks}${inner}${ticks}` });
+      return `${slashes}${id}`;
+    },
+  );
 
-  // 4. Escanea y renderiza fórmulas matemáticas KaTeX.
+  // ES: 4. Escanea y renderiza fórmulas matemáticas KaTeX.
+  // EN: 4. Scans and renders KaTeX mathematical formulas.
   const mathResult = extractAndRenderMath(processed);
   processed = mathResult.text;
 
-  // 5. Procesa definiciones y referencias de notas al pie ([^id]).
+  // ES: 5. Procesa definiciones y referencias de notas al pie ([^id]).
+  // EN: 5. Processes footnote definitions and references ([^id]).
   const footnoteResult = extractAndRenderFootnotes(processed, (src) =>
     markedInstance.parseInline(src) as string,
   );
   processed = footnoteResult.text;
 
-  // 6. Restaura los bloques de código protegidos para su procesamiento en Marked.
+  // ES: 6. Restaura los bloques de código protegidos para su procesamiento en Marked.
+  // EN: 6. Restores protected code blocks for Marked processing.
   for (const item of codePlaceholders) {
     processed = processed.replace(item.id, () => item.raw);
   }
 
-  // 7. Tokeniza y anota líneas fuente para sincronización de scroll entre editor y vista previa.
+  // ES: 7. Tokeniza y anota líneas fuente para sincronización de scroll entre editor y vista previa.
+  // EN: 7. Tokenizes and annotates source lines for scroll synchronization between editor and preview.
   const tokens = markedInstance.lexer(processed);
   let offset = 0;
   for (const token of tokens) {
@@ -189,11 +213,13 @@ function compileMarkdownPipeline(rawText: string): string {
   }
   let html = markedInstance.parser(tokens) as string;
 
-  // 8. Transforma alertas GFM y etiqueta listas de tareas.
+  // ES: 8. Transforma alertas GFM y etiqueta listas de tareas.
+  // EN: 8. Transforms GFM alerts and tags task lists.
   html = transformGfmAlerts(html);
   html = enhanceTaskLists(html);
 
-  // 9. Restaura notas al pie y bloques/fórmulas KaTeX.
+  // ES: 9. Restaura notas al pie y bloques/fórmulas KaTeX.
+  // EN: 9. Restores footnotes and KaTeX blocks/formulas.
   html = restoreFootnotePlaceholders(html, footnoteResult.placeholders);
   html = restoreMathPlaceholders(html, mathResult.placeholders);
 

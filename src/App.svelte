@@ -1,6 +1,7 @@
 <script lang="ts">
   /**
-   * Componente principal que coordina los paneles del área de trabajo, sincronización de desplazamiento, exportación y atajos globales.
+   * ES: Componente principal que coordina los paneles del área de trabajo, sincronización de desplazamiento, exportación y atajos globales.
+   * EN: Main component coordinating workspace panes, scroll synchronization, export flows, and global shortcuts.
    */
   import { onDestroy, onMount, tick } from "svelte";
   import Editor from "./features/editor/Editor.svelte";
@@ -8,12 +9,18 @@
     buildHtmlDocument,
     downloadTextFile,
   } from "./features/preview/export/htmlExport";
+  import PdfExportModal from "./features/preview/export/PdfExportModal.svelte";
+  import {
+    executePdfPrint,
+    syncPdfPrintStylesheet,
+  } from "./features/preview/export/pdfExportPresets";
   import Preview from "./features/preview/Preview.svelte";
   import Toolbar from "./features/toolbar/Toolbar.svelte";
   import Sidebar from "./features/vault/sidebar/Sidebar.svelte";
   import { documentStore } from "./features/vault/vaultStore.svelte";
   import DropOverlay from "./features/workspace/DropOverlay.svelte";
   import Resizer from "./features/workspace/Resizer.svelte";
+  import { i18n } from "./shared/i18n/i18n.svelte";
   import ConfirmDialog from "./shared/ui/ConfirmDialog.svelte";
   import { matchAppShortcut } from "./features/shortcuts/appShortcuts";
   import { runAppAction, type AppActionContext } from "./features/shortcuts/appActions";
@@ -33,6 +40,7 @@
 
   let isDraggingFile = $state(false);
   let saveNoticeVisible = $state(false);
+  let pdfModalOpen = $state(false);
 
   const activeDoc = $derived(documentStore.activeDocument);
   const activeContent = $derived(activeDoc?.content || "");
@@ -71,27 +79,10 @@
     }
   });
 
-  // Actualiza la regla de estilo de impresión para mostrar u ocultar la URL en el pie de página del PDF.
+  // ES: Sincroniza la hoja de estilos @page (formato, tamaño, tipografía, márgenes y URL) para exportación PDF.
+  // EN: Synchronizes the @page stylesheet (format, size, typography, margins, and URL) for PDF export.
   $effect(() => {
-    if (typeof document === "undefined") return;
-    let styleEl = document.getElementById(
-      "md-studio-print-page-style",
-    ) as HTMLStyleElement | null;
-    if (!styleEl) {
-      styleEl = document.createElement("style");
-      styleEl.id = "md-studio-print-page-style";
-      document.head.appendChild(styleEl);
-    }
-
-    const currentUrl =
-      typeof window !== "undefined"
-        ? window.location.href
-        : "https://kallosmd.xyz/";
-    const urlContent = settings.includePdfUrl
-      ? JSON.stringify(currentUrl)
-      : '""';
-
-    styleEl.textContent = `@media print { @page { @bottom-left { content: ${urlContent}; font-size: 8.5pt; font-family: inherit; color: rgba(110, 119, 129, 0.65); } } }`;
+    syncPdfPrintStylesheet(settings, i18n.locale);
   });
 
   let activeScrollSource: "editor" | "preview" | null = null;
@@ -139,35 +130,23 @@
     editorComponent?.insertSnippet?.(prefix, suffix, placeholder);
   }
 
-  async function handleExportPdf(): Promise<void> {
-    const originalTitle = typeof document !== "undefined" ? document.title : "";
-    const docTitle = activeDoc?.title
-      ? activeDoc.title.replace(/\.md$/i, "")
-      : "documento";
-    if (typeof document !== "undefined") document.title = docTitle;
+  // ES: Abre el modal previo de configuración PDF antes de lanzar la impresión nativa del navegador.
+  // EN: Opens the pre-export PDF configuration modal before launching the native browser print dialog.
+  function handleExportPdf(): void {
+    pdfModalOpen = true;
+  }
 
-    const previousMode = viewMode;
-    if (previousMode === "editor" || previousMode === "live") {
-      documentStore.setViewMode("preview");
-      await tick();
-      await new Promise((resolve) => setTimeout(resolve, 60));
-    }
-
-    if (previewComponent?.prepareForPrint) {
-      await previewComponent.prepareForPrint();
-      await tick();
-      await new Promise((resolve) => setTimeout(resolve, 200));
-    }
-
-    window.print();
-
-    if (previewComponent?.restoreAfterPrint) {
-      await previewComponent.restoreAfterPrint();
-    }
-    if (previousMode === "editor" || previousMode === "live") {
-      documentStore.setViewMode(previousMode);
-    }
-    if (typeof document !== "undefined") document.title = originalTitle;
+  async function handleConfirmPrintPdf(): Promise<void> {
+    pdfModalOpen = false;
+    await tick();
+    syncPdfPrintStylesheet(settings, i18n.locale);
+    await executePdfPrint({
+      docTitle: activeDoc?.title || "documento",
+      currentViewMode: viewMode,
+      setViewMode: (mode) => documentStore.setViewMode(mode),
+      prepareForPrint: previewComponent?.prepareForPrint,
+      restoreAfterPrint: previewComponent?.restoreAfterPrint,
+    });
   }
 
   async function handleExportHtml(): Promise<void> {
@@ -271,6 +250,11 @@
 <div class="studio-root" class:dark={isDark}>
   <DropOverlay visible={isDraggingFile} />
   <ConfirmDialog />
+  <PdfExportModal
+    isOpen={pdfModalOpen}
+    onClose={() => (pdfModalOpen = false)}
+    onConfirmPrint={() => void handleConfirmPrintPdf()}
+  />
 
   {#if sidebarOpen}
     <div
