@@ -91,7 +91,7 @@ Construido con **Svelte 5** (Runas), **TypeScript**, **Vite 8** y **CodeMirror 6
 El proyecto sigue una estricta **arquitectura en 3 capas (`core/`, `features/`, `shared/`)** donde ningún archivo supera las 450–500 líneas:
 
 ```text
-markdown-studio/
+kallosmd/
 ├── index.html                   # Landing estática en inglés (SEO, Open Graph, JSON-LD)
 ├── es/index.html                # Landing estática en español (SEO, Open Graph, JSON-LD)
 ├── app/index.html               # Punto de entrada SPA del editor (noindex, follow)

@@ -91,7 +91,7 @@ Built with **Svelte 5** (Runes), **TypeScript**, **Vite 8**, and **CodeMirror 6*
 The codebase strictly adheres to a **modular 3-layer architecture (`core/`, `features/`, `shared/`)** where every `.ts`, `.svelte`, and `.css` file is kept under 450–500 lines for maintainability:
 
 ```text
-markdown-studio/
+kallosmd/
 ├── index.html                   # Static English landing (SEO, Open Graph, JSON-LD)
 ├── es/index.html                # Static Spanish landing (SEO, Open Graph, JSON-LD)
 ├── app/index.html               # SPA App entry point (noindex, follow)

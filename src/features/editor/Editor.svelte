@@ -34,6 +34,18 @@
   import type { CodeThemeId } from "../../core/types";
   import { showMinimap } from "@replit/codemirror-minimap";
   import { createLivePreviewExtension } from "./live-preview/livePlugin";
+  import { createEditorKeymapExtension } from "./shortcuts/editorKeymap";
+  import { createSearchExtension } from "./shortcuts/editorSearch";
+  import { i18n } from "../../shared/i18n/i18n.svelte";
+  import {
+    createSlashMenuKeymapExtension,
+    slashMenuTrackerPlugin,
+  } from "./slash-menu/slashMenuPlugin";
+  import SlashMenu from "./slash-menu/SlashMenu.svelte";
+  import {
+    getEditorVisibleLineRange,
+    scrollEditorToSourceLine,
+  } from "./editorScrollUtils";
   import "../preview/styles/preview-content.css";
 
   interface Props {
@@ -70,6 +82,7 @@
   const minimapCompartment = new Compartment();
   const lineNumbersCompartment = new Compartment();
   const wordWrapCompartment = new Compartment();
+  const searchCompartment = new Compartment();
 
   const currentPalette = $derived(getPalette(codeTheme, isDark));
 
@@ -121,6 +134,10 @@
         minimapCompartment.of(minimapExt),
         lineNumbersCompartment.of(lineNumbersExt),
         wordWrapCompartment.of(wordWrapExt),
+        createSlashMenuKeymapExtension(),
+        searchCompartment.of(createSearchExtension(i18n.locale)),
+        createEditorKeymapExtension(),
+        slashMenuTrackerPlugin,
         keymap.of([indentWithTab, ...defaultKeymap, ...historyKeymap]),
         EditorView.updateListener.of((update) => {
           if (update.docChanged && onChange) {
@@ -245,6 +262,16 @@
     });
   });
 
+  // ES: Reconfigura el panel de búsqueda (Ctrl+F) al cambiar el idioma de la interfaz.
+  // EN: Reconfigures the search panel (Ctrl+F) when the interface language changes.
+  $effect(() => {
+    const locale = i18n.locale;
+    if (!view) return;
+    view.dispatch({
+      effects: searchCompartment.reconfigure(createSearchExtension(locale)),
+    });
+  });
+
   onMount(() => {
     initEditor();
   });
@@ -295,28 +322,7 @@
     line: number;
     fraction: number;
   } | null {
-    if (!view || !view.scrollDOM) return null;
-    const top = view.scrollDOM.scrollTop;
-    const maxScroll = view.scrollDOM.scrollHeight - view.scrollDOM.clientHeight;
-    if (maxScroll <= 0) return { line: 1, fraction: 0 };
-
-    if (top <= 2) {
-      return { line: 1, fraction: 0 };
-    }
-
-    if (top >= maxScroll - 4) {
-      return { line: view.state.doc.lines, fraction: 1 };
-    }
-
-    try {
-      const block = view.lineBlockAtHeight(top);
-      const lineObj = view.state.doc.lineAt(block.from);
-      const height = Math.max(1, block.bottom - block.top);
-      const fraction = Math.max(0, Math.min(1, (top - block.top) / height));
-      return { line: lineObj.number, fraction };
-    } catch {
-      return null;
-    }
+    return getEditorVisibleLineRange(view);
   }
 
   /**
@@ -324,32 +330,7 @@
    * EN: Scrolls the editor to the specified source line with the desired vertical fraction smoothly and accurately.
    */
   export function scrollToSourceLine(targetLine: number, fraction = 0): void {
-    if (!view || !view.scrollDOM) return;
-    try {
-      const maxScroll =
-        view.scrollDOM.scrollHeight - view.scrollDOM.clientHeight;
-      if (maxScroll <= 0) return;
-
-      if (targetLine <= 1 && fraction <= 0) {
-        view.scrollDOM.scrollTop = 0;
-        return;
-      }
-
-      const totalLines = view.state.doc.lines;
-      if (targetLine >= totalLines && fraction >= 1) {
-        view.scrollDOM.scrollTop = maxScroll;
-        return;
-      }
-
-      const safeLine = Math.max(1, Math.min(targetLine, totalLines));
-      const lineObj = view.state.doc.line(safeLine);
-      const block = view.lineBlockAt(lineObj.from);
-      const height = Math.max(1, block.bottom - block.top);
-      const targetTop = block.top + Math.max(0, Math.min(1, fraction)) * height;
-      view.scrollDOM.scrollTop = Math.min(targetTop, maxScroll);
-    } catch {
-      // Ignora en caso de desfase momentáneo de documento
-    }
+    scrollEditorToSourceLine(view, targetLine, fraction);
   }
 
   export function focus(): void {
@@ -364,6 +345,8 @@
   style="--cm-palette-bg: {currentPalette.bg}; --cm-palette-fg: {currentPalette.fg}; --cm-palette-border: {currentPalette.border}; {codeVars}"
   bind:this={editorContainer}
 ></div>
+
+<SlashMenu />
 
 <style>
   .editor-wrapper {

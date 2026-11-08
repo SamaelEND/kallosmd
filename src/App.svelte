@@ -4,20 +4,26 @@
    */
   import { onDestroy, onMount, tick } from "svelte";
   import Editor from "./features/editor/Editor.svelte";
+  import {
+    buildHtmlDocument,
+    downloadTextFile,
+  } from "./features/preview/export/htmlExport";
   import Preview from "./features/preview/Preview.svelte";
-  import Sidebar from "./features/vault/sidebar/Sidebar.svelte";
   import Toolbar from "./features/toolbar/Toolbar.svelte";
+  import Sidebar from "./features/vault/sidebar/Sidebar.svelte";
+  import { documentStore } from "./features/vault/vaultStore.svelte";
   import DropOverlay from "./features/workspace/DropOverlay.svelte";
   import Resizer from "./features/workspace/Resizer.svelte";
+  import ConfirmDialog from "./shared/ui/ConfirmDialog.svelte";
+  import { matchAppShortcut } from "./features/shortcuts/appShortcuts";
+  import { runAppAction, type AppActionContext } from "./features/shortcuts/appActions";
   import StatusBar from "./features/workspace/StatusBar.svelte";
-  import { buildHtmlDocument, downloadTextFile } from "./features/preview/export/htmlExport";
   import {
     computeDocumentStats,
     isValidImportFile,
     readTextFile,
     type DocumentStats,
   } from "./shared/utils/formatters";
-  import { documentStore } from "./features/vault/vaultStore.svelte";
 
   let sidebarOpen = $state(
     typeof window !== "undefined" ? window.innerWidth > 768 : true,
@@ -80,7 +86,7 @@
     const currentUrl =
       typeof window !== "undefined"
         ? window.location.href
-        : "https://markdown-studio.xyz/";
+        : "https://kallosmd.xyz/";
     const urlContent = settings.includePdfUrl
       ? JSON.stringify(currentUrl)
       : '""';
@@ -220,24 +226,29 @@
     }
   }
 
-  function handleGlobalKeyDown(event: KeyboardEvent): void {
-    const isMeta = event.ctrlKey || event.metaKey;
-    const key = event.key.toLowerCase();
-
-    if (isMeta && key === "b") {
-      event.preventDefault();
-      sidebarOpen = !sidebarOpen;
-    } else if (isMeta && key === "s") {
-      event.preventDefault();
+  // ES: Acciones globales que dependen del estado local de este componente.
+  // EN: Global actions that depend on this component's local state.
+  const appActionContext: AppActionContext = {
+    toggleSidebar: () => (sidebarOpen = !sidebarOpen),
+    openSidebar: () => (sidebarOpen = true),
+    save: () => {
       documentStore.flushPendingSave();
       saveNoticeVisible = true;
       setTimeout(() => {
         saveNoticeVisible = false;
       }, 1800);
-    } else if (isMeta && key === "p") {
-      event.preventDefault();
-      handleExportPdf();
-    }
+    },
+    exportPdf: () => void handleExportPdf(),
+    exportHtml: () => void handleExportHtml(),
+  };
+
+  // ES: Atajos globales (ver features/shortcuts); Ctrl+B ya NO alterna el panel lateral, es negrita.
+  // EN: Global shortcuts (see features/shortcuts); Ctrl+B NO longer toggles the sidebar, it is bold.
+  function handleGlobalKeyDown(event: KeyboardEvent): void {
+    const action = matchAppShortcut(event);
+    if (!action) return;
+    event.preventDefault();
+    runAppAction(action, appActionContext);
   }
 
   onMount(() => {
@@ -259,6 +270,7 @@
 
 <div class="studio-root" class:dark={isDark}>
   <DropOverlay visible={isDraggingFile} />
+  <ConfirmDialog />
 
   {#if sidebarOpen}
     <div

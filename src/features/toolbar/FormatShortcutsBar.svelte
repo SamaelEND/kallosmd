@@ -1,7 +1,7 @@
 <script lang="ts">
   /**
-   * Barra secundaria de atajos rápidos de formato Markdown.
-   * Permite insertar negrita, cursiva, encabezados, enlaces, tareas, tablas, fórmulas KaTeX y diagramas Mermaid.
+   * ES: Barra secundaria de atajos rápidos de formato Markdown. Permite insertar negrita, cursiva, encabezados, enlaces, tareas, tablas, fórmulas KaTeX y diagramas Mermaid.
+   * EN: Secondary quick Markdown formatting shortcuts bar. Allows inserting bold, italic, headings, links, tasks, tables, KaTeX formulas, and Mermaid diagrams.
    */
   import {
     Bold,

@@ -12,6 +12,7 @@
   import SearchBox from "./SearchBox.svelte";
   import FileTree from "./FileTree.svelte";
   import TocPanel from "./TocPanel.svelte";
+  import { confirmStore } from "../../../shared/ui/confirmStore.svelte";
   import SidebarFooter from "./SidebarFooter.svelte";
 
   interface Props {
@@ -137,7 +138,21 @@
     editingFolderId = null;
   }
 
-  function handleDeleteFolder(folderId: string, e: MouseEvent): void {
+  /**
+   * ES: Abre el modal propio de confirmación con textos del idioma activo.
+   * EN: Opens the app's own confirmation modal with active-language texts.
+   */
+  function askConfirm(title: string, message: string, confirmLabel: string): Promise<boolean> {
+    return confirmStore.ask({
+      title,
+      message,
+      confirmLabel,
+      cancelLabel: i18n.current.dialogs.cancel,
+      tone: "danger",
+    });
+  }
+
+  async function handleDeleteFolder(folderId: string, e: MouseEvent): Promise<void> {
     e.stopPropagation();
     const folder = documentStore.folders.find((f) => f.id === folderId);
     if (!folder) return;
@@ -145,24 +160,13 @@
     const docsInside = documentStore.documents.filter(
       (d) => d.folderId === folderId,
     );
-    if (docsInside.length > 0) {
-      const choice = confirm(
-        i18n.interpolate(i18n.current.dialogs.deleteFolderConfirm, {
-          name: folder.name,
-          count: docsInside.length,
-        }),
-      );
-      if (choice) {
-        documentStore.deleteFolder(folderId, false);
-      }
-    } else if (
-      confirm(
-        i18n.interpolate(i18n.current.dialogs.deleteEmptyFolderConfirm, {
-          name: folder.name,
-        }),
-      )
-    ) {
-      documentStore.deleteFolder(folderId, true);
+    const d = i18n.current.dialogs;
+    const hasDocs = docsInside.length > 0;
+    const message = hasDocs
+      ? i18n.interpolate(d.deleteFolderConfirm, { name: folder.name, count: docsInside.length })
+      : i18n.interpolate(d.deleteEmptyFolderConfirm, { name: folder.name });
+    if (await askConfirm(d.deleteFolderTitle, message, d.delete)) {
+      documentStore.deleteFolder(folderId, !hasDocs);
     }
   }
 
@@ -193,26 +197,21 @@
     activeDocMenuId = null;
   }
 
-  function handleDeleteDoc(id: string, e: MouseEvent): void {
+  async function handleDeleteDoc(id: string, e: MouseEvent): Promise<void> {
     e.stopPropagation();
     activeDocMenuId = null;
     const doc = documentStore.documents.find((d) => d.id === id);
     if (!doc) return;
 
-    if (
-      confirm(
-        i18n.interpolate(i18n.current.dialogs.deleteDocConfirm, {
-          title: doc.title,
-        }),
-      )
-    ) {
+    const d = i18n.current.dialogs;
+    if (await askConfirm(d.deleteDocTitle, i18n.interpolate(d.deleteDocConfirm, { title: doc.title }), d.delete)) {
       documentStore.deleteDocument(id);
     }
   }
 
-  function handleClearAll(): void {
-    const confirmed = confirm(i18n.current.dialogs.clearAllConfirm);
-    if (confirmed) {
+  async function handleClearAll(): Promise<void> {
+    const d = i18n.current.dialogs;
+    if (await askConfirm(d.clearAllTitle, d.clearAllConfirm, d.clearAll)) {
       documentStore.clearAllDocuments();
     }
   }

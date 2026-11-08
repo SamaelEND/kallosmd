@@ -11,6 +11,7 @@ import { processMathAndMarkdown } from "../../../core/markdown/markdownPipeline"
 import { setupCopyButtons } from "../../preview/previewInteractions";
 import { attachClickToEdit, enterBlockAt } from "./liveClickToEdit";
 import { renderLiveMermaidInto } from "./liveMermaidModal";
+import { i18n } from "../../../shared/i18n/i18n.svelte";
 
 /**
  * ES: Registro persistente del estado de apertura para desplegables <details>.
@@ -309,14 +310,22 @@ export class LiveMermaidWidget extends WidgetType {
  * EN: Visual ghost placeholder on empty lines with an active cursor (does not alter document content).
  */
 export class EmptyLinePlaceholderWidget extends WidgetType {
-  override eq(): boolean {
-    return true;
+  private readonly text: string;
+
+  constructor() {
+    super();
+    const t = i18n.current;
+    this.text = t.slashMenu?.emptyLinePlaceholder || "Escribe, o pulsa / para insertar...";
+  }
+
+  override eq(other: EmptyLinePlaceholderWidget): boolean {
+    return this.text === other.text;
   }
 
   override toDOM(): HTMLElement {
     const span = document.createElement("span");
     span.className = "cm-live-empty-placeholder";
-    span.textContent = "Escribe, o pulsa / para insertar...";
+    span.textContent = this.text;
     span.setAttribute("aria-hidden", "true");
     return span;
   }

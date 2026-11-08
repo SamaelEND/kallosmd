@@ -1,14 +1,12 @@
 /**
- * ES: Marco de escritura ajustable y conmutador de código fuente para el modo Live Preview.
- *     Renderiza los límites laterales visibles y arrastrables del área de escritura y permite
- *     alternar con atajo de teclado (Ctrl+E / Ctrl+Shift+M) entre código Markdown y Live Preview.
- * EN: Adjustable writing frame and source code toggle for Live Preview mode.
- *     Renders visible, draggable lateral writing boundaries and allows toggling via keyboard
- *     shortcut (Ctrl+E / Ctrl+Shift+M) between raw Markdown code and Live Preview.
+ * ES: Marco de escritura ajustable para el modo Live Preview.
+ *     Renderiza los límites laterales visibles y arrastrables del área de escritura.
+ * EN: Adjustable writing frame for Live Preview mode.
+ *     Renders visible, draggable lateral writing boundaries for the writing area.
  */
 
 import { StateEffect, StateField, type Extension } from "@codemirror/state";
-import { EditorView, keymap, ViewPlugin, type ViewUpdate } from "@codemirror/view";
+import { EditorView, ViewPlugin, type ViewUpdate } from "@codemirror/view";
 
 /** ES: Clave de almacenamiento local para el ancho del marco en Live Preview. EN: Local storage key for Live Preview frame width. */
 const LIVE_WIDTH_STORAGE_KEY = "md_studio_live_width_v1";
@@ -90,7 +88,6 @@ const liveSheetFramePlugin = ViewPlugin.fromClass(
     private readonly leftGuide: HTMLDivElement;
     private readonly rightGuide: HTMLDivElement;
     private readonly widthBadge: HTMLDivElement;
-    private readonly modePill: HTMLButtonElement;
     private resizeObserver: ResizeObserver | null = null;
     private isDragging = false;
 
@@ -110,26 +107,14 @@ const liveSheetFramePlugin = ViewPlugin.fromClass(
       this.widthBadge = document.createElement("div");
       this.widthBadge.className = "cm-live-width-badge";
 
-      this.modePill = document.createElement("button");
-      this.modePill.type = "button";
-      this.modePill.className = "cm-live-mode-pill";
-      this.modePill.addEventListener("mousedown", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        toggleLiveRawMode(this.view);
-        this.view.focus();
-      });
-
       this.bindDragGuide(this.leftGuide);
       this.bindDragGuide(this.rightGuide);
 
       this.view.dom.appendChild(this.leftGuide);
       this.view.dom.appendChild(this.rightGuide);
       this.view.dom.appendChild(this.widthBadge);
-      this.view.dom.appendChild(this.modePill);
 
       this.applyWidthCssVars();
-      this.syncModePill();
 
       this.onScrollOrResize = () => this.positionGuides();
       window.addEventListener("resize", this.onScrollOrResize);
@@ -232,26 +217,7 @@ const liveSheetFramePlugin = ViewPlugin.fromClass(
       this.view.dom.style.setProperty("--live-sheet-actual-px", `${sheetActualWidth}px`);
     }
 
-    /**
-     * ES: Sincroniza el texto y estado visual de la píldora de modo (Live vs. MD Fuente).
-     * EN: Synchronizes text and visual state of the mode pill (Live vs. Raw MD).
-     */
-    private syncModePill(): void {
-      const isRaw = this.view.state.field(liveRawModeField, false);
-      this.view.dom.classList.toggle("cm-live-raw-source-active", isRaw);
-      this.modePill.classList.toggle("is-raw", isRaw);
-      this.modePill.textContent = isRaw ? "MD Fuente · Ctrl+E" : "Live · Ctrl+E";
-      this.modePill.title = isRaw
-        ? "Mostrando código Markdown crudo (pulsa Ctrl+E para volver a Live Preview)"
-        : "Alternar a código Markdown crudo (Ctrl+E)";
-    }
-
     update(u: ViewUpdate): void {
-      const prevRaw = u.startState.field(liveRawModeField, false);
-      const curRaw = u.state.field(liveRawModeField, false);
-      if (prevRaw !== curRaw) {
-        this.syncModePill();
-      }
       if (u.geometryChanged || u.viewportChanged) {
         this.positionGuides();
       }
@@ -263,34 +229,14 @@ const liveSheetFramePlugin = ViewPlugin.fromClass(
       this.leftGuide.remove();
       this.rightGuide.remove();
       this.widthBadge.remove();
-      this.modePill.remove();
       this.view.dom.classList.remove("cm-live-raw-source-active");
     }
   },
 );
 
 /**
- * ES: Mapa de teclas exclusivo de Live Preview para alternar entre código MD y vista renderizada.
- * EN: Keymap exclusive to Live Preview for toggling between raw MD code and rendered view.
- */
-export const liveSourceToggleKeymap = keymap.of([
-  {
-    key: "Mod-e",
-    run: (view) => toggleLiveRawMode(view),
-  },
-  {
-    key: "Mod-Shift-m",
-    run: (view) => toggleLiveRawMode(view),
-  },
-  {
-    key: "Alt-m",
-    run: (view) => toggleLiveRawMode(view),
-  },
-]);
-
-/**
- * ES: Tema visual para las guías de límite de escritura, indicador de ancho y píldora de modo.
- * EN: Visual theme for writing boundary guides, width indicator, and mode pill.
+ * ES: Tema visual para las guías de límite de escritura e indicador de ancho.
+ * EN: Visual theme for writing boundary guides and width indicator.
  */
 const liveSheetFrameTheme = EditorView.baseTheme({
   ".cm-live-boundary-guide": {
@@ -340,35 +286,13 @@ const liveSheetFrameTheme = EditorView.baseTheme({
   ".cm-live-width-badge.is-visible": {
     opacity: "1",
   },
-  ".cm-live-mode-pill": {
-    position: "absolute",
-    bottom: "14px",
-    right: "18px",
-    padding: "4px 10px",
-    borderRadius: "999px",
-    fontSize: "0.72rem",
-    fontWeight: "600",
-    fontFamily: 'var(--font-mono, "JetBrains Mono", monospace)',
-    backgroundColor: "color-mix(in srgb, var(--cm-palette-bg, #16181d) 88%, #64748b 12%)",
-    color: "var(--text-secondary, #94a3b8)",
-    border: "1px solid color-mix(in srgb, var(--text-faint, #64748b) 30%, transparent)",
-    cursor: "pointer",
-    opacity: "0.72",
-    transition: "opacity 120ms ease, border-color 120ms ease, color 120ms ease",
-    zIndex: "8",
-  },
-  ".cm-live-mode-pill:hover, .cm-live-mode-pill.is-raw": {
-    opacity: "1",
-    color: "var(--accent-color, #5fb3a3)",
-    borderColor: "color-mix(in srgb, var(--accent-color, #5fb3a3) 55%, transparent)",
-  },
 });
 
 /**
- * ES: Extensión combinada del marco de escritura ajustable y el conmutador de código fuente.
- * EN: Combined extension of the adjustable writing frame and source code toggle.
+ * ES: Extensión combinada del marco de escritura ajustable.
+ * EN: Combined extension of the adjustable writing frame.
  */
 export function createLiveSheetFrameExtension(): Extension {
-  return [liveRawModeField, liveSourceToggleKeymap, liveSheetFrameTheme, liveSheetFramePlugin];
+  return [liveRawModeField, liveSheetFrameTheme, liveSheetFramePlugin];
 }
 

@@ -78,6 +78,11 @@
   onkeydown={(e) => {
     if (e.key === "Enter" || e.key === " ") {
       onSelect(doc.id);
+    } else if (e.key === "Delete" && !isEditing) {
+      // ES: Suprimir pide confirmación (confirm en Sidebar) antes de eliminar el archivo.
+      // EN: Delete asks for confirmation (confirm in Sidebar) before removing the file.
+      e.preventDefault();
+      onDelete(doc.id, e as unknown as MouseEvent);
     }
   }}
 >
