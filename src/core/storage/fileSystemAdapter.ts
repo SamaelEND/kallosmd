@@ -3,6 +3,54 @@
  * EN: Explicit file writes with external-change detection and confirmed stream closure.
  */
 import type { SaveFileHandle } from "../types";
+import type { DirectoryHandle, WorkspaceEntry } from "./workspacePort";
+import { getDraftKey } from "./documentRecords";
+
+/** ES: Detecta el selector real sin inferir soporte por el navegador.
+ * EN: Detects the actual picker without inferring support from browser identity. */
+export function pickWorkspaceDirectory(): Promise<DirectoryHandle> | null {
+  if (typeof window === "undefined") return null;
+  const host = window as Window & {
+    showDirectoryPicker?: (options: object) => Promise<DirectoryHandle>;
+  };
+  return typeof host.showDirectoryPicker === "function"
+    ? host.showDirectoryPicker({ id: "kallosmd-workspace", mode: "read" }) : null;
+}
+
+export function supportsWorkspaceDirectory(): boolean {
+  return typeof window !== "undefined" && typeof (window as Window & {
+    showDirectoryPicker?: unknown;
+  }).showDirectoryPicker === "function";
+}
+
+/** ES: Solo admite rutas relativas de segmentos inequívocos, también para recursos locales.
+ * EN: Accepts only unambiguous relative path segments, including local resources. */
+export function workspacePathParts(path: string): string[] {
+  getDraftKey({ kind: "file", workspaceId: "validation", path });
+  return path.split("/");
+}
+
+export async function directoryAt(root: DirectoryHandle, path: string): Promise<DirectoryHandle> {
+  let directory = root;
+  for (const name of path ? workspacePathParts(path) : []) {
+    directory = await directory.getDirectoryHandle(name);
+  }
+  return directory;
+}
+
+/** ES: Enumerar solo obtiene nombres y tipos; nunca lee textos ni recursos.
+ * EN: Enumeration obtains names and kinds only, never reading text or resources. */
+export async function listWorkspaceDirectory(root: DirectoryHandle, path: string): Promise<WorkspaceEntry[]> {
+  const directory = await directoryAt(root, path);
+  const entries: WorkspaceEntry[] = [];
+  for await (const entry of directory.values()) {
+    const entryPath = path ? `${path}/${entry.name}` : entry.name;
+    workspacePathParts(entryPath);
+    entries.push({ kind: entry.kind, name: entry.name, path: entryPath });
+  }
+  return entries.sort((a, b) => Number(b.kind === "directory") - Number(a.kind === "directory")
+    || a.name.localeCompare(b.name));
+}
 
 export class FileConflictError extends Error {
   constructor() {

@@ -15,12 +15,13 @@ import {
   saveDocumentToDb,
   saveFolderToDb,
 } from "./db";
-import { getAllDraftsFromDb, saveDraftToDb, deleteDraftFromDb, clearAllDraftsFromDb } from "./draftDb";
+import { getAllDraftsFromDb, saveDraftToDb, deleteDraftFromDb, clearAllDraftsFromDb, replaceDraftsInDb } from "./draftDb";
 import type { StorageAdapter } from "./storagePort";
 
 export const indexedDbAdapter: StorageAdapter = {
   getAllDrafts: getAllDraftsFromDb,
   saveDraft: saveDraftToDb,
+  replaceDrafts: replaceDraftsInDb,
   deleteDraft: deleteDraftFromDb,
   clearAllDrafts: clearAllDraftsFromDb,
 

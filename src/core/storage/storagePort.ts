@@ -8,6 +8,7 @@ import type { DocumentItem, FolderItem, RecoveryDraft } from "../types";
 export interface StorageAdapter {
   getAllDrafts(): Promise<RecoveryDraft[]>;
   saveDraft(draft: RecoveryDraft): Promise<void>;
+  replaceDrafts(oldKeys: string[], drafts: RecoveryDraft[]): Promise<void>;
   deleteDraft(key: string): Promise<void>;
   clearAllDrafts(): Promise<void>;
 

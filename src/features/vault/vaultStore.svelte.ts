@@ -10,6 +10,7 @@ import {
   toggleMarkdownTaskAtIndex,
 } from "../../core/markdown/markdownUtils";
 import { indexedDbAdapter } from "../../core/storage/indexedDbAdapter";
+import { getDraftKey } from "../../core/storage/documentRecords";
 import {
   writeActiveDocumentCache,
   writeActiveDocumentId,
@@ -31,6 +32,8 @@ import type {
 import { ManualSave, type SaveEnvironment } from "./manualSave.svelte";
 import { VaultPersistence } from "./vaultPersistence.svelte";
 import { settingsStore } from "../settings/settingsStore.svelte";
+import { deleteWorkspaceDrafts, renameWorkspaceDrafts } from "./workspaceDraftSync";
+import type { DirectoryHandle } from "../../core/storage/workspacePort";
 
 export { extractFirstH1, extractHeadings };
 
@@ -40,19 +43,20 @@ export class DocumentStore {
   activeId = $state<string>("");
   tocHeadings = $state<TocHeading[]>([]);
   recoveryCandidate = $state<RecoveryDraft | null>(null);
-  private versions = $state<Record<string, DocumentVersion>>({});
-  private recoveries = $state<Record<string, RecoveryDraft>>({});
+  versions = $state<Record<string, DocumentVersion>>({});
+  recoveries = $state<Record<string, RecoveryDraft>>({});
 
   fileSave: ManualSave;
-  private storage: StorageAdapter;
-  private persistence: VaultPersistence;
+  storage: StorageAdapter;
+  persistence: VaultPersistence;
+  workspaceMutation = $state(false);
   private initialization: Promise<void> | null = null;
 
   constructor(storage: StorageAdapter = indexedDbAdapter, saveEnvironment?: SaveEnvironment) {
     this.storage = storage;
     this.persistence = new VaultPersistence(storage);
     this.fileSave = new ManualSave({
-      getDocument: id => this.documents.find(doc => doc.id === id),
+      getDocument: id => this.workspaceMutation ? undefined : this.documents.find(doc => doc.id === id),
       getVersion: id => this.versions[id],
       protectDrafts: () => this.flushPendingSave(),
       confirmWrite: (snapshot, handle) => this.confirmFileWrite(snapshot, handle),
@@ -174,6 +178,56 @@ export class DocumentStore {
     return this.documents.find((doc) => doc.id === this.activeId);
   }
 
+  isWorkspaceDocument(id: string): boolean {
+    return this.versions[id]?.identity.kind === "file";
+  }
+
+  closeActiveDocument(): void {
+    void this.flushPendingSave();
+    this.activeId = "";
+    this.recoveryCandidate = null;
+    writeActiveDocumentId("");
+    this.refreshDerivedMetadata(undefined);
+    writeActiveDocumentCache(undefined);
+  }
+
+  /** ES: Solo la apertura explícita lee contenido; conserva ediciones y versiones de recuperación.
+   * EN: Only explicit opening reads content; preserves edits and recovery versions. */
+  async openWorkspaceFile(workspaceId: string, path: string, handle: SaveFileHandle): Promise<void> {
+    await this.initialize();
+    const identity = { kind: "file" as const, workspaceId, path };
+    const id = getDraftKey(identity);
+    const existing = this.documents.find(doc => doc.id === id);
+    if (existing && (this.recoveries[id] || existing.content !== this.versions[id].confirmedContent)) {
+      this.versions[id].fileHandle = handle;
+      this.selectDocument(id);
+      return;
+    }
+    const content = await (await handle.getFile()).text();
+    // ES: Una edición durante la lectura sigue teniendo prioridad sobre la instantánea del disco.
+    // EN: An edit during the read still takes priority over the disk snapshot.
+    if (existing && existing.content !== this.versions[id].confirmedContent) {
+      this.selectDocument(id);
+      return;
+    }
+    const doc = { id, title: handle.name, content, hasCustomTitle: true, updatedAt: Date.now() };
+    this.versions[id] = { identity, confirmedContent: content, fileHandle: handle };
+    this.documents = [...this.documents.filter(d => d.id !== id), doc];
+    this.selectDocument(id);
+  }
+
+  /** ES: Sincroniza borradores de archivos o carpetas renombrados/movidos en disco.
+   * EN: Syncs drafts of files or directories renamed/moved on disk. */
+  renameWorkspacePath(workspaceId: string, oldPath: string, newPath: string, handle?: SaveFileHandle, root?: DirectoryHandle): Promise<boolean> {
+    return renameWorkspaceDrafts(this, workspaceId, oldPath, newPath, handle, root);
+  }
+
+  /** ES: Elimina borradores asociados a un archivo o carpeta eliminado en disco.
+   * EN: Removes drafts associated with a file or directory deleted from disk. */
+  deleteWorkspacePath(workspaceId: string, path: string): Promise<boolean> {
+    return deleteWorkspaceDrafts(this, workspaceId, path);
+  }
+
   get settings(): Settings {
     return settingsStore.settings;
   }
@@ -264,11 +318,8 @@ export class DocumentStore {
 
   createFolder(rawName = "Nueva Carpeta"): FolderItem {
     const newFolder: FolderItem = {
-      id: generateId(),
-      name: rawName.trim() || "Nueva Carpeta",
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      isExpanded: true,
+      id: generateId(), name: rawName.trim() || "Nueva Carpeta",
+      createdAt: Date.now(), updatedAt: Date.now(), isExpanded: true,
     };
     this.folders = [...this.folders, newFolder];
     void this.persistence.run(() => this.storage.saveFolder({ ...newFolder }));
@@ -286,25 +337,14 @@ export class DocumentStore {
 
   deleteFolder(id: string, deleteContainedFiles = false): void {
     if (!this.folders.some((f) => f.id === id)) return;
-
     if (deleteContainedFiles) {
-      const docsToDelete = this.documents.filter((d) => d.folderId === id);
-      for (const d of docsToDelete) {
-        this.deleteDocument(d.id);
-      }
+      for (const d of this.documents.filter((d) => d.folderId === id)) this.deleteDocument(d.id);
     } else {
       this.documents.forEach((d) => {
-        if (d.folderId === id) {
-          d.folderId = null;
-          d.updatedAt = Date.now();
-          this.scheduleSave(d);
-        }
+        if (d.folderId === id) { d.folderId = null; d.updatedAt = Date.now(); this.scheduleSave(d); }
       });
-      if (this.activeDocument?.folderId === id) {
-        writeActiveDocumentCache(this.activeDocument);
-      }
+      if (this.activeDocument?.folderId === id) writeActiveDocumentCache(this.activeDocument);
     }
-
     this.folders = this.folders.filter((f) => f.id !== id);
     void this.persistence.run(() => this.storage.deleteFolder(id));
   }
@@ -381,43 +421,17 @@ export class DocumentStore {
   toggleTaskCheckbox(taskIndex: number, isChecked: boolean): void {
     const doc = this.activeDocument;
     if (!doc) return;
-    const updatedMd = toggleMarkdownTaskAtIndex(
-      doc.content,
-      taskIndex,
-      isChecked,
-    );
-    if (updatedMd !== null) {
-      this.updateActiveContent(updatedMd);
-    }
+    const updatedMd = toggleMarkdownTaskAtIndex(doc.content, taskIndex, isChecked);
+    if (updatedMd !== null) this.updateActiveContent(updatedMd);
   }
 
-  applyTheme(theme: ThemeMode): void {
-    settingsStore.applyTheme(theme);
-  }
-
-  updateSettings(partial: Partial<Settings>): void {
-    settingsStore.updateSettings(partial);
-  }
-
-  setViewMode(mode: ViewMode): void {
-    settingsStore.setViewMode(mode);
-  }
-
-  setFontSize(size: FontSize): void {
-    settingsStore.setFontSize(size);
-  }
-
-  toggleTheme(): ThemeMode {
-    return settingsStore.toggleTheme();
-  }
-
-  cycleTheme(): ThemeMode {
-    return settingsStore.cycleTheme();
-  }
-
-  resetSplitRatio(): void {
-    settingsStore.resetSplitRatio();
-  }
+  applyTheme(theme: ThemeMode): void { settingsStore.applyTheme(theme); }
+  updateSettings(partial: Partial<Settings>): void { settingsStore.updateSettings(partial); }
+  setViewMode(mode: ViewMode): void { settingsStore.setViewMode(mode); }
+  setFontSize(size: FontSize): void { settingsStore.setFontSize(size); }
+  toggleTheme(): ThemeMode { return settingsStore.toggleTheme(); }
+  cycleTheme(): ThemeMode { return settingsStore.cycleTheme(); }
+  resetSplitRatio(): void { settingsStore.resetSplitRatio(); }
 }
 
 export const vaultStore = new DocumentStore();

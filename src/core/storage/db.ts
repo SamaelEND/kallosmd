@@ -5,13 +5,15 @@
 import { openDB, type IDBPDatabase } from "idb";
 import type { DocumentItem, FolderItem, RecoveryDraft } from "../types";
 import { toPlainDoc, toPlainFolder } from "./documentRecords";
+import type { WorkspaceReference } from "./workspacePort";
 
 const DB_NAME = "md_studio_db";
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 const STORE_NAME = "documents";
 const FOLDERS_STORE_NAME = "folders";
 
 export interface MdStudioDbSchema {
+  workspaces: { key: string; value: WorkspaceReference; };
   recoveryDrafts: { key: string; value: RecoveryDraft; };
   documents: {
     key: string;
@@ -45,6 +47,9 @@ export function getDb(): Promise<IDBPDatabase<MdStudioDbSchema>> {
   if (!dbPromise) {
     dbPromise = openDB<MdStudioDbSchema>(DB_NAME, DB_VERSION, {
       upgrade(db) {
+        if (!db.objectStoreNames.contains("workspaces")) {
+          db.createObjectStore("workspaces", { keyPath: "id" });
+        }
         if (!db.objectStoreNames.contains("recoveryDrafts")) {
           db.createObjectStore("recoveryDrafts", { keyPath: "key" });
         }

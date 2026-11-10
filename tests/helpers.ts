@@ -24,6 +24,13 @@ export function memoryStorage() {
     clearAllDocuments: async () => { docs.clear(); },
     getAllDrafts: async () => [...drafts.values()].map(cloneDraft),
     saveDraft: async draft => { drafts.set(draft.key, cloneDraft(draft)); },
+    replaceDrafts: async (keys, records) => {
+      const next = new Map(drafts);
+      for (const key of keys) next.delete(key);
+      for (const record of records) next.set(record.key, cloneDraft(record));
+      drafts.clear();
+      for (const [key, record] of next) drafts.set(key, record);
+    },
     deleteDraft: async key => { drafts.delete(key); },
     clearAllDrafts: async () => { drafts.clear(); },
     saveFolder: async () => {}, saveAllFolders: async () => {},

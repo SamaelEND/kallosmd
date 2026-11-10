@@ -14,6 +14,7 @@
   import TocPanel from "./TocPanel.svelte";
   import { confirmStore } from "../../../shared/ui/confirmStore.svelte";
   import SidebarFooter from "./SidebarFooter.svelte";
+  import WorkspacePanel from "./WorkspacePanel.svelte";
 
   interface Props {
     isOpen: boolean;
@@ -39,8 +40,9 @@
   const cleanQuery = $derived(searchQuery.trim().toLowerCase());
 
   const matchingDocs = $derived.by(() => {
-    if (!isSearching) return documentStore.documents;
-    return documentStore.documents.filter(
+    const documents = documentStore.documents.filter(d => !documentStore.isWorkspaceDocument(d.id));
+    if (!isSearching) return documents;
+    return documents.filter(
       (d) =>
         d.title.toLowerCase().includes(cleanQuery) ||
         d.content.toLowerCase().includes(cleanQuery),
@@ -54,20 +56,12 @@
     );
   });
 
-  const visibleRootDocs = $derived.by(() => {
-    if (!isSearching) {
-      return documentStore.documents.filter((d) => !d.folderId);
-    }
-    return matchingDocs.filter((d) => !d.folderId);
-  });
+  const visibleRootDocs = $derived(matchingDocs.filter((d) => !d.folderId));
 
   const totalResultsCount = $derived(matchingDocs.length);
   const tocHeadings = $derived(documentStore.tocHeadings);
 
   function getDocsForFolder(folderId: string) {
-    if (!isSearching) {
-      return documentStore.documents.filter((d) => d.folderId === folderId);
-    }
     return matchingDocs.filter((d) => d.folderId === folderId);
   }
 
@@ -257,6 +251,7 @@
 
   {#if activeTab === "docs"}
     <div class="sidebar-section">
+      <WorkspacePanel onOpen={closeIfMobile} />
       <SidebarQuickActions
         onCreateDoc={handleCreateRootDoc}
         onCreateFolder={handleCreateFolder}

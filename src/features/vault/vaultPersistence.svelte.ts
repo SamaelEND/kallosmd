@@ -46,6 +46,16 @@ export class VaultPersistence {
     return this.pending.size > 0;
   }
 
+  /** ES: Invalida instantáneas antiguas después de migrar o borrar una identidad.
+   * EN: Invalidates old snapshots after migrating or deleting an identity. */
+  forgetPending(key: string): void {
+    this.pending.delete(key);
+  }
+
+  settleDraftMutation(): void {
+    this.state = this.mutationFailed ? "error" : this.pending.size ? "pending" : "idle";
+  }
+
   run(operation: () => Promise<void>, draftWrite = false): Promise<boolean> {
     this.task = this.task.then(async () => {
       try {
