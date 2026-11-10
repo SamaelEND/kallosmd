@@ -1,19 +1,18 @@
 <script lang="ts">
   /**
-   * Barra de estado inferior del área de trabajo.
-   * Muestra estadísticas en vivo (líneas, palabras, tiempo de lectura),
-   * confirmación de guardado y motores activos (KaTeX + Mermaid).
+   * ES: Estadísticas del documento y estado confirmado de persistencia local.
+   * EN: Document statistics and confirmed local persistence status.
    */
-  import { CheckCircle2, Sparkles } from "lucide-svelte";
+  import { Sparkles } from "lucide-svelte";
   import { i18n } from "../../shared/i18n/i18n.svelte";
+  import { documentStore } from "../vault/vaultStore.svelte";
   import type { DocumentStats } from "../../shared/utils/formatters";
 
   interface Props {
     stats: DocumentStats;
-    saveNoticeVisible: boolean;
   }
 
-  let { stats, saveNoticeVisible }: Props = $props();
+  let { stats }: Props = $props();
 
   const t = $derived(i18n.current);
 </script>
@@ -23,11 +22,19 @@
     <span class="editor-stats">
       {stats.lines} {t.status.lines} · {stats.words} {t.status.words} · {stats.readingTime} {t.status.readingTime}
     </span>
-    {#if saveNoticeVisible}
-      <span class="save-toast">
-        <CheckCircle2 size={12} />
-        <span>{t.status.saved}</span>
+    {#if documentStore.persistenceState !== "idle"}
+      <span class="save-toast" class:save-error={documentStore.persistenceState === "error"} role="status">
+        {t.status[documentStore.persistenceState]}
       </span>
+    {/if}
+    {#if documentStore.fileSave.state !== "idle"}
+      <span class="save-toast" class:save-error={documentStore.fileSave.state === "error" || documentStore.fileSave.state === "conflict"} role="status">
+        {t.fileSave[documentStore.fileSave.state]}:
+        <span class="save-name" title={documentStore.fileSave.name}>{documentStore.fileSave.name}</span>
+      </span>
+    {/if}
+    {#if documentStore.hasUnsavedChanges}
+      <span>{t.status.unsaved}</span>
     {/if}
   </div>
 
@@ -41,7 +48,7 @@
 
 <style>
   .studio-statusbar {
-    height: 26px;
+    height: auto;
     min-height: 26px;
     background-color: var(--bg-app, #151617);
     border-top: 1px solid var(--border-color, #2b2d31);
@@ -62,12 +69,29 @@
     gap: 0.75rem;
   }
 
+  .status-left {
+    min-width: 0;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.75rem;
+  }
+
   .save-toast {
     display: flex;
     align-items: center;
     gap: 4px;
     color: var(--accent-color, #5fb3a3);
     font-weight: 600;
+  }
+
+  .save-name {
+    max-width: min(18rem, 45vw);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .save-error {
+    color: var(--text-primary);
   }
 
   .status-tag {

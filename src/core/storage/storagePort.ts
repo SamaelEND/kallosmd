@@ -3,9 +3,14 @@
  * EN: Common contract (Port) for local storage adapters (IndexedDB or File System Access API).
  */
 
-import type { DocumentItem, FolderItem } from "../types";
+import type { DocumentItem, FolderItem, RecoveryDraft } from "../types";
 
 export interface StorageAdapter {
+  getAllDrafts(): Promise<RecoveryDraft[]>;
+  saveDraft(draft: RecoveryDraft): Promise<void>;
+  deleteDraft(key: string): Promise<void>;
+  clearAllDrafts(): Promise<void>;
+
   getAllDocuments(): Promise<DocumentItem[]>;
   saveDocument(doc: DocumentItem): Promise<void>;
   saveAllDocuments(docs: DocumentItem[]): Promise<void>;

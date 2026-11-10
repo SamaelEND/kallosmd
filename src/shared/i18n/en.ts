@@ -7,6 +7,8 @@ import type { TranslationSchema } from "./es";
 
 export const en: TranslationSchema = {
   toolbar: {
+    save: "Save",
+    saveHint: "Save (Ctrl+S / Cmd+S)",
     sidebarToggle: "Show or hide sidebar (Ctrl+\\)",
     sidebarToggleAria: "Toggle sidebar",
     syncStatus: "Synced",
@@ -115,7 +117,30 @@ export const en: TranslationSchema = {
     lines: "lines",
     words: "words",
     readingTime: "min read",
-    saved: "Saved",
+    unsaved: "Changes not saved to file",
+    idle: "",
+    saved: "Draft saved",
+    pending: "Pending changes",
+    saving: "Saving draft…",
+    error: "Storage error; keep a copy before closing.",
+  },
+  fileSave: {
+    saving: "Saving file…",
+    fileSaved: "File saved",
+    copySaved: "Copy saved",
+    downloaded: "Download started",
+    conflict: "Conflict; draft kept",
+    error: "Could not save; draft kept",
+    conflictTitle: "The file changed",
+    conflictMessage: "“{title}” changed outside the app or the copy destination matches the original. Keep your draft or choose another file to save a copy. The original will not be overwritten.",
+    saveCopy: "Save copy",
+    keepDraft: "Keep draft",
+  },
+  recovery: {
+    title: "Recover draft",
+    message: "A local draft of “{title}” is available. Recovering it keeps the previous version. “Not now” leaves the draft available for later.",
+    recover: "Recover",
+    later: "Not now",
   },
   dropOverlay: {
     titleHtml: "Drop your <strong>.md</strong> file to open it",
@@ -131,7 +156,7 @@ export const en: TranslationSchema = {
     deleteFolderConfirm: 'Folder "{name}" contains {count} file(s). The folder will be deleted and its files kept in the root.',
     deleteEmptyFolderConfirm: 'Delete empty folder "{name}"?',
     deleteDocConfirm: 'Close and delete "{title}"?',
-    clearAllConfirm: "Do you want to clear the entire workspace? All local files and folders will be deleted and a new blank file will be created.",
+    clearAllConfirm: "Do you want to clear the entire workspace? Documents and folders stored in this browser will be deleted.",
   },
   pdfModal: {
     title: "PDF Export Settings",

@@ -1,9 +1,9 @@
 <script lang="ts">
   /**
-   * Componente orquestador Toolbar de Markdown Studio.
-   * Coordina la fila principal de herramientas, los menús desplegables ('...' y Exportar) y la barra de formato Markdown.
+   * ES: Coordina herramientas, menús y barra de formato Markdown.
+   * EN: Coordinates tools, menus, and the Markdown formatting bar.
    */
-  import { Moon, PanelLeft, Sun } from "lucide-svelte";
+  import { Moon, PanelLeft, Save, Sun } from "lucide-svelte";
   import { downloadTextFile } from "../preview/export/htmlExport";
   import { documentStore } from "../vault/vaultStore.svelte";
   import { i18n } from "../../shared/i18n/i18n.svelte";
@@ -23,6 +23,7 @@
       suffix?: string,
       placeholder?: string,
     ) => void;
+    onSave: () => void;
     onExportPdf?: () => void;
     onExportHtml?: () => void;
   }
@@ -31,6 +32,7 @@
     sidebarOpen,
     onToggleSidebar,
     onInsertSnippet,
+    onSave,
     onExportPdf,
     onExportHtml,
   }: Props = $props();
@@ -40,7 +42,7 @@
 
   const t = $derived(i18n.current);
   const activeDoc = $derived(documentStore.activeDocument);
-  const activeDocTitle = $derived(activeDoc?.title || "documento.md");
+  const activeDocTitle = $derived(activeDoc?.title || "");
   const currentViewMode = $derived(documentStore.settings.viewMode);
 
   $effect(() => {
@@ -93,11 +95,20 @@
         <span class="readonly-doc-name" title={activeDocTitle}>
           {activeDocTitle}
         </span>
-        <span class="readonly-sync-status">{t.toolbar.syncStatus}</span>
       </div>
     </div>
 
     <div class="toolbar-right">
+      <Button
+        variant="ghost"
+        size="icon"
+        onclick={onSave}
+        disabled={!activeDoc || documentStore.fileSave.busy}
+        title={t.toolbar.saveHint}
+        ariaLabel={t.toolbar.save}
+      >
+        <Save size={16} />
+      </Button>
       <Button
         variant="ghost"
         size="icon"
@@ -224,11 +235,6 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-  }
-
-  .readonly-sync-status {
-    font-size: var(--ui-font-2xs, 0.65625rem);
-    color: var(--text-secondary, #64748b);
   }
 
   .toolbar-right {

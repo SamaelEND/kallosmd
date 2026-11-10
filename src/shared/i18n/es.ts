@@ -5,6 +5,8 @@
 
 export const es = {
   toolbar: {
+    save: "Guardar",
+    saveHint: "Guardar (Ctrl+S / Cmd+S)",
     sidebarToggle: "Mostrar u ocultar panel lateral (Ctrl+\\)",
     sidebarToggleAria: "Alternar panel lateral",
     syncStatus: "Sincronizado",
@@ -113,7 +115,30 @@ export const es = {
     lines: "líneas",
     words: "palabras",
     readingTime: "min de lectura",
-    saved: "Guardado",
+    unsaved: "Cambios sin guardar en archivo",
+    idle: "",
+    saved: "Borrador guardado",
+    pending: "Cambios pendientes",
+    saving: "Guardando borrador…",
+    error: "Error de almacenamiento; conserva una copia antes de cerrar.",
+  },
+  fileSave: {
+    saving: "Guardando archivo…",
+    fileSaved: "Archivo guardado",
+    copySaved: "Copia guardada",
+    downloaded: "Descarga iniciada",
+    conflict: "Conflicto; borrador conservado",
+    error: "No se pudo guardar; el borrador se conserva",
+    conflictTitle: "El archivo cambió",
+    conflictMessage: "«{title}» cambió fuera de la aplicación o el destino de la copia coincide con el original. Conserva tu borrador o elige otro archivo para guardar una copia. El original no se sobrescribirá.",
+    saveCopy: "Guardar copia",
+    keepDraft: "Conservar borrador",
+  },
+  recovery: {
+    title: "Recuperar borrador",
+    message: "Hay un borrador local de «{title}». Recuperarlo conserva la versión anterior. «Ahora no» deja el borrador disponible para después.",
+    recover: "Recuperar",
+    later: "Ahora no",
   },
   dropOverlay: {
     titleHtml: "Suelta tu archivo <strong>.md</strong> para abrirlo",
@@ -129,7 +154,7 @@ export const es = {
     deleteFolderConfirm: 'La carpeta "{name}" contiene {count} archivo(s). Se eliminará la carpeta y los archivos se conservarán en la raíz.',
     deleteEmptyFolderConfirm: '¿Eliminar la carpeta vacía "{name}"?',
     deleteDocConfirm: '¿Cerrar y eliminar "{title}"?',
-    clearAllConfirm: "¿Deseas vaciar todo el espacio de trabajo? Se cerrarán todos los archivos y carpetas y se creará uno nuevo en blanco.",
+    clearAllConfirm: "¿Deseas vaciar todo el espacio de trabajo? Se eliminarán los documentos y carpetas guardados en este navegador.",
   },
   pdfModal: {
     title: "Configurar exportación a PDF",

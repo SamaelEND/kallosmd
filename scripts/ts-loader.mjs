@@ -1,13 +1,26 @@
 /**
- * ES: Hook ligero de resolución ESM de Node 24 para soportar imports relativos sin extensión (.ts) en pruebas unitarias.
- * EN: Lightweight Node 24 ESM resolution hook to support extensionless relative (.ts) imports in unit tests.
+ * ES: Resuelve imports TypeScript, recursos Markdown y módulos con runas en las pruebas de Node 24.
+ * EN: Resolves TypeScript imports, Markdown assets, and rune modules in Node 24 tests.
  */
-import { registerHooks } from "node:module";
-import { existsSync } from "node:fs";
+import { registerHooks, stripTypeScriptTypes } from "node:module";
+import { existsSync, readFileSync } from "node:fs";
+import { compileModule } from "svelte/compiler";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, resolve } from "node:path";
 
 registerHooks({
+  load(url, context, nextLoad) {
+    if (url.endsWith(".md?raw")) {
+      const markdown = readFileSync(new URL(url.slice(0, -4)), "utf8");
+      return { format: "module", source: `export default ${JSON.stringify(markdown)}`, shortCircuit: true };
+    }
+    if (url.endsWith(".svelte.ts")) {
+      const source = stripTypeScriptTypes(readFileSync(new URL(url), "utf8"), { mode: "transform" });
+      const compiled = compileModule(source, { filename: fileURLToPath(url), generate: "client" });
+      return { format: "module", source: compiled.js.code, shortCircuit: true };
+    }
+    return nextLoad(url, context);
+  },
   resolve(specifier, context, nextResolve) {
     if (
       (specifier.startsWith("./") || specifier.startsWith("../")) &&

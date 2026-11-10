@@ -58,4 +58,4 @@ ehthumbs.db
 Thumbs.db
 
 # Memoria local del agente y bitácora (NO subir a Git)
-.agent/
+.agents/

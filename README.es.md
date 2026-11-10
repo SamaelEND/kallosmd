@@ -216,7 +216,7 @@ kallosmd/
 
 ## 🤝 Desarrollo y Créditos
 
-Markdown Studio fue diseñado, refactored y optimizado mediante programación en pareja (*pair programming*) continua entre **Manuel Alvarez** y un agente avanzado de codificación impulsado por Inteligencia Artificial.
+Markdown Studio fue diseñado, refactored y optimizado mediante programación en pareja (*pair programming*) continua entre **Manuel Alvarez**.
 
 ---
 

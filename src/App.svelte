@@ -21,6 +21,8 @@
   import DropOverlay from "./features/workspace/DropOverlay.svelte";
   import Resizer from "./features/workspace/Resizer.svelte";
   import { i18n } from "./shared/i18n/i18n.svelte";
+  import SaveConflictPrompt from "./features/vault/SaveConflictPrompt.svelte";
+  import RecoveryPrompt from "./features/vault/RecoveryPrompt.svelte";
   import ConfirmDialog from "./shared/ui/ConfirmDialog.svelte";
   import { matchAppShortcut } from "./features/shortcuts/appShortcuts";
   import { runAppAction, type AppActionContext } from "./features/shortcuts/appActions";
@@ -39,7 +41,6 @@
   let previewComponent = $state<ReturnType<typeof Preview> | null>(null);
 
   let isDraggingFile = $state(false);
-  let saveNoticeVisible = $state(false);
   let pdfModalOpen = $state(false);
 
   const activeDoc = $derived(documentStore.activeDocument);
@@ -210,13 +211,7 @@
   const appActionContext: AppActionContext = {
     toggleSidebar: () => (sidebarOpen = !sidebarOpen),
     openSidebar: () => (sidebarOpen = true),
-    save: () => {
-      documentStore.flushPendingSave();
-      saveNoticeVisible = true;
-      setTimeout(() => {
-        saveNoticeVisible = false;
-      }, 1800);
-    },
+    save: () => void documentStore.fileSave.save(documentStore.activeId),
     exportPdf: () => void handleExportPdf(),
     exportHtml: () => void handleExportHtml(),
   };
@@ -249,6 +244,8 @@
 
 <div class="studio-root" class:dark={isDark}>
   <DropOverlay visible={isDraggingFile} />
+  <RecoveryPrompt />
+  <SaveConflictPrompt />
   <ConfirmDialog />
   <PdfExportModal
     isOpen={pdfModalOpen}
@@ -272,6 +269,7 @@
       {sidebarOpen}
       onToggleSidebar={() => (sidebarOpen = !sidebarOpen)}
       onInsertSnippet={handleInsertSnippet}
+      onSave={appActionContext.save}
       onExportPdf={handleExportPdf}
       onExportHtml={handleExportHtml}
     />
@@ -283,21 +281,23 @@
         class:hidden-pane={viewMode === "preview"}
         aria-label="Editor Markdown"
       >
-        {#key documentStore.activeId}
-          <Editor
-            bind:this={editorComponent}
-            documentId={documentStore.activeId}
-            value={activeContent}
-            {isDark}
-            codeTheme={settings.codeTheme}
-            liveModeEnabled={viewMode === "live"}
-            showMinimapEnabled={settings.minimap && viewMode !== "live"}
-            showLineNumbersEnabled={settings.lineNumbers && viewMode !== "live"}
-            wordWrapEnabled={settings.wordWrap}
-            onChange={(val) => documentStore.updateActiveContent(val)}
-            onEditorScroll={() => syncScroll("editor")}
-          />
-        {/key}
+        {#if activeDoc}
+          {#key documentStore.activeId}
+            <Editor
+              bind:this={editorComponent}
+              documentId={documentStore.activeId}
+              value={activeContent}
+              {isDark}
+              codeTheme={settings.codeTheme}
+              liveModeEnabled={viewMode === "live"}
+              showMinimapEnabled={settings.minimap && viewMode !== "live"}
+              showLineNumbersEnabled={settings.lineNumbers && viewMode !== "live"}
+              wordWrapEnabled={settings.wordWrap}
+              onChange={(val) => documentStore.updateActiveContent(val)}
+              onEditorScroll={() => syncScroll("editor")}
+            />
+          {/key}
+        {/if}
       </section>
 
       {#if viewMode === "split"}
@@ -331,7 +331,7 @@
       </section>
     </div>
 
-    <StatusBar {stats} {saveNoticeVisible} />
+    <StatusBar {stats} />
   </main>
 </div>
 
