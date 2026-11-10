@@ -169,6 +169,15 @@ export const es = {
     saveCopy: "Guardar copia",
     keepDraft: "Conservar borrador",
   },
+  firstSave: {
+    title: "Guardar documento nuevo",
+    message: "Elige un nombre y una carpeta dentro de «{workspace}». El archivo se creará solo al confirmar.",
+    name: "Nombre del archivo",
+    location: "Ubicación",
+    root: "Raíz de la carpeta",
+    confirm: "Guardar archivo",
+    loadingLocations: "Leyendo carpetas…",
+  },
   recovery: {
     title: "Recuperar borrador",
     message: "Hay un borrador local de «{title}». Recuperarlo conserva la versión anterior. «Ahora no» deja el borrador disponible para después.",

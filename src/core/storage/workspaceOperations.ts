@@ -72,6 +72,26 @@ export async function createWorkspaceFolder(
 }
 
 /**
+ * ES: Crea un archivo nuevo evitando reemplazar una entrada existente del mismo directorio.
+ * EN: Creates a new file without replacing an existing entry in the same directory.
+ */
+export async function createWorkspaceFile(
+  root: DirectoryHandle, parentPath: string, name: string,
+): Promise<WorkspaceFileHandle> {
+  if (!isValidEntryName(name)) throw new TypeError("Invalid file name");
+  const parent = await directoryAt(root, parentPath);
+  const normalized = name.normalize("NFC").toLowerCase();
+  for await (const entry of parent.values()) {
+    if (entry.name.normalize("NFC").toLowerCase() === normalized) {
+      throw new EntryCollisionError();
+    }
+  }
+  // ES: La API no ofrece creación exclusiva; la comprobación previa evita sobrescrituras normales.
+  // EN: The API has no exclusive creation; the previous check prevents normal overwrites.
+  return parent.getFileHandle(name, { create: true });
+}
+
+/**
  * ES: Renombra un archivo o carpeta en disco validando colisiones en el mismo directorio.
  * EN: Renames a file or folder on disk validating collisions in the same directory.
  */

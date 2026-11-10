@@ -171,6 +171,15 @@ export const en: TranslationSchema = {
     saveCopy: "Save copy",
     keepDraft: "Keep draft",
   },
+  firstSave: {
+    title: "Save new document",
+    message: "Choose a name and a folder inside “{workspace}”. The file will be created only when you confirm.",
+    name: "File name",
+    location: "Location",
+    root: "Workspace root",
+    confirm: "Save file",
+    loadingLocations: "Reading folders…",
+  },
   recovery: {
     title: "Recover draft",
     message: "A local draft of “{title}” is available. Recovering it keeps the previous version. “Not now” leaves the draft available for later.",

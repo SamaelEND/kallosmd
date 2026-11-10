@@ -22,6 +22,7 @@
   import Resizer from "./features/workspace/Resizer.svelte";
   import { i18n } from "./shared/i18n/i18n.svelte";
   import SaveConflictPrompt from "./features/vault/SaveConflictPrompt.svelte";
+  import FirstSaveDialog from "./features/vault/FirstSaveDialog.svelte";
   import RecoveryPrompt from "./features/vault/RecoveryPrompt.svelte";
   import ConfirmDialog from "./shared/ui/ConfirmDialog.svelte";
   import { matchAppShortcut } from "./features/shortcuts/appShortcuts";
@@ -246,6 +247,7 @@
   <DropOverlay visible={isDraggingFile} />
   <RecoveryPrompt />
   <SaveConflictPrompt />
+  <FirstSaveDialog />
   <ConfirmDialog />
   <PdfExportModal
     isOpen={pdfModalOpen}

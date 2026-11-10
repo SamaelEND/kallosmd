@@ -77,6 +77,7 @@
       `documento-${count}.md`,
       `# Documento ${count}\n\n`,
       null,
+      true,
     );
     activeTab = "docs";
     closeIfMobile();
@@ -101,6 +102,7 @@
       `${folderName}-doc-${count}.md`,
       `# Nuevo Documento\n\n`,
       folderId,
+      true,
     );
     activeTab = "docs";
     closeIfMobile();

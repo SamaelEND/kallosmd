@@ -29,10 +29,11 @@ import type {
   TocHeading,
   ViewMode,
 } from "../../core/types";
-import { ManualSave, type SaveEnvironment } from "./manualSave.svelte";
+import { ManualSave, type SaveEnvironment, type WorkspaceSaveTarget } from "./manualSave.svelte";
 import { VaultPersistence } from "./vaultPersistence.svelte";
 import { settingsStore } from "../settings/settingsStore.svelte";
 import { deleteWorkspaceDrafts, renameWorkspaceDrafts } from "./workspaceDraftSync";
+import { confirmWorkspaceSave } from "./workspaceConfirm";
 import type { DirectoryHandle } from "../../core/storage/workspacePort";
 
 export { extractFirstH1, extractHeadings };
@@ -59,7 +60,7 @@ export class DocumentStore {
       getDocument: id => this.workspaceMutation ? undefined : this.documents.find(doc => doc.id === id),
       getVersion: id => this.versions[id],
       protectDrafts: () => this.flushPendingSave(),
-      confirmWrite: (snapshot, handle) => this.confirmFileWrite(snapshot, handle),
+      confirmWrite: (snapshot, handle, target) => this.confirmFileWrite(snapshot, handle, target),
     }, saveEnvironment);
     if (typeof window !== "undefined") {
       void this.initialize();
@@ -160,7 +161,8 @@ export class DocumentStore {
     writeActiveDocumentCache(this.activeDocument);
   }
 
-  private confirmFileWrite(snapshot: DocumentItem, handle: SaveFileHandle): Promise<boolean> {
+  private confirmFileWrite(snapshot: DocumentItem, handle: SaveFileHandle, target?: WorkspaceSaveTarget): Promise<boolean> {
+    if (target) return this.confirmWorkspaceWrite(snapshot, handle, target);
     const doc = this.documents.find(d => d.id === snapshot.id);
     if (!doc) return Promise.resolve(true);
     this.versions[doc.id] = { ...this.versions[doc.id], confirmedContent: snapshot.content, fileHandle: handle };
@@ -168,6 +170,24 @@ export class DocumentStore {
     doc.hasCustomTitle = true;
     writeActiveDocumentCache(this.activeDocument);
     return this.persistence.confirmWrite(this.versions[doc.id], () => this.documents.find(d => d.id === snapshot.id));
+  }
+
+  /** ES: Un destino confirmado convierte el borrador local en un documento de la carpeta.
+   * EN: A confirmed destination turns the local draft into a document inside the folder. */
+  private confirmWorkspaceWrite(
+    snapshot: DocumentItem, handle: SaveFileHandle, target: WorkspaceSaveTarget,
+  ): Promise<boolean> {
+    return confirmWorkspaceSave(this, snapshot, handle, target);
+  }
+
+  /** ES: Comprueba si otra instantánea ya ocupa el destino sin consultar contenidos del disco.
+   * EN: Checks whether another snapshot already occupies the destination without reading disk contents. */
+  hasWorkspaceDraft(workspaceId: string, path: string): boolean {
+    try {
+      return !!this.versions[getDraftKey({ kind: "file", workspaceId, path })];
+    } catch {
+      return false;
+    }
   }
 
   public flushPendingSave(): Promise<boolean> {

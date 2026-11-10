@@ -56,7 +56,7 @@ export function runAppAction(id: AppActionId, ctx: AppActionContext): void {
       return pickAndImportFile();
     case "new-document": {
       const n = documentStore.documents.length + 1;
-      documentStore.createDocument(`documento-${n}.md`, `# Documento ${n}\n\n`, null);
+      documentStore.createDocument(`documento-${n}.md`, `# Documento ${n}\n\n`, null, true);
       return ctx.openSidebar();
     }
     case "new-folder": {

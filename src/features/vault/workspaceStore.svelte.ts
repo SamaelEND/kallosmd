@@ -1,8 +1,9 @@
 /** ES: Sesión de carpeta real; reabrir es explícito y explorar nunca importa documentos.
  * EN: Real directory session; reopening is explicit and browsing never imports documents. */
-import { directoryAt, listWorkspaceDirectory, pickWorkspaceDirectory, workspacePathParts } from "../../core/storage/fileSystemAdapter";
+import { directoryAt, listWorkspaceDirectories, listWorkspaceDirectory, pickWorkspaceDirectory, workspacePathParts } from "../../core/storage/fileSystemAdapter";
 import { workspaceReferences } from "../../core/storage/workspaceDb";
 import {
+  createWorkspaceFile,
   createWorkspaceFolder,
   deleteWorkspaceEntry,
   EntryCollisionError,
@@ -17,6 +18,7 @@ import {
 import type { DirectoryHandle, WorkspaceEntry, WorkspaceReference, WorkspaceReferencePort } from "../../core/storage/workspacePort";
 import { generateId } from "../../shared/utils/formatters";
 import { vaultStore, type DocumentStore } from "./vaultStore.svelte";
+import type { WorkspaceSaveTarget } from "./manualSave.svelte";
 import { assertWorkspaceDestination } from "./workspaceDraftSync";
 import { PendingWorkspaceChangeError, protectWorkspaceDrafts, resumeWorkspaceChange, WorkspaceStorageError, workspaceEntryAt } from "./workspaceChangeRecovery";
 
@@ -118,7 +120,19 @@ export class WorkspaceStore {
     this.createdFolder = "";
     this.last = reference;
     this.entries = entries;
+    this.bindSaveProvider();
     this.documents.closeActiveDocument();
+  }
+
+  /** ES: El primer guardado consulta esta sesión solo mientras la carpeta está activa.
+   * EN: The first save consults this session only while the folder is active. */
+  private bindSaveProvider(): void {
+    this.documents.fileSave.setWorkspaceSave({
+      current: () => this.current ? { id: this.current.id, name: this.current.name } : null,
+      prepare: (parentPath, name) => this.prepareDocumentSave(parentPath, name),
+      discard: target => this.discardDocumentSave(target),
+      saved: target => this.savedDocument(target),
+    });
   }
 
   async list(path: string): Promise<WorkspaceEntry[]> {
@@ -149,6 +163,93 @@ export class WorkspaceStore {
       this.report(error);
     } finally {
       this.busy = false;
+    }
+  }
+
+  /** ES: Valida el nombre, pide permiso y crea el archivo solo al confirmar el primer guardado.
+   * EN: Validates the name, requests permission, and creates the file only on first-save confirmation. */
+  async prepareDocumentSave(parentPath: string, name: string): Promise<WorkspaceSaveTarget | null> {
+    if (!this.current) return null;
+    if (this.busy) { this.error = "saving"; return null; }
+    if (this.current.pendingChange) { this.error = "pendingChange"; return null; }
+    this.error = null;
+    try {
+      if (!isValidEntryName(name)) throw new Error("Invalid name");
+      if (parentPath) workspacePathParts(parentPath);
+    } catch {
+      this.error = "invalidName";
+      return null;
+    }
+    const reference = this.current;
+    const path = parentPath ? `${parentPath}/${name}` : name;
+    if (this.documents.hasWorkspaceDraft(reference.id, path)) {
+      this.error = "collision";
+      return null;
+    }
+    this.busy = true;
+    try {
+      // ES: Solicita el permiso antes de cualquier await para conservar la activación del usuario.
+      // EN: Request permission before any await to preserve user activation.
+      const permission = reference.handle.requestPermission({ mode: "readwrite" });
+      if (await permission !== "granted") { this.error = "permission"; return null; }
+      const handle = await createWorkspaceFile(reference.handle, parentPath, name);
+      const targetPath = parentPath ? `${parentPath}/${handle.name}` : handle.name;
+      try {
+        this.entries = await listWorkspaceDirectory(reference.handle, "");
+        this.current = { ...reference };
+      } catch {
+        this.error = "read";
+      }
+      return { workspaceId: reference.id, path: targetPath, handle };
+    } catch (error) {
+      if (error instanceof EntryCollisionError) this.error = "collision";
+      else if (error instanceof UnsupportedCapabilityError) this.error = "unsupported";
+      else this.report(error, "write");
+      return null;
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  /** ES: Elimina solo el archivo vacío creado por un primer guardado que no llegó a escribirse.
+   * EN: Removes only the empty file created by a first save that never got written. */
+  async discardDocumentSave(target: WorkspaceSaveTarget): Promise<void> {
+    const reference = this.current;
+    if (!reference || reference.id !== target.workspaceId) return;
+    try {
+      const { parentPath, name } = splitWorkspacePath(target.path);
+      const directory = await directoryAt(reference.handle, parentPath);
+      const file = await directory.getFileHandle(name);
+      if (await (await file.getFile()).text() !== "") return;
+      if (!directory.removeEntry) return;
+      await directory.removeEntry(name);
+      this.entries = await listWorkspaceDirectory(reference.handle, "");
+    } catch {
+      // ES: Un fallo de limpieza no descarta el borrador ni oculta el error original.
+      // EN: A cleanup failure neither discards the draft nor hides the original error.
+    }
+  }
+
+  /** ES: Actualiza el árbol tras confirmar la escritura; un fallo de lectura no invalida el guardado.
+   * EN: Refreshes the tree after a confirmed write; a read failure does not invalidate the save. */
+  async savedDocument(target: WorkspaceSaveTarget): Promise<void> {
+    const reference = this.current;
+    if (!reference || reference.id !== target.workspaceId) return;
+    try {
+      this.entries = await listWorkspaceDirectory(reference.handle, "");
+    } catch {
+      this.error ??= "read";
+    }
+  }
+
+  /** ES: Rutas de carpetas disponibles como ubicación del primer guardado.
+   * EN: Folder paths available as first-save locations. */
+  async directories(): Promise<string[]> {
+    if (!this.current) return [""];
+    try {
+      return ["", ...await listWorkspaceDirectories(this.current.handle)];
+    } catch {
+      return [""];
     }
   }
 

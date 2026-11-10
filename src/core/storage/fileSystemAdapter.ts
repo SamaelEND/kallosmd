@@ -52,6 +52,22 @@ export async function listWorkspaceDirectory(root: DirectoryHandle, path: string
     || a.name.localeCompare(b.name));
 }
 
+/** ES: Enumera únicamente carpetas para elegir un destino, sin leer contenidos.
+ * EN: Enumerates folders only to choose a destination, without reading contents. */
+export async function listWorkspaceDirectories(root: DirectoryHandle, path = ""): Promise<string[]> {
+  const directories: string[] = [];
+  const pending = [path];
+  while (pending.length) {
+    const current = pending.shift()!;
+    for (const entry of await listWorkspaceDirectory(root, current)) {
+      if (entry.kind !== "directory") continue;
+      directories.push(entry.path);
+      pending.push(entry.path);
+    }
+  }
+  return directories;
+}
+
 export class FileConflictError extends Error {
   constructor() {
     super("The file changed externally");
