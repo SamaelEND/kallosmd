@@ -488,7 +488,7 @@ export class DocumentStore {
   }
   applyTheme(theme: ThemeMode): void { settingsStore.applyTheme(theme); }
   updateSettings(partial: Partial<Settings>): void { settingsStore.updateSettings(partial); }
-  setViewMode(mode: ViewMode): void { settingsStore.setViewMode(mode); }
+  setViewMode(mode: ViewMode, isExplicit = true): void { settingsStore.setViewMode(mode, isExplicit); }
   setFontSize(size: FontSize): void { settingsStore.setFontSize(size); }
   toggleTheme(): ThemeMode { return settingsStore.toggleTheme(); }
   cycleTheme(): ThemeMode { return settingsStore.cycleTheme(); }
