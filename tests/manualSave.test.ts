@@ -5,6 +5,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { DocumentStore } from "../src/features/vault/vaultStore.svelte.ts";
+import { getDraftKey } from "../src/core/storage/documentRecords.ts";
 import { memoryStorage, deferred } from "./helpers.ts";
 
 function diskFile(name = "saved.md", initial = "") {
@@ -109,6 +110,25 @@ test("download fallback keeps the original unconfirmed and the recovery draft", 
   assert.equal(store.hasUnsavedChanges, true);
   assert.equal(storage.drafts.size, 1);
   assert.equal(file.content, "");
+  assert.equal(store.versions[doc.id].identity.kind, "local");
+  assert.equal(store.versions[doc.id].fileHandle, undefined);
+  assert.equal(store.activeDocument?.title, "draft.md");
+});
+
+test("a confirmed handle keeps saving directly when the save picker is unavailable", async () => {
+  const { store, file, env, downloads } = setup();
+  await store.initialize();
+  const doc = store.createDocument("draft.md", "first");
+  await store.fileSave.save(doc.id);
+  assert.equal(file.content, "first");
+  assert.equal(store.saveMode(doc.id), "save");
+
+  env.pickFile = () => null;
+  store.updateActiveContent("second");
+  await store.fileSave.save(doc.id);
+  assert.equal(file.content, "second");
+  assert.equal(store.fileSave.state, "fileSaved");
+  assert.equal(downloads.length, 0);
 });
 
 test("external changes produce a conflict without overwriting or discarding work", async () => {
@@ -281,6 +301,45 @@ test("conflict actions become available only after saving the recovery draft", a
   assert.equal(earlyConflict, null);
   assert.equal(store.fileSave.busy, false);
   assert.equal(store.fileSave.conflict?.documentId, doc.id);
+});
+
+test("save as from a recovered file draft without handle keeps the original identity and draft", async () => {
+  const { store, storage, env } = setup();
+  const identity = { kind: "file" as const, workspaceId: "workspace-1", path: "original.md" };
+  const key = getDraftKey(identity);
+  storage.drafts.set(key, {
+    key,
+    identity,
+    confirmedContent: "disk original",
+    document: {
+      id: key,
+      title: "original.md",
+      content: "recovered edits",
+      createdAt: 1,
+      updatedAt: 2,
+      folderId: null,
+      hasCustomTitle: true,
+    },
+  });
+  await store.initialize();
+  store.selectDocument(key);
+  store.resolveRecovery(store.recoveryCandidate!, true);
+  assert.equal(store.activeDocument?.content, "recovered edits");
+
+  const copy = diskFile("copia.md");
+  env.pickFile = () => Promise.resolve(copy);
+  await store.fileSave.save(key);
+
+  assert.equal(copy.content, "recovered edits");
+  assert.equal(store.fileSave.state, "copySaved");
+  assert.deepEqual(store.versions[key].identity, identity);
+  assert.equal(store.versions[key].fileHandle, undefined);
+  assert.equal(Object.values(store.versions).some(version => version.fileHandle === copy), false);
+  assert.equal(store.activeDocument?.title, "original.md");
+  assert.equal(store.activeDocument?.content, "recovered edits");
+  assert.equal(store.hasUnsavedChanges, true);
+  assert.equal(storage.drafts.size, 1);
+  assert.equal(storage.drafts.get(key)?.document.content, "recovered edits");
 });
 
 test("reopening retains the file reference and detects external changes before overwriting", async () => {

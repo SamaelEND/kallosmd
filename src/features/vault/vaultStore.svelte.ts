@@ -11,6 +11,7 @@ import {
 } from "../../core/markdown/markdownUtils";
 import { indexedDbAdapter } from "../../core/storage/indexedDbAdapter";
 import { getDraftKey } from "../../core/storage/documentRecords";
+import { supportsSaveFilePicker } from "../../core/storage/fileSystemAdapter";
 import {
   writeActiveDocumentCache,
   writeActiveDocumentId,
@@ -165,7 +166,11 @@ export class DocumentStore {
     if (target) return this.confirmWorkspaceWrite(snapshot, handle, target);
     const doc = this.documents.find(d => d.id === snapshot.id);
     if (!doc) return Promise.resolve(true);
-    this.versions[doc.id] = { ...this.versions[doc.id], confirmedContent: snapshot.content, fileHandle: handle };
+    const version = this.versions[doc.id];
+    // ES: Un original recuperado sin handle no adopta el handle de otra ruta; se guarda como copia.
+    // EN: A recovered original without a handle does not adopt another path's handle; it is saved as a copy.
+    if (version.identity.kind === "file" && !version.fileHandle) return Promise.resolve(false);
+    this.versions[doc.id] = { ...version, confirmedContent: snapshot.content, fileHandle: handle };
     doc.title = handle.name;
     doc.hasCustomTitle = true;
     writeActiveDocumentCache(this.activeDocument);
@@ -200,6 +205,15 @@ export class DocumentStore {
 
   isWorkspaceDocument(id: string): boolean {
     return this.versions[id]?.identity.kind === "file";
+  }
+
+  /** ES: Distingue escritura directa, Guardar como y descarga según capacidades reales.
+   * EN: Distinguishes direct write, Save as, and download from actual capabilities. */
+  saveMode(id: string): "save" | "saveAs" | "download" {
+    const version = this.versions[id];
+    if (!version || version.fileHandle) return "save";
+    if (version.identity.kind === "local" && this.fileSave.hasActiveWorkspace()) return "saveAs";
+    return supportsSaveFilePicker() ? "saveAs" : "download";
   }
 
   closeActiveDocument(): void {

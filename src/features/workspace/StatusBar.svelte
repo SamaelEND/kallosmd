@@ -15,6 +15,8 @@
   let { stats }: Props = $props();
 
   const t = $derived(i18n.current);
+  const saveMode = $derived(documentStore.activeDocument
+    ? documentStore.saveMode(documentStore.activeDocument.id) : "save");
 </script>
 
 <footer class="studio-statusbar no-print">
@@ -32,6 +34,8 @@
         {t.fileSave[documentStore.fileSave.state]}:
         <span class="save-name" title={documentStore.fileSave.name}>{documentStore.fileSave.name}</span>
       </span>
+    {:else if saveMode === "download"}
+      <span class="save-fallback">{t.fileSave.downloadHint}</span>
     {/if}
     {#if documentStore.hasUnsavedChanges}
       <span>{t.status.unsaved}</span>

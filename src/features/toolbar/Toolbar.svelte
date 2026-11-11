@@ -3,7 +3,7 @@
    * ES: Coordina herramientas, menús y barra de formato Markdown.
    * EN: Coordinates tools, menus, and the Markdown formatting bar.
    */
-  import { Moon, PanelLeft, Save, Sun } from "lucide-svelte";
+  import { Download, Moon, PanelLeft, Save, Sun } from "lucide-svelte";
   import { downloadTextFile } from "../preview/export/htmlExport";
   import { documentStore } from "../vault/vaultStore.svelte";
   import { i18n } from "../../shared/i18n/i18n.svelte";
@@ -44,6 +44,13 @@
   const activeDoc = $derived(documentStore.activeDocument);
   const activeDocTitle = $derived(activeDoc?.title || "");
   const currentViewMode = $derived(documentStore.settings.viewMode);
+  const saveMode = $derived(activeDoc ? documentStore.saveMode(activeDoc.id) : "save");
+  const saveLabel = $derived(saveMode === "download"
+    ? t.toolbar.download
+    : saveMode === "saveAs" ? t.toolbar.saveAs : t.toolbar.save);
+  const saveHint = $derived(saveMode === "download"
+    ? t.toolbar.downloadHint
+    : saveMode === "saveAs" ? t.toolbar.saveAsHint : t.toolbar.saveHint);
 
   $effect(() => {
     if (
@@ -104,10 +111,14 @@
         size="icon"
         onclick={onSave}
         disabled={!activeDoc || documentStore.fileSave.busy}
-        title={t.toolbar.saveHint}
-        ariaLabel={t.toolbar.save}
+        title={saveHint}
+        ariaLabel={saveLabel}
       >
-        <Save size={16} />
+        {#if saveMode === "download"}
+          <Download size={16} />
+        {:else}
+          <Save size={16} />
+        {/if}
       </Button>
       <Button
         variant="ghost"

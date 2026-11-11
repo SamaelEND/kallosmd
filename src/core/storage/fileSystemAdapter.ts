@@ -75,13 +75,20 @@ export class FileConflictError extends Error {
   }
 }
 
+/** ES: Detecta el selector de guardado real sin inferir soporte por el navegador.
+ * EN: Detects the actual save picker without inferring support from browser identity. */
+export function supportsSaveFilePicker(): boolean {
+  return typeof window !== "undefined" && typeof (window as Window & {
+    showSaveFilePicker?: unknown;
+  }).showSaveFilePicker === "function";
+}
+
 export function pickSaveFile(title: string): Promise<SaveFileHandle> | null {
-  if (typeof window === "undefined") return null;
+  if (!supportsSaveFilePicker()) return null;
   const host = window as Window & {
     showSaveFilePicker?: (options: object) => Promise<SaveFileHandle>;
   };
-  if (typeof host.showSaveFilePicker !== "function") return null;
-  return host.showSaveFilePicker({
+  return host.showSaveFilePicker!({
     suggestedName: title,
     types: [{ description: "Markdown", accept: { "text/markdown": [".md"] } }],
   });

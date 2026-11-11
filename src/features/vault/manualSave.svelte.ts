@@ -73,6 +73,12 @@ export class ManualSave {
     this.workspace = provider;
   }
 
+  /** ES: Indica si el primer guardado puede usar la carpeta activa.
+   * EN: Reports whether the first save can use the active folder. */
+  hasActiveWorkspace(): boolean {
+    return this.workspace?.current() != null;
+  }
+
   edited(id: string): void {
     if (id === this.documentId && !this.busy && ["fileSaved", "copySaved", "downloaded"].includes(this.state)) {
       this.state = "idle";
@@ -118,6 +124,9 @@ export class ManualSave {
     const snapshot = toPlainDoc(doc);
     const version = this.context.getVersion(id);
     const original = version.fileHandle;
+    // ES: Una identidad de archivo sin handle solo puede guardarse como copia independiente.
+    // EN: A file identity without a handle can only be saved as an independent copy.
+    const detachedFile = !copy && !original && version.identity.kind === "file";
     const firstSave = !copy && !original && version.identity.kind === "local"
       ? this.requestWorkspaceTarget(snapshot) : null;
     this.busy = true;
@@ -167,6 +176,14 @@ export class ManualSave {
       await writeFileSnapshot(handle, snapshot.content, original && !copy ? version.confirmedContent : null);
       written = true;
       this.name = handle.name;
+      if (detachedFile) {
+        // ES: El original conserva identidad y borrador; la copia no confirma su escritura.
+        // EN: The original keeps its identity and draft; the copy does not confirm its write.
+        if (!this.context.getDocument(id)) { this.state = "idle"; return; }
+        await this.context.protectDrafts();
+        this.state = "copySaved";
+        return;
+      }
       if (!copy && this.context.getDocument(id)) {
         await this.context.confirmWrite(snapshot, handle);
       }
