@@ -21,6 +21,7 @@ import { vaultStore, type DocumentStore } from "./vaultStore.svelte";
 import type { WorkspaceSaveTarget } from "./manualSave.svelte";
 import { assertWorkspaceDestination } from "./workspaceDraftSync";
 import { PendingWorkspaceChangeError, protectWorkspaceDrafts, resumeWorkspaceChange, WorkspaceStorageError, workspaceEntryAt } from "./workspaceChangeRecovery";
+import { readWorkspaceResource, type WorkspaceResource } from "../../core/storage/workspaceResources";
 
 export class WorkspaceStore {
   current = $state.raw<WorkspaceReference | null>(null);
@@ -403,6 +404,15 @@ export class WorkspaceStore {
     } finally {
       this.busy = false;
     }
+  }
+
+  /**
+   * ES: Lee bajo demanda un recurso relativo al documento en el espacio de trabajo abierto sin importarlo a IndexedDB.
+   * EN: Reads on-demand a resource relative to the document in the open workspace without importing to IndexedDB.
+   */
+  async readResource(documentPath: string, relativeUri: string): Promise<WorkspaceResource | null> {
+    if (!this.current?.handle) return null;
+    return readWorkspaceResource(this.current.handle, documentPath, relativeUri);
   }
 
   private report(error: unknown, fallback: "read" | "write" = "read"): void {

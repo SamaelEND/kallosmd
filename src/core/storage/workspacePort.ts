@@ -42,3 +42,9 @@ export interface WorkspaceEntry {
   name: string;
   path: string;
 }
+
+export type {
+  ResolvedResourceRef,
+  WorkspaceResource,
+  WorkspaceResourcePort,
+} from "./workspaceResources";
