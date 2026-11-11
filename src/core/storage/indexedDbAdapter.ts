@@ -14,6 +14,7 @@ import {
   saveAllFoldersToDb,
   saveDocumentToDb,
   saveFolderToDb,
+  retireDocumentIfUnchangedFromDb,
 } from "./db";
 import { getAllDraftsFromDb, saveDraftToDb, deleteDraftFromDb, clearAllDraftsFromDb, replaceDraftsInDb } from "./draftDb";
 import { restoreBackupToDb } from "./backupDb";
@@ -32,6 +33,7 @@ export const indexedDbAdapter: StorageAdapter = {
   saveDocument: saveDocumentToDb,
   saveAllDocuments: saveAllDocumentsToDb,
   deleteDocument: deleteDocumentFromDb,
+  retireDocumentIfUnchanged: retireDocumentIfUnchangedFromDb,
   clearAllDocuments: clearAllDocumentsFromDb,
 
   getAllFolders: getAllFoldersFromDb,

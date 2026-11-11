@@ -6,6 +6,7 @@ import { openDB, type IDBPDatabase } from "idb";
 import type { DocumentItem, FolderItem, RecoveryDraft } from "../types";
 import { toPlainDoc, toPlainFolder } from "./documentRecords";
 import type { WorkspaceReference } from "./workspacePort";
+import type { RetireDocumentOutcome, RetireExpectation } from "./storagePort";
 
 const DB_NAME = "md_studio_db";
 const DB_VERSION = 4;
@@ -109,6 +110,47 @@ export async function saveAllDocumentsToDb(
 export async function deleteDocumentFromDb(id: string): Promise<void> {
   const db = await getDb();
   await db.delete(STORE_NAME, id);
+}
+
+/**
+ * ES: Retira documento y borrador en una sola transacción, comprobando que ninguno
+ * contenga una versión posterior a la verificada. Una edición concurrente cancela el borrado.
+ * EN: Retires document and draft in a single transaction, checking that neither holds a
+ * version newer than the verified one. A concurrent edit cancels the deletion.
+ */
+export async function retireDocumentIfUnchangedFromDb(
+  id: string,
+  draftKey: string,
+  expected: RetireExpectation,
+): Promise<RetireDocumentOutcome> {
+  const db = await getDb();
+  const tx = db.transaction([STORE_NAME, "recoveryDrafts"], "readwrite");
+  const [doc, draft] = await Promise.all([
+    tx.objectStore(STORE_NAME).get(id),
+    tx.objectStore("recoveryDrafts").get(draftKey),
+  ]);
+
+  const isNewer = (record: { content: string; updatedAt: number } | undefined): boolean =>
+    Boolean(record) && (
+      record!.updatedAt > expected.updatedAt
+      || (record!.updatedAt === expected.updatedAt && record!.content !== expected.content)
+    );
+
+  if (isNewer(doc) || isNewer(draft?.document)) {
+    await tx.done;
+    return "edited";
+  }
+  if (!doc && !draft) {
+    await tx.done;
+    return "missing";
+  }
+
+  await Promise.all([
+    tx.objectStore(STORE_NAME).delete(id),
+    tx.objectStore("recoveryDrafts").delete(draftKey),
+  ]);
+  await tx.done;
+  return "retired";
 }
 
 /**

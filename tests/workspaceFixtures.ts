@@ -37,13 +37,21 @@ export function workspaceFixture() {
       move: async (destOrName: DirectoryHandle | string, newName?: string) => {
         const parentEntries = getParentEntries?.();
         if (typeof destOrName === "string") {
+          if (parentEntries?.has(destOrName) && parentEntries.get(destOrName) !== handle) {
+            throw new DOMException("Destination exists", "InvalidModificationError");
+          }
           parentEntries?.delete(fileName);
           fileName = destOrName;
           parentEntries?.set(fileName, handle);
         } else {
+          const targetName = newName ?? fileName;
+          const targetEntries = (destOrName as ReturnType<typeof directory>).entries;
+          if (targetEntries?.has(targetName) && targetEntries.get(targetName) !== handle) {
+            throw new DOMException("Destination exists", "InvalidModificationError");
+          }
           parentEntries?.delete(fileName);
-          fileName = newName ?? fileName;
-          (destOrName as ReturnType<typeof directory>).entries?.set(fileName, handle);
+          fileName = targetName;
+          targetEntries?.set(fileName, handle);
         }
       },
     };

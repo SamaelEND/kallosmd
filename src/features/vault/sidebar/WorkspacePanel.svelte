@@ -2,18 +2,23 @@
   /** ES: Elección y reapertura explícitas; referencias restauradas sin abrir documentos.
    * EN: Explicit selection and reopening; references restored without opening documents. */
   import { onMount } from "svelte";
-  import { FolderOpen, RefreshCw, X } from "lucide-svelte";
+  import { FolderDown, FolderOpen, RefreshCw, X } from "lucide-svelte";
   import { supportsWorkspaceDirectory } from "../../../core/storage/fileSystemAdapter";
   import { workspaceStore } from "../workspaceStore.svelte";
   import { vaultStore } from "../vaultStore.svelte";
   import { i18n } from "../../../shared/i18n/i18n.svelte";
   import Button from "../../../shared/ui/Button.svelte";
   import WorkspaceTree from "./WorkspaceTree.svelte";
+  import MigrationModal from "../MigrationModal.svelte";
+  import { detectMigrationCandidates } from "../migrationService";
 
   let { onOpen }: { onOpen?: () => void } = $props();
   const supported = supportsWorkspaceDirectory();
   const t = $derived(i18n.current.workspace);
+  const m = $derived(i18n.current.migration);
   const nativeDocuments = $derived(vaultStore.documents.filter(d => vaultStore.isWorkspaceDocument(d.id)));
+  const localCandidates = $derived(detectMigrationCandidates(vaultStore));
+  let showMigration = $state(false);
 
   onMount(() => { void workspaceStore.initialize().catch(() => {}); });
 </script>
@@ -64,8 +69,18 @@
       {/each}
     </div>
   {/if}
+  {#if localCandidates.length > 0}
+    <div class="migration-action">
+      <Button variant="ghost" size="xs" fullWidth disabled={workspaceStore.busy}
+        onclick={() => (showMigration = true)} title={m.description}>
+        <FolderDown size={14} /><span>{m.button} ({localCandidates.length})</span>
+      </Button>
+    </div>
+  {/if}
   <p class="session-label">{t.session}</p>
 </section>
+
+<MigrationModal isOpen={showMigration} onClose={() => (showMigration = false)} />
 
 <style>
   .workspace-panel { padding: 8px 14px 0; flex-shrink: 0; min-width: 0; }
@@ -74,5 +89,6 @@
   .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   p { font-size: 11px; line-height: 1.5; color: var(--text-faint); margin: 6px 0; overflow-wrap: anywhere; }
   .opened-files { max-height: 20vh; overflow: auto; }
+  .migration-action { margin-top: 6px; }
   .session-label { border-top: 1px solid var(--border-color); padding-top: 8px; }
 </style>

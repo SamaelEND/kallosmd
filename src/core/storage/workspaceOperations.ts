@@ -40,6 +40,38 @@ export function isValidEntryName(name: string): boolean {
 
 export const isValidFolderName = isValidEntryName;
 
+/** ES: Distingue entradas inexistentes de errores de permisos o E/S.
+ * EN: Distinguishes missing entries from permission or I/O errors. */
+export function isNotFoundError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const err = error as { name?: string; message?: string };
+  return err.name === "NotFoundError" || Boolean(err.message && /not\s*found|missing/i.test(err.message));
+}
+
+/** ES: Comprueba la existencia de un archivo sin crearlo.
+ * EN: Checks whether a file exists without creating it. */
+export async function fileExistsInDirectory(dir: DirectoryHandle, fileName: string): Promise<boolean> {
+  try {
+    await dir.getFileHandle(fileName, { create: false });
+    return true;
+  } catch (error: unknown) {
+    if (isNotFoundError(error)) return false;
+    throw error;
+  }
+}
+
+/** ES: Lee el texto actual de un archivo, o null si no existe.
+ * EN: Reads the current text of a file, or null when it does not exist. */
+export async function readFileText(dir: DirectoryHandle, fileName: string): Promise<string | null> {
+  try {
+    const handle = await dir.getFileHandle(fileName, { create: false });
+    return await (await handle.getFile()).text();
+  } catch (error: unknown) {
+    if (isNotFoundError(error)) return null;
+    throw error;
+  }
+}
+
 /**
  * ES: Divide una ruta de espacio de trabajo en ruta de directorio padre y nombre base.
  * EN: Splits a workspace path into parent directory path and base name.

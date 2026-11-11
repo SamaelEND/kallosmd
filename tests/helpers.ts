@@ -23,6 +23,20 @@ export function memoryStorage() {
     saveDocument: async doc => { docs.set(doc.id, { ...doc }); },
     saveAllDocuments: async items => { for (const doc of items) docs.set(doc.id, { ...doc }); },
     deleteDocument: async id => { docs.delete(id); },
+    retireDocumentIfUnchanged: async (id, draftKey, expected) => {
+      const doc = docs.get(id);
+      const draft = drafts.get(draftKey);
+      const isNewer = (record: { content: string; updatedAt: number } | undefined) =>
+        Boolean(record) && (
+          record!.updatedAt > expected.updatedAt
+          || (record!.updatedAt === expected.updatedAt && record!.content !== expected.content)
+        );
+      if (isNewer(doc) || isNewer(draft?.document)) return "edited";
+      if (!doc && !draft) return "missing";
+      docs.delete(id);
+      drafts.delete(draftKey);
+      return "retired";
+    },
     clearAllDocuments: async () => { docs.clear(); },
     getAllDrafts: async () => [...drafts.values()].map(cloneDraft),
     saveDraft: async draft => { drafts.set(draft.key, cloneDraft(draft)); },
