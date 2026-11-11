@@ -28,6 +28,13 @@ export class VaultPersistence {
     return this.loading ??= this.read();
   }
 
+  /** ES: Vuelve a leer tras una restauración sin conservar la instantánea anterior.
+   * EN: Re-reads after a restore without keeping the previous snapshot. */
+  reload() {
+    this.loading = null;
+    return this.load();
+  }
+
   private async read() {
     try {
       const [documents, folders, drafts] = await Promise.all([

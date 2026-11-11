@@ -52,6 +52,9 @@ export class DocumentStore {
   storage: StorageAdapter;
   persistence: VaultPersistence;
   workspaceMutation = $state(false);
+  // ES: Marca de cambios locales para que una importación no pise ediciones concurrentes.
+  // EN: Local change marker so an import never overwrites concurrent edits.
+  revision = 0;
   private initialization: Promise<void> | null = null;
 
   constructor(storage: StorageAdapter = indexedDbAdapter, saveEnvironment?: SaveEnvironment) {
@@ -83,9 +86,33 @@ export class DocumentStore {
     return this.initialization ??= this.loadDatabase();
   }
 
-  private async loadDatabase(): Promise<void> {
+  /** ES: Reemplaza la sesión por el estado restaurado, conservando ediciones posteriores.
+   * EN: Replaces the session with the restored state, keeping later edits. */
+  public async reload(patch?: {
+    documents: DocumentItem[]; folders: FolderItem[]; versions: Record<string, DocumentVersion>;
+    recoveries: Record<string, RecoveryDraft>; removed: string[];
+  }): Promise<void> {
+    const activeId = this.activeId;
+    this.documents = []; this.folders = []; this.versions = {}; this.recoveries = {};
+    this.recoveryCandidate = null;
+    this.initialization = this.loadDatabase(true);
+    await this.initialization;
+    if (!patch) return;
+    const docs = new Map(patch.documents.map(doc => [doc.id, doc]));
+    const folders = new Map(patch.folders.map(folder => [folder.id, folder]));
+    const removed = new Set(patch.removed);
+    this.documents = [...this.documents.filter(d => !removed.has(d.id) && !docs.has(d.id)), ...docs.values()];
+    this.folders = [...this.folders.filter(f => !removed.has(f.id) && !folders.has(f.id)), ...folders.values()];
+    this.versions = { ...this.versions, ...patch.versions }; this.recoveries = { ...this.recoveries, ...patch.recoveries };
+    if (docs.has(activeId)) this.activeId = activeId;
+    writeActiveDocumentId(this.activeId); this.refreshDerivedMetadata(this.activeDocument);
+    writeActiveDocumentCache(this.activeDocument);
+  }
+
+  private async loadDatabase(reload = false): Promise<void> {
     try {
-      const { documents, folders, drafts } = await this.persistence.load();
+      const load = reload ? this.persistence.reload() : this.persistence.load();
+      const { documents, folders, drafts } = await load;
       const existingIds = new Set(this.documents.map(d => d.id));
       const stored = new Map(documents.map(d => [d.id, d]));
       for (const doc of documents) {
@@ -146,6 +173,7 @@ export class DocumentStore {
   }
 
   private scheduleSave(doc: DocumentItem): void {
+    this.revision++;
     this.fileSave.edited(doc.id);
     const recovery = this.recoveries[doc.id];
     let snapshot = doc;
@@ -198,15 +226,12 @@ export class DocumentStore {
   public flushPendingSave(): Promise<boolean> {
     return this.persistence.flush();
   }
-
   get activeDocument(): DocumentItem | undefined {
     return this.documents.find((doc) => doc.id === this.activeId);
   }
-
   isWorkspaceDocument(id: string): boolean {
     return this.versions[id]?.identity.kind === "file";
   }
-
   /** ES: Distingue escritura directa, Guardar como y descarga según capacidades reales.
    * EN: Distinguishes direct write, Save as, and download from actual capabilities. */
   saveMode(id: string): "save" | "saveAs" | "download" {
@@ -265,11 +290,9 @@ export class DocumentStore {
   get settings(): Settings {
     return settingsStore.settings;
   }
-
   get isDark(): boolean {
     return settingsStore.isDark;
   }
-
   createDocument(
     rawTitle = "nuevo-documento.md",
     content = "# Nuevo Documento\n\n",
@@ -320,6 +343,7 @@ export class DocumentStore {
     this.recoveryCandidate = null;
     const id = candidate.document.id;
     if (!recover || !this.documents.some(doc => doc.id === id)) return;
+    this.revision++;
     this.documents = this.documents.map(doc => doc.id === id ? { ...candidate.document } : doc);
     delete this.recoveries[id];
     this.selectDocument(id);
@@ -351,6 +375,7 @@ export class DocumentStore {
   }
 
   createFolder(rawName = "Nueva Carpeta"): FolderItem {
+    this.revision++;
     const newFolder: FolderItem = {
       id: generateId(), name: rawName.trim() || "Nueva Carpeta",
       createdAt: Date.now(), updatedAt: Date.now(), isExpanded: true,
@@ -364,6 +389,7 @@ export class DocumentStore {
     const folder = this.folders.find((f) => f.id === id);
     const clean = newName.trim();
     if (!folder || !clean) return;
+    this.revision++;
     folder.name = clean;
     folder.updatedAt = Date.now();
     void this.persistence.run(() => this.storage.saveFolder({ ...folder }));
@@ -371,6 +397,7 @@ export class DocumentStore {
 
   deleteFolder(id: string, deleteContainedFiles = false): void {
     if (!this.folders.some((f) => f.id === id)) return;
+    this.revision++;
     if (deleteContainedFiles) {
       for (const d of this.documents.filter((d) => d.folderId === id)) this.deleteDocument(d.id);
     } else {
@@ -386,6 +413,7 @@ export class DocumentStore {
   toggleFolderExpanded(id: string): void {
     const folder = this.folders.find((f) => f.id === id);
     if (!folder) return;
+    this.revision++;
     folder.isExpanded = !folder.isExpanded;
     void this.persistence.run(() => this.storage.saveFolder({ ...folder }));
   }
@@ -403,6 +431,7 @@ export class DocumentStore {
     void this.flushPendingSave();
     const index = this.documents.findIndex((doc) => doc.id === id);
     if (index === -1) return false;
+    this.revision++;
 
     this.documents = this.documents.filter((doc) => doc.id !== id);
     this.fileSave.forget(id);
@@ -425,6 +454,7 @@ export class DocumentStore {
   }
 
   clearAllDocuments(): void {
+    this.revision++;
     for (const doc of this.documents) this.fileSave.forget(doc.id);
     this.persistence.clear();
     this.versions = {};
@@ -437,7 +467,6 @@ export class DocumentStore {
     this.refreshDerivedMetadata(undefined);
     writeActiveDocumentCache(undefined);
   }
-
   importDocument(rawFilename: string, content: string): DocumentItem {
     const title = normalizeDocTitle(rawFilename);
     const stem = title.replace(/\.md$/i, "");
@@ -451,14 +480,12 @@ export class DocumentStore {
     this.scheduleSave(doc);
     return doc;
   }
-
   toggleTaskCheckbox(taskIndex: number, isChecked: boolean): void {
     const doc = this.activeDocument;
     if (!doc) return;
     const updatedMd = toggleMarkdownTaskAtIndex(doc.content, taskIndex, isChecked);
     if (updatedMd !== null) this.updateActiveContent(updatedMd);
   }
-
   applyTheme(theme: ThemeMode): void { settingsStore.applyTheme(theme); }
   updateSettings(partial: Partial<Settings>): void { settingsStore.updateSettings(partial); }
   setViewMode(mode: ViewMode): void { settingsStore.setViewMode(mode); }
