@@ -112,14 +112,4 @@
     text-overflow: ellipsis;
     max-width: 100%;
   }
-
-  @media (max-width: 640px) {
-    .segmented-control {
-      grid-template-columns: repeat(3, 1fr);
-    }
-
-    .seg-btn-split {
-      display: none !important;
-    }
-  }
 </style>

@@ -52,16 +52,6 @@
     ? t.toolbar.downloadHint
     : saveMode === "saveAs" ? t.toolbar.saveAsHint : t.toolbar.saveHint);
 
-  $effect(() => {
-    if (
-      typeof window !== "undefined" &&
-      window.innerWidth <= 640 &&
-      documentStore.settings.viewMode === "split"
-    ) {
-      documentStore.setViewMode("live");
-    }
-  });
-
   function setView(mode: ViewMode): void {
     documentStore.setViewMode(mode);
   }

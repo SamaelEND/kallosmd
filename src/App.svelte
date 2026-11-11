@@ -145,7 +145,7 @@
     await executePdfPrint({
       docTitle: activeDoc?.title || "documento",
       currentViewMode: viewMode,
-      setViewMode: (mode) => documentStore.setViewMode(mode),
+      setViewMode: (mode) => documentStore.setViewMode(mode, false),
       prepareForPrint: previewComponent?.prepareForPrint,
       restoreAfterPrint: previewComponent?.restoreAfterPrint,
     });
@@ -159,7 +159,7 @@
 
     const previousMode = viewMode;
     if (previousMode === "editor" || previousMode === "live") {
-      documentStore.setViewMode("preview");
+      documentStore.setViewMode("preview", false);
       await tick();
       await new Promise((resolve) => setTimeout(resolve, 60));
     }
@@ -172,7 +172,7 @@
     );
 
     if (previousMode === "editor" || previousMode === "live") {
-      documentStore.setViewMode(previousMode);
+      documentStore.setViewMode(previousMode, false);
     }
   }
 
@@ -391,16 +391,30 @@
     display: none !important;
   }
 
+  /* ES: En pantallas estrechas (<= 640px), Split divide verticalmente para mantener accesibles editor y preview */
+  /* EN: On narrow screens (<= 640px), Split divides vertically to keep both editor and preview accessible */
   @media (max-width: 640px) {
+    .workspace-container.mode-split {
+      flex-direction: column;
+    }
+
     .workspace-container.mode-split .editor-pane {
       width: 100% !important;
+      height: 50% !important;
+      flex: 1 1 50%;
+      min-height: 0;
     }
 
     .workspace-container.mode-split .preview-pane {
-      display: none !important;
+      display: flex !important;
+      width: 100% !important;
+      height: 50% !important;
+      flex: 1 1 50%;
+      min-height: 0;
+      border-top: 1px solid var(--border-color, #2b2d31);
     }
 
-    :global(.resizer-divider) {
+    :global(.resizer-gutter) {
       display: none !important;
     }
   }

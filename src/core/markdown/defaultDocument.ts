@@ -39,7 +39,7 @@ export const STORAGE_KEYS = {
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: "dark",
-  viewMode: "live",
+  viewMode: "split",
   fontSize: "medium",
   codeTheme: DEFAULT_CODE_THEME,
   syncScroll: true,

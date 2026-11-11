@@ -19,11 +19,51 @@ import type {
   ViewMode,
 } from "../../core/types";
 
-class SettingsStore {
+/**
+ * ES: Breakpoint en píxeles para alternancia automática entre vista Split y Live.
+ * EN: Breakpoint in pixels for automatic switching between Split and Live view.
+ */
+export const VIEW_MODE_BREAKPOINT = 640;
+
+export class SettingsStore {
   settings = $state<Settings>(DEFAULT_SETTINGS);
+  hasExplicitViewMode = $state<boolean>(false);
+  private cleanupViewportListener?: () => void;
 
   constructor() {
+    this.initViewMode();
     this.loadSettings();
+    this.setupViewportListener();
+  }
+
+  /**
+   * ES: Determina la vista automática según el breakpoint de pantalla (split en amplia, live en pequeña).
+   * EN: Determines automatic view mode based on screen breakpoint (split on wide, live on small).
+   */
+  public computeAutomaticViewMode(): ViewMode {
+    if (typeof window !== "undefined") {
+      if (typeof window.matchMedia === "function") {
+        return window.matchMedia(`(max-width: ${VIEW_MODE_BREAKPOINT}px)`).matches
+          ? "live"
+          : "split";
+      }
+      if (typeof window.innerWidth === "number") {
+        return window.innerWidth <= VIEW_MODE_BREAKPOINT ? "live" : "split";
+      }
+    }
+    return "split";
+  }
+
+  /**
+   * ES: Inicializa la vista por defecto basada en el breakpoint antes de cargar persistencia.
+   * EN: Initializes default view based on breakpoint before loading persistence.
+   */
+  private initViewMode(): void {
+    const initialViewMode = this.computeAutomaticViewMode();
+    this.settings = {
+      ...this.settings,
+      viewMode: initialViewMode,
+    };
   }
 
   /**
@@ -36,14 +76,25 @@ class SettingsStore {
     try {
       const rawTheme = localStorage.getItem(STORAGE_KEYS.THEME);
       const savedTheme: ThemeMode = rawTheme === "light" ? "light" : "dark";
-      const rawViewMode = localStorage.getItem(STORAGE_KEYS.VIEW_MODE);
-      const savedViewMode: ViewMode =
+
+      let rawViewMode: string | null = null;
+      try {
+        rawViewMode = localStorage.getItem(STORAGE_KEYS.VIEW_MODE);
+      } catch {
+        rawViewMode = null;
+      }
+
+      const isExplicit =
         rawViewMode === "live" ||
         rawViewMode === "editor" ||
         rawViewMode === "split" ||
-        rawViewMode === "preview"
-          ? rawViewMode
-          : "live";
+        rawViewMode === "preview";
+
+      this.hasExplicitViewMode = isExplicit;
+      const savedViewMode: ViewMode = isExplicit
+        ? (rawViewMode as ViewMode)
+        : this.computeAutomaticViewMode();
+
       const savedFontSize =
         (localStorage.getItem(STORAGE_KEYS.FONT_SIZE) as FontSize) || "medium";
       const rawCodeTheme = localStorage.getItem(STORAGE_KEYS.CODE_THEME);
@@ -130,7 +181,9 @@ class SettingsStore {
     if (typeof window === "undefined") return;
     try {
       localStorage.setItem(STORAGE_KEYS.THEME, this.settings.theme);
-      localStorage.setItem(STORAGE_KEYS.VIEW_MODE, this.settings.viewMode);
+      if (this.hasExplicitViewMode) {
+        localStorage.setItem(STORAGE_KEYS.VIEW_MODE, this.settings.viewMode);
+      }
       localStorage.setItem(STORAGE_KEYS.FONT_SIZE, this.settings.fontSize);
       localStorage.setItem(STORAGE_KEYS.CODE_THEME, this.settings.codeTheme);
       localStorage.setItem(
@@ -179,6 +232,62 @@ class SettingsStore {
     }
   }
 
+  /**
+   * ES: Registra el listener para actualizar la vista automática al cruzar el breakpoint cuando no hay preferencia explícita.
+   * EN: Registers the listener to update the automatic view mode when crossing the breakpoint if no explicit preference is set.
+   */
+  public setupViewportListener(): void {
+    if (typeof window === "undefined") return;
+
+    if (this.cleanupViewportListener) {
+      this.cleanupViewportListener();
+      this.cleanupViewportListener = undefined;
+    }
+
+    const handleViewportChange = () => {
+      if (this.hasExplicitViewMode) return;
+      const nextMode = this.computeAutomaticViewMode();
+      if (this.settings.viewMode !== nextMode) {
+        this.settings = { ...this.settings, viewMode: nextMode };
+      }
+    };
+
+    if (typeof window.matchMedia === "function") {
+      const mediaQuery = window.matchMedia(
+        `(max-width: ${VIEW_MODE_BREAKPOINT}px)`,
+      );
+      if (typeof mediaQuery.addEventListener === "function") {
+        mediaQuery.addEventListener("change", handleViewportChange);
+        this.cleanupViewportListener = () => {
+          mediaQuery.removeEventListener("change", handleViewportChange);
+        };
+        return;
+      } else if (typeof mediaQuery.addListener === "function") {
+        mediaQuery.addListener(handleViewportChange);
+        this.cleanupViewportListener = () => {
+          mediaQuery.removeListener(handleViewportChange);
+        };
+        return;
+      }
+    }
+
+    window.addEventListener("resize", handleViewportChange);
+    this.cleanupViewportListener = () => {
+      window.removeEventListener("resize", handleViewportChange);
+    };
+  }
+
+  /**
+   * ES: Elimina los listeners activos del viewport.
+   * EN: Cleans up active viewport listeners.
+   */
+  public destroy(): void {
+    if (this.cleanupViewportListener) {
+      this.cleanupViewportListener();
+      this.cleanupViewportListener = undefined;
+    }
+  }
+
   get isDark(): boolean {
     return this.settings.theme === "dark";
   }
@@ -211,14 +320,25 @@ class SettingsStore {
 
     void root.offsetHeight;
 
-    requestAnimationFrame(() => {
+    if (typeof requestAnimationFrame === "function") {
       requestAnimationFrame(() => {
-        root.classList.remove("no-transitions");
+        requestAnimationFrame(() => {
+          root.classList.remove("no-transitions");
+        });
       });
-    });
+    } else {
+      root.classList.remove("no-transitions");
+    }
   }
 
+  /**
+   * ES: Actualiza configuraciones parciales y persiste los cambios.
+   * EN: Updates partial settings and persists changes.
+   */
   updateSettings(partial: Partial<Settings>): void {
+    if (partial.viewMode !== undefined) {
+      this.hasExplicitViewMode = true;
+    }
     this.settings = { ...this.settings, ...partial };
     if (partial.theme) {
       this.applyTheme(partial.theme);
@@ -226,8 +346,19 @@ class SettingsStore {
     this.persistSettings();
   }
 
-  setViewMode(mode: ViewMode): void {
-    this.updateSettings({ viewMode: mode });
+  /**
+   * ES: Establece el modo de vista. Si isExplicit es falso (p. ej. exportación temporal a PDF o HTML),
+   * no marca preferencia explícita ni persiste en localStorage.
+   * EN: Sets the view mode. If isExplicit is false (e.g. temporary export to PDF or HTML),
+   * it does not mark explicit preference nor persist to localStorage.
+   */
+  setViewMode(mode: ViewMode, isExplicit = true): void {
+    if (isExplicit) {
+      this.hasExplicitViewMode = true;
+      this.updateSettings({ viewMode: mode });
+    } else {
+      this.settings = { ...this.settings, viewMode: mode };
+    }
   }
 
   setFontSize(size: FontSize): void {
@@ -251,4 +382,3 @@ class SettingsStore {
 }
 
 export const settingsStore = new SettingsStore();
-

@@ -191,4 +191,12 @@
     border-radius: 1px;
     background-color: rgba(255, 255, 255, 0.7);
   }
+
+  /* ES: Oculta el separador de arrastre lateral en pantallas estrechas (<= 640px) */
+  /* EN: Hides lateral dragging gutter on narrow screens (<= 640px) */
+  @media (max-width: 640px) {
+    .resizer-gutter {
+      display: none !important;
+    }
+  }
 </style>
