@@ -364,5 +364,18 @@ export const en: TranslationSchema = {
     divider: "Divider",
     dividerDesc: "Horizontal section divider",
   },
+  pwa: {
+    ready: "Ready for offline use",
+    readyShort: "Offline ready",
+    installing: "Preparing offline access...",
+    updateAvailable: "Update available",
+    updateAction: "Update",
+    updatePrompt: "A new version of Kallos Markdown is available. Would you like to reload to apply it now?",
+    updateUnsavedWarning: "You have unsaved changes. Please save your notes before updating.",
+    updateSaveFailed: "The pending draft could not be saved. The update was cancelled to avoid losing changes.",
+    updateOtherTabsWarning: "Other Kallos Markdown tabs are still open. Close them to apply the update without interrupting resources from the previous version.",
+    unsupported: "Offline mode not supported",
+    error: "Failed to prepare offline mode",
+  },
 };
 

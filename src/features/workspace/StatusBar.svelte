@@ -6,6 +6,7 @@
   import { Sparkles } from "lucide-svelte";
   import { i18n } from "../../shared/i18n/i18n.svelte";
   import { documentStore } from "../vault/vaultStore.svelte";
+  import OfflineIndicator from "../pwa/OfflineIndicator.svelte";
   import type { DocumentStats } from "../../shared/utils/formatters";
 
   interface Props {
@@ -43,6 +44,7 @@
   </div>
 
   <div class="status-right">
+    <OfflineIndicator />
     <span class="status-tag">
       <Sparkles size={12} />
       <span>KaTeX + Mermaid</span>
