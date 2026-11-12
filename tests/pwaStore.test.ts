@@ -225,4 +225,45 @@ describe('PwaStore reactive state & lifecycle', () => {
       restoreWindow();
     }
   });
+
+  it('waits for a cold offline cache audit before reporting readiness', async () => {
+    const restoreWindow = installCachesWindow();
+    const originalNavigator = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+    const worker = {
+      postMessage(message: { type: string }, ports?: MessagePort[]) {
+        if (message.type !== 'CHECK_CACHE_STATUS' || !ports?.[0]) return;
+        setTimeout(() => ports[0].postMessage({
+          type: 'CACHE_STATUS_RESULT', ready: true, version: 'abc123',
+          count: 317, total: 317, missing: [],
+        }), 1200);
+      },
+    } as unknown as ServiceWorker;
+
+    try {
+      Object.defineProperty(globalThis, 'navigator', {
+        value: { serviceWorker: { controller: worker } }, configurable: true,
+      });
+      pwaStore.status = 'installing';
+      await pwaStore.checkReadiness();
+      assert.equal(pwaStore.status, 'ready');
+    } finally {
+      restoreWindow();
+      if (originalNavigator) Object.defineProperty(globalThis, 'navigator', originalNavigator);
+    }
+  });
+
+  it('ends the loading state when an active worker reports an incomplete cache', async () => {
+    const restoreWindow = installCachesWindow();
+    const restoreWorker = installActiveWorker({
+      ready: false, count: 316, total: 317, missing: ['/assets/mermaid.js'],
+    });
+    try {
+      pwaStore.status = 'installing';
+      await pwaStore.checkReadiness();
+      assert.equal(pwaStore.status, 'error');
+    } finally {
+      restoreWorker();
+      restoreWindow();
+    }
+  });
 });

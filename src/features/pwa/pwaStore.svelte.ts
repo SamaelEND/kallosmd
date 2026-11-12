@@ -150,7 +150,7 @@ export class PwaStore {
    * ES: Envía un mensaje al Service Worker y espera una única respuesta por MessageChannel.
    * EN: Sends a message to the Service Worker and waits for a single MessageChannel response.
    */
-  private async requestWorkerMessage<T>(worker: ServiceWorker, message: SwInboundMessage): Promise<T | null> {
+  private async requestWorkerMessage<T>(worker: ServiceWorker, message: SwInboundMessage, timeoutMs = 1000): Promise<T | null> {
     if (typeof MessageChannel === 'undefined') return null;
 
     return new Promise((resolve) => {
@@ -170,7 +170,7 @@ export class PwaStore {
 
       const timer = setTimeout(() => {
         finish(null);
-      }, 1000);
+      }, timeoutMs);
       if (typeof (timer as unknown as { unref?: () => void }).unref === 'function') {
         (timer as unknown as { unref: () => void }).unref();
       }
@@ -192,7 +192,9 @@ export class PwaStore {
    * EN: Queries internal cache status directly from the active Service Worker.
    */
   private async queryWorkerCacheStatus(worker: ServiceWorker): Promise<SwCacheStatusResult | null> {
-    const result = await this.requestWorkerMessage<SwCacheStatusResult>(worker, { type: 'CHECK_CACHE_STATUS' });
+    // ES: La auditoría recorre cientos de entradas y puede tardar más de un segundo al reabrir sin red.
+    // EN: The audit checks hundreds of entries and can take over a second on a cold offline start.
+    const result = await this.requestWorkerMessage<SwCacheStatusResult>(worker, { type: 'CHECK_CACHE_STATUS' }, 15000);
     return result && result.type === 'CACHE_STATUS_RESULT' ? result : null;
   }
 
@@ -275,7 +277,7 @@ export class PwaStore {
       // EN: If not ready and no explicit error, keep in installing or error according to worker
       if (this.status !== 'error') {
         const hasWorker = !!(navigator.serviceWorker?.controller || this.registration?.active);
-        this.status = hasWorker ? 'installing' : 'idle';
+        this.status = hasWorker ? 'error' : 'installing';
       }
     }
   }
