@@ -1,7 +1,10 @@
 {
-  "name": "Markdown Studio",
-  "short_name": "MD Studio",
-  "description": "Free Online Markdown Editor & Live Preview with KaTeX, Mermaid and PDF, HTML Export",
+  "id": "/app/",
+  "name": "Kallos Markdown",
+  "short_name": "Kallos MD",
+  "description": "Free online Markdown editor with live preview, LaTeX math (KaTeX), Mermaid diagrams, and PDF/HTML export. Local-first and private.",
+  "lang": "en",
+  "dir": "ltr",
   "start_url": "/app/",
   "scope": "/",
   "display": "standalone",

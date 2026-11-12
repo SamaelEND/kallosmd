@@ -362,6 +362,19 @@ export const es = {
     divider: "Línea divisoria",
     dividerDesc: "Separador horizontal de sección",
   },
+  pwa: {
+    ready: "Lista para usar sin conexión",
+    readyShort: "Sin conexión lista",
+    installing: "Preparando modo sin conexión...",
+    updateAvailable: "Actualización disponible",
+    updateAction: "Actualizar",
+    updatePrompt: "Hay una nueva versión de Kallos Markdown disponible. ¿Deseas recargar para aplicarla ahora?",
+    updateUnsavedWarning: "Tienes cambios pendientes sin guardar. Guarda tus notas antes de actualizar.",
+    updateSaveFailed: "No se pudo guardar el borrador pendiente. La actualización se ha cancelado para no perder cambios.",
+    updateOtherTabsWarning: "Hay otras pestañas abiertas de Kallos Markdown. Ciérralas para aplicar la actualización sin interrumpir recursos de la versión anterior.",
+    unsupported: "Modo sin conexión no compatible",
+    error: "Error al preparar modo sin conexión",
+  },
 };
 
 export type TranslationSchema = typeof es;
