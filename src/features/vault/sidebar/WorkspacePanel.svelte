@@ -3,14 +3,16 @@
    * EN: Explicit selection and reopening; references restored without opening documents. */
   import { onMount } from "svelte";
   import { FolderDown, FolderOpen, RefreshCw, X } from "lucide-svelte";
-  import { supportsWorkspaceDirectory } from "../../../core/storage/fileSystemAdapter";
+  import { directoryAt, supportsWorkspaceDirectory } from "../../../core/storage/fileSystemAdapter";
+  import type { DirectoryHandle } from "../../../core/storage/workspacePort";
+  import { isLocalDocumentDrag, LOCAL_DOCUMENT_DRAG_TYPE } from "../../workspace/dragImport";
   import { workspaceStore } from "../workspaceStore.svelte";
   import { vaultStore } from "../vaultStore.svelte";
   import { i18n } from "../../../shared/i18n/i18n.svelte";
   import Button from "../../../shared/ui/Button.svelte";
   import WorkspaceTree from "./WorkspaceTree.svelte";
   import MigrationModal from "../MigrationModal.svelte";
-  import { detectMigrationCandidates } from "../migrationService";
+  import { candidateForFolderDrop, detectMigrationCandidates } from "../migrationService";
 
   let { onOpen }: { onOpen?: () => void } = $props();
   const supported = supportsWorkspaceDirectory();
@@ -19,6 +21,45 @@
   const nativeDocuments = $derived(vaultStore.documents.filter(d => vaultStore.isWorkspaceDocument(d.id)));
   const localCandidates = $derived(detectMigrationCandidates(vaultStore));
   let showMigration = $state(false);
+  let droppedDocument = $state.raw<{ docId: string; directory: DirectoryHandle } | null>(null);
+  let rootDropTarget = $state(false);
+
+  function handleRootDragOver(event: DragEvent): void {
+    if (!isLocalDocumentDrag(event.dataTransfer) || workspaceStore.busy) return;
+    event.preventDefault();
+    rootDropTarget = true;
+    if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+  }
+
+  function handleRootDrop(event: DragEvent): void {
+    if (!isLocalDocumentDrag(event.dataTransfer)) return;
+    event.preventDefault();
+    rootDropTarget = false;
+    void handleFolderDrop(event.dataTransfer?.getData(LOCAL_DOCUMENT_DRAG_TYPE) ?? "", "");
+  }
+
+  async function handleFolderDrop(docId: string, path: string): Promise<void> {
+    const workspace = workspaceStore.current;
+    if (!workspace || workspaceStore.busy || !candidateForFolderDrop(vaultStore, docId)) return;
+    try {
+      const directory = await directoryAt(workspace.handle, path);
+      if (workspaceStore.current !== workspace || !candidateForFolderDrop(vaultStore, docId)) return;
+      droppedDocument = { docId, directory };
+      showMigration = true;
+    } catch {
+      workspaceStore.error = "read";
+    }
+  }
+
+  function openBulkMigration(): void {
+    droppedDocument = null;
+    showMigration = true;
+  }
+
+  function closeMigration(): void {
+    showMigration = false;
+    droppedDocument = null;
+  }
 
   onMount(() => { void workspaceStore.initialize().catch(() => {}); });
 </script>
@@ -47,7 +88,11 @@
   {/if}
   {#if workspaceStore.busy}<p role="status">{t.loading}</p>{/if}
   {#if workspaceStore.current}
-    <div class="folder-heading">
+    <div class="folder-heading" class:drop-target={rootDropTarget}
+      role="group" aria-label={workspaceStore.current.name}
+      ondragover={handleRootDragOver}
+      ondragleave={() => (rootDropTarget = false)}
+      ondrop={handleRootDrop}>
       <strong class="name" title={workspaceStore.current.name}>{workspaceStore.current.name}</strong>
       <Button size="icon-xs" disabled={workspaceStore.busy} ariaLabel={t.refresh} title={t.refresh}
         onclick={() => void workspaceStore.refresh()}><RefreshCw size={14} /></Button>
@@ -55,7 +100,7 @@
         onclick={() => workspaceStore.close()}><X size={14} /></Button>
     </div>
     {#key workspaceStore.current}
-      <WorkspaceTree {onOpen} />
+      <WorkspaceTree {onOpen} onDropDocument={handleFolderDrop} />
     {/key}
     <p>{t.searchHint}</p>
   {:else if nativeDocuments.length}
@@ -72,7 +117,7 @@
   {#if localCandidates.length > 0}
     <div class="migration-action">
       <Button variant="ghost" size="xs" fullWidth disabled={workspaceStore.busy}
-        onclick={() => (showMigration = true)} title={m.description}>
+        onclick={openBulkMigration} title={m.description}>
         <FolderDown size={14} /><span>{m.button} ({localCandidates.length})</span>
       </Button>
     </div>
@@ -80,11 +125,14 @@
   <p class="session-label">{t.session}</p>
 </section>
 
-<MigrationModal isOpen={showMigration} onClose={() => (showMigration = false)} />
+{#if showMigration}
+  <MigrationModal isOpen={true} onClose={closeMigration} {droppedDocument} />
+{/if}
 
 <style>
   .workspace-panel { padding: 8px 14px 0; flex-shrink: 0; min-width: 0; }
   .folder-heading { display: flex; align-items: center; gap: 4px; margin-top: 4px; font-size: 12px; }
+  .folder-heading.drop-target { outline: 2px solid var(--accent-color, #3b82f6); border-radius: 5px; }
   .folder-heading strong { flex: 1; }
   .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   p { font-size: 11px; line-height: 1.5; color: var(--text-faint); margin: 6px 0; overflow-wrap: anywhere; }

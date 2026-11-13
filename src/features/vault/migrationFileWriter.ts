@@ -5,6 +5,7 @@
  * ever claiming the final name with `create: true`.
  */
 import type { DirectoryHandle, WorkspaceFileHandle } from "../../core/storage/workspacePort";
+import { nativeMoveRejectsCollision, UnsafeNativeMoveError } from "../../core/storage/nativeMoveSafety";
 import {
   EntryCollisionError,
   fileExistsInDirectory,
@@ -27,7 +28,6 @@ export async function ensureDirectoryHierarchy(
   }
   return current;
 }
-
 /**
  * ES: Escribe sobre un handle ya reclamado y verifica inmediatamente su integridad.
  * EN: Writes through an already-claimed handle and immediately verifies its integrity.
@@ -84,10 +84,10 @@ function migrationTempName(): string {
 }
 
 /**
- * ES: Crea un archivo nuevo escribiendo en un temporal único y renombrándolo después. Si el destino
- * aparece antes del renombrado, se informa conflicto y no se sobrescribe.
- * EN: Creates a new file by writing to a unique temp file and renaming it afterwards. If the
- * destination appears before the rename, a conflict is reported and nothing is overwritten.
+ * ES: Exige un movimiento nativo que rechace colisiones; después escribe en un temporal único y
+ * lo renombra. Si el backend reemplaza destinos, conserva el origen y ofrece respaldo portable.
+ * EN: Requires native move to reject collisions, then writes to a unique temporary file and
+ * renames it. If the backend replaces targets, the source remains available for portable backup.
  */
 export async function createFileWithoutOverwrite(
   parentDir: DirectoryHandle,
@@ -95,6 +95,9 @@ export async function createFileWithoutOverwrite(
   content: string,
   onMoved: () => void,
 ): Promise<void> {
+  if (!await nativeMoveRejectsCollision(parentDir, "file", "rename")) {
+    throw new UnsafeNativeMoveError();
+  }
   const tempName = migrationTempName();
   const tempHandle = await parentDir.getFileHandle(tempName, { create: true });
   let moved = false;

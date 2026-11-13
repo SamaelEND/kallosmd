@@ -4,6 +4,7 @@
  */
 import { directoryAt, workspacePathParts } from "./fileSystemAdapter";
 import type { DirectoryHandle, WorkspaceFileHandle } from "./workspacePort";
+import { nativeMoveRejectsCollision } from "./nativeMoveSafety";
 
 export class EntryCollisionError extends Error {
   constructor(message = "An entry with that name already exists") {
@@ -144,6 +145,9 @@ export async function renameWorkspaceEntry(
   if (oldName === newName) return target;
 
   if (typeof target.move === "function") {
+    if (!await nativeMoveRejectsCollision(parent, target.kind, "rename")) {
+      throw new UnsupportedCapabilityError("Native renaming may replace an occupied entry");
+    }
     // ES: La comprobación de nombres no es atómica frente a procesos externos; la API no ofrece no-replace.
     // EN: The name check is not atomic against external processes; the API has no no-replace option.
     await target.move(newName);
@@ -187,6 +191,9 @@ export async function moveWorkspaceEntry(
   }
 
   if (typeof sourceEntry.move === "function") {
+    if (!await nativeMoveRejectsCollision(targetParent, sourceEntry.kind, "move")) {
+      throw new UnsupportedCapabilityError("Native moving may replace an occupied entry");
+    }
     // ES: El movimiento nativo conserva bytes; no promete exclusión de procesos externos entre comprobaciones.
     // EN: Native movement preserves bytes; it does not promise exclusion of external processes between checks.
     await sourceEntry.move(targetParent, finalName);

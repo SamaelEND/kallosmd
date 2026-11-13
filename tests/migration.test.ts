@@ -86,7 +86,7 @@ test("inspectMigration preserves file names independent of first H1 and resolves
   // EN: Base name preserves 'resumen.md' independent of H1 '# Very Different Heading'
   assert.equal(item.targetFileName, "resumen.md");
   assert.equal(item.hasCollision, true);
-  assert.equal(item.resolution, "rename");
+  assert.equal(item.resolution, "ask");
   assert.equal(item.resolvedFileName, "resumen (1).md");
   assert.equal(item.resolvedPath, "resumen (1).md");
 });

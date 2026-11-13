@@ -15,11 +15,12 @@
   import { MigrationPlanState } from "./migrationPlan.svelte";
   import {
     detectMigrationCandidates,
+    candidateForFolderDrop,
     executeMigration,
     retireLegacyDocuments,
     exportMigrationAlternative,
     type MigrationCandidate,
-    type MigrationPlanItem,
+    type CollisionResolution,
     type MigrationExecutionResult,
     type RetireResult,
   } from "./migrationService";
@@ -27,9 +28,10 @@
   interface Props {
     isOpen: boolean;
     onClose: () => void;
+    droppedDocument?: { docId: string; directory: DirectoryHandle } | null;
   }
 
-  let { isOpen, onClose }: Props = $props();
+  let { isOpen, onClose, droppedDocument = null }: Props = $props();
 
   const t = $derived(i18n.current);
   const m = $derived(t.migration);
@@ -39,7 +41,7 @@
   let candidates = $state<MigrationCandidate[]>([]);
   const planState = new MigrationPlanState();
   let customDirectory = $state.raw<DirectoryHandle | null>(null);
-  let activeDirectory = $derived(customDirectory ?? workspaceStore.current?.handle ?? null);
+  let activeDirectory = $derived(customDirectory ?? droppedDocument?.directory ?? workspaceStore.current?.handle ?? null);
   let result = $state<MigrationExecutionResult | null>(null);
   let retireStatus = $state<RetireResult | null>(null);
   let retireRequested = $state(false);
@@ -59,7 +61,9 @@
       retireStatus = null;
       retireRequested = false;
       errorMsg = "";
-      candidates = detectMigrationCandidates(vaultStore);
+      candidates = droppedDocument
+        ? [candidateForFolderDrop(vaultStore, droppedDocument.docId)].filter((candidate): candidate is MigrationCandidate => candidate !== null)
+        : detectMigrationCandidates(vaultStore);
     });
 
     // ES: Cada cambio de carpeta vuelve a inspeccionar y descarta el plan anterior de inmediato.
@@ -111,7 +115,8 @@
   async function handleRetry(): Promise<void> {
     const directory = activeDirectory;
     if (!directory || busy || !result || !planState.isUsableFor(directory)) return;
-    const failedIds = new Set(result.failed.map(f => f.id));
+    const unsafeFailures = result.failed.filter(f => f.errorCode === "unsafeMove");
+    const failedIds = new Set(result.failed.filter(f => f.errorCode !== "unsafeMove").map(f => f.id));
     const pendingPlan = planState.plan.filter(p => failedIds.has(p.candidate.id));
     if (!pendingPlan.length) return;
     busy = true;
@@ -129,7 +134,7 @@
         ok: retryRes.ok,
         error: retryRes.error,
         succeeded: [...result.succeeded, ...retryRes.succeeded],
-        failed: retryRes.failed,
+        failed: [...unsafeFailures, ...retryRes.failed],
         skipped: [...result.skipped, ...retryRes.skipped],
         pending: retryRes.pending,
       };
@@ -182,12 +187,19 @@
       onClose();
     }
   }
+
+  function mountBackdropOnBody(node: HTMLElement) {
+    // ES: La barra lateral crea una capa propia; el fondo debe cubrir toda la app.
+    // EN: The sidebar creates its own stacking context; the backdrop must cover the whole app.
+    document.body.appendChild(node);
+    return { destroy: () => node.remove() };
+  }
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
 
 {#if isOpen}
-  <div class="modal-backdrop" role="presentation" onclick={() => !busy && onClose()}>
+  <div use:mountBackdropOnBody class="modal-backdrop" role="presentation" onclick={() => !busy && onClose()}>
     <div
       class="modal-dialog"
       role="dialog"
@@ -240,7 +252,7 @@
           </div>
 
           {#if planState.plan.some(p => p.hasCollision)}
-            <div class="collision-alert">
+            <div class="collision-alert" role="alert">
               <AlertTriangle size={15} />
               <div>
                 <strong>{m.collisionsTitle}</strong>
@@ -250,17 +262,28 @@
           {/if}
 
           <div class="candidate-list">
-            {#each planState.plan.length ? planState.plan : candidates as item}
-              {@const isPlan = "targetPath" in item}
+            {#each planState.plan as item (item.candidate.id)}
               <div class="candidate-item">
-                <span class="file-title">
-                  {isPlan ? (item as MigrationPlanItem).resolvedFileName : (item as MigrationCandidate).title}
-                </span>
-                <span class="folder-tag">
-                  {isPlan
-                    ? ((item as MigrationPlanItem).targetFolder || "Raíz")
-                    : ((item as MigrationCandidate).folderName || "Raíz")}
-                </span>
+                <div class="candidate-name">
+                  <span class="file-title">{item.candidate.title}</span>
+                  <span class="folder-tag">{item.targetFolder || "Raíz"}</span>
+                </div>
+                {#if item.hasCollision}
+                  <label class="conflict-choice">
+                    <span>{m.chooseResolution}</span>
+                    <select
+                      value={item.resolution}
+                      onchange={(event) => { item.resolution = event.currentTarget.value as CollisionResolution; }}
+                    >
+                      <option value="ask">{m.chooseAction}</option>
+                      {#if item.existingContent !== null}
+                        <option value="overwrite">{m.replaceExisting}</option>
+                      {/if}
+                      <option value="rename">{i18n.interpolate(m.addCopy, { name: item.resolvedFileName })}</option>
+                      <option value="skip">{m.skipDocument}</option>
+                    </select>
+                  </label>
+                {/if}
               </div>
             {/each}
           </div>
@@ -282,20 +305,37 @@
                 skipped: result.skipped.length,
               })}
             </p>
+            {#if result.succeeded.length > 0}
+              <div class="success-list">
+                {#each result.succeeded as saved}
+                  <p>{i18n.interpolate(m.savedAs, { title: saved.title, path: saved.targetPath })}</p>
+                {/each}
+              </div>
+            {/if}
 
             {#if result.failed.length > 0}
               <div class="failures-list">
                 {#each result.failed as f}
                   <div class="failure-item">
-                    <span>{f.title} ({f.targetPath}): {f.error}</span>
+                    <span>{f.title} ({f.targetPath}): {f.errorCode === "unsafeMove" ? m.unsafeMove : f.error}</span>
                   </div>
                 {/each}
               </div>
-              <div class="retry-box">
-                <Button variant="secondary" size="sm" onclick={handleRetry} disabled={busy}>
-                  {m.retry}
-                </Button>
-              </div>
+              {#if result.failed.some(f => f.errorCode !== "unsafeMove")}
+                <div class="retry-box">
+                  <Button variant="secondary" size="sm" onclick={handleRetry} disabled={busy}>
+                    {m.retry}
+                  </Button>
+                </div>
+              {/if}
+              {#if result.failed.some(f => f.errorCode === "unsafeMove")}
+                <div class="retry-box">
+                  <Button variant="secondary" size="sm" onclick={handleExportAlternative} disabled={busy}>
+                    <Download size={14} />
+                    {m.exportAlternative}
+                  </Button>
+                </div>
+              {/if}
             {/if}
 
             {#if result.succeeded.length > 0 && !retireRequested}
@@ -346,7 +386,7 @@
           </Button>
         {:else}
           <Button variant="secondary" size="sm" onclick={onClose} disabled={busy}>
-            {m.cancel}
+            {step === "completed" ? m.close : m.cancel}
           </Button>
         {/if}
       </footer>
@@ -361,7 +401,7 @@
     z-index: 9999; padding: 16px; animation: modal-fade 120ms ease;
   }
   .modal-dialog {
-    background: var(--bg-primary, #1e1e1e); border: 1px solid var(--border-color, #333);
+    background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-color);
     border-radius: 8px; max-width: 520px; width: 100%; max-height: 85vh;
     display: flex; flex-direction: column; overflow: hidden;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5); animation: modal-pop 140ms ease;
@@ -378,19 +418,20 @@
   .description { margin: 0; color: var(--text-secondary, #999); }
   .info-badge {
     display: inline-block; padding: 4px 8px; border-radius: 4px;
-    background: var(--bg-secondary, #2a2a2a); font-size: 12px;
+    background: var(--bg-elevated); font-size: 12px;
   }
   .folder-selector {
     display: flex; align-items: center; justify-content: space-between;
-    gap: 8px; padding: 10px; background: var(--bg-secondary, #252525); border-radius: 6px;
+    gap: 8px; padding: 10px; background: var(--bg-elevated); border-radius: 6px;
   }
   .target-name {
     margin: 0; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .collision-alert {
     display: flex; align-items: flex-start; gap: 8px; padding: 8px 12px;
-    background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3);
-    border-radius: 6px; color: #eab308; font-size: 12px;
+    background: color-mix(in srgb, var(--warn-color) 12%, var(--bg-surface));
+    border: 1px solid color-mix(in srgb, var(--warn-color) 40%, var(--border-color));
+    border-radius: 6px; color: var(--warn-color); font-size: 12px;
   }
   .collision-alert p { margin: 2px 0 0; color: var(--text-secondary, #bbb); }
   .candidate-list {
@@ -398,21 +439,28 @@
     border: 1px solid var(--border-color, #333); border-radius: 6px;
   }
   .candidate-item {
-    display: flex; align-items: center; justify-content: space-between;
+    display: flex; flex-direction: column; gap: 5px;
     padding: 6px 10px; border-bottom: 1px solid var(--border-subtle, #282828); font-size: 12px;
   }
+  .candidate-name { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+  .conflict-choice { display: flex; flex-direction: column; gap: 4px; }
+  .conflict-choice select { width: 100%; min-width: 0; padding: 5px; color: var(--text-primary); background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; font: inherit; }
+  .conflict-choice select:focus-visible { outline: 2px solid var(--accent-color); outline-offset: 1px; }
+  .conflict-choice option { color: var(--text-primary); background: var(--bg-input); }
   .candidate-item:last-child { border-bottom: none; }
   .file-title {
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 8px;
   }
-  .folder-tag { font-size: 11px; color: var(--text-faint, #777); }
+  .folder-tag { font-size: 11px; color: var(--text-secondary); }
+  .success-list { max-height: 140px; overflow: auto; overflow-wrap: anywhere; color: var(--text-secondary, #bbb); }
+  .success-list p { margin: 2px 0; }
   .retire-prompt {
-    padding: 12px; background: var(--bg-secondary, #252525);
+    padding: 12px; background: var(--bg-elevated);
     border-radius: 6px; border: 1px solid var(--border-color, #333);
   }
   .retire-actions { display: flex; gap: 8px; margin-top: 8px; }
   .error-text { color: var(--danger-color, #e5484d); font-size: 12px; margin: 0; }
-  .success-text { display: flex; align-items: center; gap: 6px; color: #22c55e; margin: 0; }
+  .success-text { display: flex; align-items: center; gap: 6px; color: var(--accent-color); margin: 0; }
   .modal-footer {
     display: flex; justify-content: flex-end; gap: 8px;
     padding: 12px 16px; border-top: 1px solid var(--border-color, #333);

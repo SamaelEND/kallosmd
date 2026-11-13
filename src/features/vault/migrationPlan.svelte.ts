@@ -78,6 +78,7 @@ export class MigrationPlanState {
    * EN: Migration is only allowed with a current plan inspected for the currently active directory.
    */
   isUsableFor(target: DirectoryHandle | null): boolean {
-    return target !== null && this.directory === target && this.plan.length > 0;
+    return target !== null && this.directory === target && this.plan.length > 0
+      && this.plan.every((item) => item.resolution !== "ask");
   }
 }
