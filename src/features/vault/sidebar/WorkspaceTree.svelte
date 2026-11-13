@@ -22,8 +22,12 @@
   import InlineRenameInput from "../../../shared/ui/InlineRenameInput.svelte";
   import NewWorkspaceFolder from "./NewWorkspaceFolder.svelte";
   import WorkspaceMoveModal from "./WorkspaceMoveModal.svelte";
+  import { isLocalDocumentDrag, LOCAL_DOCUMENT_DRAG_TYPE } from "../../workspace/dragImport";
 
-  let { onOpen }: { onOpen?: () => void } = $props();
+  let { onOpen, onDropDocument }: {
+    onOpen?: () => void;
+    onDropDocument?: (docId: string, path: string) => void | Promise<void>;
+  } = $props();
   let children = $state<Record<string, WorkspaceEntry[]>>({});
   let expanded = $state<Record<string, boolean>>({});
   let loading = $state<Record<string, boolean>>({});
@@ -32,6 +36,7 @@
   let creationTrigger: HTMLElement | null = null;
   let editingPath = $state<string | null>(null);
   let movingEntry = $state<WorkspaceEntry | null>(null);
+  let dropTargetPath = $state<string | null>(null);
   const t = $derived(i18n.current.workspace);
 
   // ES: Tras crear una subcarpeta, revela su ruta sin abrir ningún documento.
@@ -116,6 +121,22 @@
     if (!confirmed) return;
     await workspaceStore.deleteEntry(entry.path);
   }
+
+  function handleFolderDragOver(event: DragEvent, path: string): void {
+    if (!isLocalDocumentDrag(event.dataTransfer) || workspaceStore.busy) return;
+    event.preventDefault();
+    dropTargetPath = path;
+    if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+  }
+
+  function handleFolderDrop(event: DragEvent, path: string): void {
+    if (!isLocalDocumentDrag(event.dataTransfer)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    dropTargetPath = null;
+    const docId = event.dataTransfer?.getData(LOCAL_DOCUMENT_DRAG_TYPE);
+    if (docId) void onDropDocument?.(docId, path);
+  }
 </script>
 
 {#snippet branch(entries: WorkspaceEntry[], depth: number)}
@@ -137,11 +158,15 @@
               <button
                 type="button"
                 class="entry"
+                class:drop-target={dropTargetPath === entry.path}
                 style:padding-left={`${8 + depth * 14}px`}
                 aria-expanded={!!expanded[entry.path]}
                 aria-busy={!!loading[entry.path]}
                 disabled={workspaceStore.busy}
                 onclick={() => toggle(entry.path)}
+                ondragover={(event) => handleFolderDragOver(event, entry.path)}
+                ondragleave={() => { if (dropTargetPath === entry.path) dropTargetPath = null; }}
+                ondrop={(event) => handleFolderDrop(event, entry.path)}
                 title={entry.name}
               >
                 {#if expanded[entry.path]}<ChevronDown size={14} />{:else}<ChevronRight size={14} />{/if}
@@ -326,6 +351,7 @@
   .entry span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   .entry :global(svg) { flex-shrink: 0; }
   .entry.active { background: var(--bg-hover); color: var(--text-primary); }
+  .entry.drop-target { outline: 2px solid var(--accent-color, #3b82f6); background: var(--bg-hover); }
   .entry:disabled { opacity: .55; cursor: default; }
   .entry:focus-visible { outline: 2px solid var(--accent-color, #3b82f6); outline-offset: -2px; }
   .empty, p { color: var(--text-faint); font-size: 12px; padding: 4px 12px; }

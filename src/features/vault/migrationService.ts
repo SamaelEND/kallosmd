@@ -9,8 +9,10 @@ import type { DocumentItem } from "../../core/types";
 import type { DirectoryHandle } from "../../core/storage/workspacePort";
 import type { RetireDocumentOutcome } from "../../core/storage/storagePort";
 import { directoryAt } from "../../core/storage/fileSystemAdapter";
+import { UnsafeNativeMoveError } from "../../core/storage/nativeMoveSafety";
 import {
   EntryCollisionError,
+  createWorkspaceFile,
   fileExistsInDirectory,
   isNotFoundError,
   readFileText,
@@ -30,13 +32,14 @@ export interface MigrationCandidate {
   folderId: string | null; folderName: string | null; updatedAt: number;
 }
 
-export type CollisionResolution = "rename" | "skip" | "overwrite";
+export type CollisionResolution = "ask" | "rename" | "skip" | "overwrite";
 
 export interface MigrationPlanItem {
   candidate: MigrationCandidate;
   targetFolder: string; targetFileName: string; targetPath: string;
   hasCollision: boolean; resolution: CollisionResolution;
   resolvedFileName: string; resolvedPath: string;
+  existingContent: string | null;
 }
 
 export interface VerifiedMigrationItem {
@@ -46,6 +49,7 @@ export interface VerifiedMigrationItem {
 
 export interface MigrationFailureItem {
   id: string; title: string; targetPath: string; error: string;
+  errorCode?: "unsafeMove";
   // ES: Contenido parcial que este intento dejó en disco, solo si el archivo lo creó esta migración.
   // EN: Partial content this attempt left on disk, only when this migration created the file.
   partialContent?: string;
@@ -98,6 +102,11 @@ export function detectMigrationCandidates(store: DocumentStore): MigrationCandid
   return candidates;
 }
 
+export function candidateForFolderDrop(store: DocumentStore, docId: string): MigrationCandidate | null {
+  const candidate = detectMigrationCandidates(store).find((doc) => doc.id === docId);
+  return candidate ? { ...candidate, folderId: null, folderName: null } : null;
+}
+
 export function isPermissionError(error: unknown): boolean {
   if (!error || typeof error !== "object") return false;
   const err = error as { name?: string; message?: string };
@@ -122,12 +131,14 @@ export async function inspectMigration(
 
     let parentDir: DirectoryHandle = targetDirectory;
     let hasCollision = false;
+    let existingContent: string | null = null;
 
     try {
       if (targetFolder) {
         parentDir = await directoryAt(targetDirectory, targetFolder);
       }
       hasCollision = await fileExistsInDirectory(parentDir, targetFileName);
+      if (hasCollision) existingContent = await readFileText(parentDir, targetFileName);
     } catch (error: unknown) {
       if (isNotFoundError(error)) {
         // ES: Si la subcarpeta aún no existe en disco, no hay colisión previa allí
@@ -176,9 +187,10 @@ export async function inspectMigration(
       targetFileName,
       targetPath,
       hasCollision,
-      resolution: "rename",
+      resolution: hasCollision ? "ask" : "rename",
       resolvedFileName,
       resolvedPath,
+      existingContent,
     });
   }
 
@@ -264,6 +276,15 @@ export async function executeMigration(
       });
       continue;
     }
+    if (item.resolution === "ask") {
+      failed.push({
+        id: item.candidate.id,
+        title: item.candidate.title,
+        targetPath: item.targetPath,
+        error: "Destination conflict requires an explicit choice",
+      });
+      continue;
+    }
 
     const finalFileName = item.resolution === "rename" ? item.resolvedFileName : item.targetFileName;
     const finalPath = item.resolution === "rename" ? item.resolvedPath : item.targetPath;
@@ -279,9 +300,15 @@ export async function executeMigration(
       const destinationExists = await fileExistsInDirectory(parentDir, finalFileName);
 
       if (item.resolution === "overwrite") {
-        // ES: Sobrescritura explícita: se reclama el destino y se escribe.
-        // EN: Explicit overwrite: claim the destination and write.
-        const fileHandle = await parentDir.getFileHandle(finalFileName, { create: true });
+        // ES: Solo reemplazar el archivo inspeccionado si todavía tiene el mismo contenido.
+        // EN: Only replace the inspected file if its content is still unchanged.
+        if (!item.hasCollision || item.existingContent === null || !destinationExists) {
+          throw new EntryCollisionError(`Destination changed: "${finalPath}"`);
+        }
+        const fileHandle = await parentDir.getFileHandle(finalFileName, { create: false });
+        if (await readHandleText(fileHandle) !== item.existingContent) {
+          throw new EntryCollisionError(`Destination changed: "${finalPath}"`);
+        }
         ownsDestination = true;
         await writeAndVerifyHandle(fileHandle, item.candidate.content);
       } else if (destinationExists) {
@@ -299,16 +326,23 @@ export async function executeMigration(
         ownsDestination = true;
         await writeAndVerifyHandle(fileHandle, item.candidate.content);
       } else {
-        // ES: El nombre final nunca se reclama con create:true; se escribe en un temporal único y se
-        // renombra, de modo que un archivo aparecido en la ventana no se confunda con uno propio.
-        // EN: The final name is never claimed with create:true; it is written to a unique temp file and
-        // renamed, so a file appearing in the window is never mistaken for our own.
-        await createFileWithoutOverwrite(
-          parentDir,
-          finalFileName,
-          item.candidate.content,
-          () => { ownsDestination = true; },
-        );
+        // ES: La sonda rechaza backends cuyo move sustituye destinos ocupados. Después se escribe
+        // en un temporal único y se renombra sin reclamar el nombre final con create:true.
+        // EN: The probe rejects backends whose move replaces occupied targets. A unique temporary
+        // file is then renamed without claiming the final name through create:true.
+        try {
+          await createFileWithoutOverwrite(
+            parentDir,
+            finalFileName,
+            item.candidate.content,
+            () => { ownsDestination = true; },
+          );
+        } catch (error) {
+          if (!(error instanceof UnsafeNativeMoveError)) throw error;
+          const handle = await createWorkspaceFile(parentDir, "", finalFileName);
+          ownsDestination = true;
+          await writeAndVerifyHandle(handle, item.candidate.content);
+        }
       }
 
       succeeded.push({
@@ -328,6 +362,7 @@ export async function executeMigration(
         title: item.candidate.title,
         targetPath: finalPath,
         error: errorMsg,
+        ...(err instanceof UnsafeNativeMoveError ? { errorCode: "unsafeMove" as const } : {}),
         ...(partialContent !== null ? { partialContent } : {}),
       });
     }

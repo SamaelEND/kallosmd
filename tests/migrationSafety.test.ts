@@ -9,10 +9,121 @@ import {
   inspectMigration,
   executeMigration,
   retireLegacyDocuments,
+  candidateForFolderDrop,
 } from "../src/features/vault/migrationService.ts";
 import { workspaceFixture } from "./workspaceFixtures.ts";
 import { deferred } from "./helpers.ts";
 import type { WorkspaceFileHandle } from "../src/core/storage/workspacePort.ts";
+import { createFileWithoutOverwrite } from "../src/features/vault/migrationFileWriter.ts";
+
+test("dropping one browser document targets the chosen disk folder without moving other documents", async () => {
+  const f = workspaceFixture();
+  await f.documents.initialize();
+  const localFolder = f.documents.createFolder("origen-local");
+  const dragged = f.documents.createDocument("arrastrado.md", "# Arrastrado", localFolder.id, true);
+  f.documents.createDocument("otro.md", "# Otro", null, true);
+  const candidate = candidateForFolderDrop(f.documents, dragged.id);
+  assert.ok(candidate);
+  assert.equal(candidate.folderName, null);
+  assert.equal(candidate.folderId, null);
+  const target = await f.root.getDirectoryHandle("destino", { create: true });
+  const plan = await inspectMigration([candidate], target);
+  assert.equal(plan[0].targetPath, "arrastrado.md");
+  const result = await executeMigration(plan, target, f.documents);
+  assert.equal(result.succeeded.length, 1);
+  assert.equal(await (await (await target.getFileHandle("arrastrado.md")).getFile()).text(), "# Arrastrado");
+  assert.equal(f.documents.documents.some((doc) => doc.id === dragged.id), true);
+  assert.equal(f.root.entries.has("otro.md"), false);
+  assert.equal(candidateForFolderDrop(f.documents, "no-existe"), null);
+});
+
+test("migration refuses native move when the selected filesystem replaces occupied names", async () => {
+  const f = workspaceFixture({ overwriteOnMoveCollision: true });
+  let claimed = false;
+  await assert.rejects(
+    () => createFileWithoutOverwrite(f.root, "nuevo.md", "# Nuevo", () => { claimed = true; }),
+    /native move.*replace|unsafe.*move/i,
+  );
+  assert.equal(claimed, false);
+  assert.equal(f.root.entries.has("nuevo.md"), false);
+  assert.equal([...f.root.entries.keys()].some((name) => name.startsWith(".kallosmd-migration-")), false);
+  assert.equal([...f.root.entries.keys()].some((name) => name.startsWith(".kallosmd-move-check-")), false);
+});
+
+test("filesystem with replacing move saves the requested name and verifies it before retirement", async () => {
+  const f = workspaceFixture({ overwriteOnMoveCollision: true });
+  await f.documents.initialize();
+  const original = f.documents.createDocument("legado.md", "# Original", null, true);
+  const plan = await inspectMigration(detectMigrationCandidates(f.documents), f.root);
+
+  const result = await executeMigration(plan, f.root, f.documents);
+  assert.equal(result.ok, true);
+  assert.equal(result.succeeded.length, 1);
+  assert.equal(result.succeeded[0].targetPath, "legado.md");
+  assert.equal(f.root.entries.has("legado.md"), true);
+  const saved = await f.root.getFileHandle(result.succeeded[0].targetPath);
+  assert.equal(await (await saved.getFile()).text(), "# Original");
+  assert.equal(f.documents.documents.some((doc) => doc.id === original.id), true);
+  const retired = await retireLegacyDocuments(f.documents, result.succeeded);
+  assert.equal(retired.retiredCount, 1);
+  assert.equal(f.documents.documents.some((doc) => doc.id === original.id), false);
+  assert.equal(await (await saved.getFile()).text(), "# Original");
+});
+
+test("a disk name conflict requires a choice and replaces only the inspected version", async () => {
+  const f = workspaceFixture({ overwriteOnMoveCollision: true });
+  await f.documents.initialize();
+  f.documents.createDocument("documento-7.md", "# Nueva versión", null, true);
+  const existing = await f.root.getFileHandle("documento-7.md", { create: true });
+  const writer = await existing.createWritable();
+  await writer.write("# Versión anterior");
+  await writer.close();
+  const plan = await inspectMigration(detectMigrationCandidates(f.documents), f.root);
+  assert.equal(plan[0].resolution, "ask");
+
+  const unresolved = await executeMigration(plan, f.root, f.documents);
+  assert.equal(unresolved.succeeded.length, 0);
+  assert.equal(await (await existing.getFile()).text(), "# Versión anterior");
+
+  const replaced = await executeMigration([{ ...plan[0], resolution: "overwrite" }], f.root, f.documents);
+  assert.equal(replaced.succeeded.length, 1);
+  assert.equal(replaced.succeeded[0].targetPath, "documento-7.md");
+  assert.equal(await (await existing.getFile()).text(), "# Nueva versión");
+});
+
+test("an explicit extra copy uses a readable suffix and preserves the original disk file", async () => {
+  const f = workspaceFixture({ overwriteOnMoveCollision: true });
+  await f.documents.initialize();
+  f.documents.createDocument("documento-7.md", "# Copia nueva", null, true);
+  const existing = await f.root.getFileHandle("documento-7.md", { create: true });
+  const writer = await existing.createWritable();
+  await writer.write("# Original en disco");
+  await writer.close();
+  const plan = await inspectMigration(detectMigrationCandidates(f.documents), f.root);
+  const copied = await executeMigration([{ ...plan[0], resolution: "rename" }], f.root, f.documents);
+  assert.equal(copied.succeeded[0].targetPath, "documento-7 (1).md");
+  assert.equal(await (await existing.getFile()).text(), "# Original en disco");
+  assert.equal(await (await (await f.root.getFileHandle("documento-7 (1).md")).getFile()).text(), "# Copia nueva");
+});
+
+test("replacement is refused if the disk file changed after conflict review", async () => {
+  const f = workspaceFixture({ overwriteOnMoveCollision: true });
+  await f.documents.initialize();
+  f.documents.createDocument("documento-7.md", "# Navegador", null, true);
+  const existing = await f.root.getFileHandle("documento-7.md", { create: true });
+  let writer = await existing.createWritable();
+  await writer.write("# Disco antes");
+  await writer.close();
+  const plan = await inspectMigration(detectMigrationCandidates(f.documents), f.root);
+  writer = await existing.createWritable();
+  await writer.write("# Disco editado");
+  await writer.close();
+
+  const result = await executeMigration([{ ...plan[0], resolution: "overwrite" }], f.root, f.documents);
+  assert.equal(result.succeeded.length, 0);
+  assert.equal(result.failed.length, 1);
+  assert.equal(await (await existing.getFile()).text(), "# Disco editado");
+});
 
 test("regression 6: retry never replaces a foreign file because it did not create that destination", async () => {
   const f = workspaceFixture();

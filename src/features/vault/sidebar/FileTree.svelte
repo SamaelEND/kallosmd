@@ -8,6 +8,7 @@
   import { i18n } from "../../../shared/i18n/i18n.svelte";
   import FolderItem from "./FolderItem.svelte";
   import FileItem from "./FileItem.svelte";
+  import { isLocalDocumentDrag, LOCAL_DOCUMENT_DRAG_TYPE } from "../../workspace/dragImport";
 
   interface Props {
     visibleFolders: FolderItemType[];
@@ -67,18 +68,17 @@
     onDeleteDoc,
   }: Props = $props();
 
-  let draggedDocId = $state<string | null>(null);
   let dragOverTargetId = $state<string | null>(null);
 
   function handleDragStart(e: DragEvent, docId: string): void {
-    draggedDocId = docId;
     if (e.dataTransfer) {
-      e.dataTransfer.setData("text/plain", docId);
+      e.dataTransfer.setData(LOCAL_DOCUMENT_DRAG_TYPE, docId);
       e.dataTransfer.effectAllowed = "move";
     }
   }
 
   function handleDragOver(e: DragEvent, targetId: string): void {
+    if (!isLocalDocumentDrag(e.dataTransfer)) return;
     e.preventDefault();
     if (e.dataTransfer) {
       e.dataTransfer.dropEffect = "move";
@@ -91,13 +91,13 @@
   }
 
   function handleDrop(e: DragEvent, targetFolderId: string | null): void {
+    if (!isLocalDocumentDrag(e.dataTransfer)) return;
     e.preventDefault();
     dragOverTargetId = null;
-    const docId = draggedDocId || e.dataTransfer?.getData("text/plain");
+    const docId = e.dataTransfer?.getData(LOCAL_DOCUMENT_DRAG_TYPE);
     if (docId) {
       onMoveDocToFolder(docId, targetFolderId);
     }
-    draggedDocId = null;
   }
 
   const t = $derived(i18n.current);

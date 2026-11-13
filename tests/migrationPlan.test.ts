@@ -37,8 +37,18 @@ function planItem(id: string): MigrationPlanItem {
     resolution: "rename",
     resolvedFileName: `${id}.md`,
     resolvedPath: `${id}.md`,
+    existingContent: null,
   };
 }
+
+test("a name conflict blocks migration until a choice is made", async () => {
+  const directory = fakeDirectory("Destino");
+  const state = new MigrationPlanState(async () => [{ ...planItem("a"), hasCollision: true, resolution: "ask", existingContent: "# En disco" }]);
+  await state.inspectDirectory(directory, [candidate("a")]);
+  assert.equal(state.isUsableFor(directory), false);
+  state.plan[0].resolution = "overwrite";
+  assert.equal(state.isUsableFor(directory), true);
+});
 
 test("inspection failure clears the previous plan and blocks its directory", async () => {
   const dirA = fakeDirectory("A");

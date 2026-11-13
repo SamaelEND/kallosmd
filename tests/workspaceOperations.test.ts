@@ -10,6 +10,41 @@ import type { DirectoryHandle, WorkspaceFileHandle } from "../src/core/storage/w
 
 import { workspaceFixture as fixture } from "./workspaceFixtures.ts";
 
+test("workspace move is unavailable when its filesystem would replace an occupied destination", async () => {
+  const f = fixture({ overwriteOnMoveCollision: true });
+  await f.documents.initialize();
+  await f.workspace.choose();
+  await f.workspace.createFolder("", "archive");
+  await f.workspace.openFile("notes/guide.md");
+  f.documents.updateActiveContent("# Pending draft");
+  await f.documents.flushPendingSave();
+
+  assert.equal(await f.workspace.moveEntry("notes/guide.md", "archive"), false);
+  assert.equal(f.workspace.error, "unsupported");
+  assert.equal(f.notesDir.entries.has("guide.md"), true);
+  assert.equal(f.documents.activeDocument?.content, "# Pending draft");
+  assert.equal(f.storage.drafts.size, 1);
+});
+
+test("unsafe native rename and directory move leave original entries intact", async () => {
+  const f = fixture({ overwriteOnMoveCollision: true });
+  await f.documents.initialize();
+  await f.workspace.choose();
+  await f.workspace.createFolder("", "archive");
+
+  assert.equal(await f.workspace.renameEntry("notes/guide.md", "renamed.md"), false);
+  assert.equal(f.workspace.error, "unsupported");
+  assert.equal(f.notesDir.entries.has("guide.md"), true);
+
+  assert.equal(await f.workspace.renameEntry("notes", "renamed-notes"), false);
+  assert.equal(f.workspace.error, "unsupported");
+  assert.equal(f.root.entries.has("notes"), true);
+
+  assert.equal(await f.workspace.moveEntry("notes", "archive"), false);
+  assert.equal(f.workspace.error, "unsupported");
+  assert.equal(f.root.entries.has("notes"), true);
+});
+
 test("renaming a file on disk migrates identity and preserves live edits in drafts", async () => {
   const f = fixture();
   await f.documents.initialize();

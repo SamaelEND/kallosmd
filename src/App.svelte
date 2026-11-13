@@ -19,6 +19,7 @@
   import Sidebar from "./features/vault/sidebar/Sidebar.svelte";
   import { documentStore } from "./features/vault/vaultStore.svelte";
   import DropOverlay from "./features/workspace/DropOverlay.svelte";
+  import { isExternalFileDrag } from "./features/workspace/dragImport";
   import Resizer from "./features/workspace/Resizer.svelte";
   import { i18n } from "./shared/i18n/i18n.svelte";
   import SaveConflictPrompt from "./features/vault/SaveConflictPrompt.svelte";
@@ -177,6 +178,10 @@
   }
 
   function handleDragOver(e: DragEvent): void {
+    if (!isExternalFileDrag(e.dataTransfer)) {
+      isDraggingFile = false;
+      return;
+    }
     e.preventDefault();
     isDraggingFile = true;
   }
@@ -193,8 +198,9 @@
   }
 
   async function handleDrop(e: DragEvent): Promise<void> {
-    e.preventDefault();
     isDraggingFile = false;
+    if (!isExternalFileDrag(e.dataTransfer)) return;
+    e.preventDefault();
 
     const file = e.dataTransfer?.files?.[0];
     if (!file || !isValidImportFile(file)) return;
