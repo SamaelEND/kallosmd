@@ -111,13 +111,21 @@
   }
 
   @media (max-width: 640px) {
-    .status-right {
-      display: none;
-    }
-
     .studio-statusbar {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 2px;
       padding: 0 0.65rem;
       padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    .status-right {
+      justify-content: flex-end;
+      order: -1;
+    }
+
+    .status-tag {
+      display: none;
     }
   }
 </style>
