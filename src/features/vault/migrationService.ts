@@ -9,7 +9,6 @@ import type { DocumentItem } from "../../core/types";
 import type { DirectoryHandle } from "../../core/storage/workspacePort";
 import type { RetireDocumentOutcome } from "../../core/storage/storagePort";
 import { directoryAt } from "../../core/storage/fileSystemAdapter";
-import { UnsafeNativeMoveError } from "../../core/storage/nativeMoveSafety";
 import {
   EntryCollisionError,
   createWorkspaceFile,
@@ -19,7 +18,6 @@ import {
 } from "../../core/storage/workspaceOperations";
 import { getDraftKey } from "../../core/storage/documentRecords";
 import {
-  createFileWithoutOverwrite,
   ensureDirectoryHierarchy,
   readHandleText,
   writeAndVerifyHandle,
@@ -49,7 +47,6 @@ export interface VerifiedMigrationItem {
 
 export interface MigrationFailureItem {
   id: string; title: string; targetPath: string; error: string;
-  errorCode?: "unsafeMove";
   // ES: Contenido parcial que este intento dejó en disco, solo si el archivo lo creó esta migración.
   // EN: Partial content this attempt left on disk, only when this migration created the file.
   partialContent?: string;
@@ -326,23 +323,13 @@ export async function executeMigration(
         ownsDestination = true;
         await writeAndVerifyHandle(fileHandle, item.candidate.content);
       } else {
-        // ES: La sonda rechaza backends cuyo move sustituye destinos ocupados. Después se escribe
-        // en un temporal único y se renombra sin reclamar el nombre final con create:true.
-        // EN: The probe rejects backends whose move replaces occupied targets. A unique temporary
-        // file is then renamed without claiming the final name through create:true.
-        try {
-          await createFileWithoutOverwrite(
-            parentDir,
-            finalFileName,
-            item.candidate.content,
-            () => { ownsDestination = true; },
-          );
-        } catch (error) {
-          if (!(error instanceof UnsafeNativeMoveError)) throw error;
-          const handle = await createWorkspaceFile(parentDir, "", finalFileName);
-          ownsDestination = true;
-          await writeAndVerifyHandle(handle, item.candidate.content);
-        }
+        // ES: Usa la misma creación comprobada del primer guardado; algunos proveedores móviles
+        // rechazan las sondas y el renombrado nativo aunque admiten crear el archivo directamente.
+        // EN: Use the same checked creation as first save; some mobile providers reject native
+        // move probes and renames even though direct file creation works.
+        const handle = await createWorkspaceFile(parentDir, "", finalFileName);
+        ownsDestination = true;
+        await writeAndVerifyHandle(handle, item.candidate.content);
       }
 
       succeeded.push({
@@ -362,7 +349,6 @@ export async function executeMigration(
         title: item.candidate.title,
         targetPath: finalPath,
         error: errorMsg,
-        ...(err instanceof UnsafeNativeMoveError ? { errorCode: "unsafeMove" as const } : {}),
         ...(partialContent !== null ? { partialContent } : {}),
       });
     }

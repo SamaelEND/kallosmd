@@ -115,8 +115,7 @@
   async function handleRetry(): Promise<void> {
     const directory = activeDirectory;
     if (!directory || busy || !result || !planState.isUsableFor(directory)) return;
-    const unsafeFailures = result.failed.filter(f => f.errorCode === "unsafeMove");
-    const failedIds = new Set(result.failed.filter(f => f.errorCode !== "unsafeMove").map(f => f.id));
+    const failedIds = new Set(result.failed.map(f => f.id));
     const pendingPlan = planState.plan.filter(p => failedIds.has(p.candidate.id));
     if (!pendingPlan.length) return;
     busy = true;
@@ -134,7 +133,7 @@
         ok: retryRes.ok,
         error: retryRes.error,
         succeeded: [...result.succeeded, ...retryRes.succeeded],
-        failed: [...unsafeFailures, ...retryRes.failed],
+        failed: retryRes.failed,
         skipped: [...result.skipped, ...retryRes.skipped],
         pending: retryRes.pending,
       };
@@ -317,25 +316,15 @@
               <div class="failures-list">
                 {#each result.failed as f}
                   <div class="failure-item">
-                    <span>{f.title} ({f.targetPath}): {f.errorCode === "unsafeMove" ? m.unsafeMove : f.error}</span>
+                    <span>{f.title} ({f.targetPath}): {f.error}</span>
                   </div>
                 {/each}
               </div>
-              {#if result.failed.some(f => f.errorCode !== "unsafeMove")}
-                <div class="retry-box">
-                  <Button variant="secondary" size="sm" onclick={handleRetry} disabled={busy}>
-                    {m.retry}
-                  </Button>
-                </div>
-              {/if}
-              {#if result.failed.some(f => f.errorCode === "unsafeMove")}
-                <div class="retry-box">
-                  <Button variant="secondary" size="sm" onclick={handleExportAlternative} disabled={busy}>
-                    <Download size={14} />
-                    {m.exportAlternative}
-                  </Button>
-                </div>
-              {/if}
+              <div class="retry-box">
+                <Button variant="secondary" size="sm" onclick={handleRetry} disabled={busy}>
+                  {m.retry}
+                </Button>
+              </div>
             {/if}
 
             {#if result.succeeded.length > 0 && !retireRequested}

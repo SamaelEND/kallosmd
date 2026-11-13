@@ -7,13 +7,6 @@ import type { DirectoryHandle, WorkspaceFileHandle } from "./workspacePort";
 type EntryKind = "file" | "directory";
 type MoveForm = "rename" | "move";
 
-export class UnsafeNativeMoveError extends Error {
-  constructor() {
-    super("Unsafe native move: this filesystem may replace an occupied destination");
-    this.name = "UnsafeNativeMoveError";
-  }
-}
-
 async function writeMarker(file: WorkspaceFileHandle, content: string): Promise<void> {
   const writer = await file.createWritable();
   await writer.write(content);

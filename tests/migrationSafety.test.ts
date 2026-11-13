@@ -14,7 +14,6 @@ import {
 import { workspaceFixture } from "./workspaceFixtures.ts";
 import { deferred } from "./helpers.ts";
 import type { WorkspaceFileHandle } from "../src/core/storage/workspacePort.ts";
-import { createFileWithoutOverwrite } from "../src/features/vault/migrationFileWriter.ts";
 
 test("dropping one browser document targets the chosen disk folder without moving other documents", async () => {
   const f = workspaceFixture();
@@ -37,19 +36,6 @@ test("dropping one browser document targets the chosen disk folder without movin
   assert.equal(candidateForFolderDrop(f.documents, "no-existe"), null);
 });
 
-test("migration refuses native move when the selected filesystem replaces occupied names", async () => {
-  const f = workspaceFixture({ overwriteOnMoveCollision: true });
-  let claimed = false;
-  await assert.rejects(
-    () => createFileWithoutOverwrite(f.root, "nuevo.md", "# Nuevo", () => { claimed = true; }),
-    /native move.*replace|unsafe.*move/i,
-  );
-  assert.equal(claimed, false);
-  assert.equal(f.root.entries.has("nuevo.md"), false);
-  assert.equal([...f.root.entries.keys()].some((name) => name.startsWith(".kallosmd-migration-")), false);
-  assert.equal([...f.root.entries.keys()].some((name) => name.startsWith(".kallosmd-move-check-")), false);
-});
-
 test("filesystem with replacing move saves the requested name and verifies it before retirement", async () => {
   const f = workspaceFixture({ overwriteOnMoveCollision: true });
   await f.documents.initialize();
@@ -68,6 +54,28 @@ test("filesystem with replacing move saves the requested name and verifies it be
   assert.equal(retired.retiredCount, 1);
   assert.equal(f.documents.documents.some((doc) => doc.id === original.id), false);
   assert.equal(await (await saved.getFile()).text(), "# Original");
+});
+
+test("migration saves on a mobile-like folder that rejects move probes", async () => {
+  const f = workspaceFixture();
+  await f.documents.initialize();
+  const original = f.documents.createDocument("movil.md", "# Desde el móvil", null, true);
+  const getDirectoryHandle = f.root.getDirectoryHandle.bind(f.root);
+  f.root.getDirectoryHandle = async (name, options) => {
+    if (name.startsWith(".kallosmd-move-check-") && options?.create) {
+      throw new DOMException("The path supplied exists, but was not an entry of requested type.", "TypeMismatchError");
+    }
+    return getDirectoryHandle(name, options);
+  };
+
+  const plan = await inspectMigration(detectMigrationCandidates(f.documents), f.root);
+  const result = await executeMigration(plan, f.root, f.documents);
+
+  assert.equal(result.succeeded.length, 1);
+  assert.equal(result.failed.length, 0);
+  assert.equal(await (await (await f.root.getFileHandle("movil.md")).getFile()).text(), "# Desde el móvil");
+  assert.equal(f.documents.documents.some((doc) => doc.id === original.id), true);
+  assert.equal([...f.root.entries.keys()].some((name) => name.startsWith(".kallosmd-")), false);
 });
 
 test("a disk name conflict requires a choice and replaces only the inspected version", async () => {
@@ -279,72 +287,6 @@ test("regression 9: a prefix-looking foreign file is not authorized by the remov
   const current = (f.root as unknown as { entries: Map<string, WorkspaceFileHandle> }).entries.get("prefijo.md");
   assert.ok(current);
   assert.equal(await (await current.getFile()).text(), foreignContent);
-});
-
-/**
- * ES: Reproduce la carrera: otro proceso crea el archivo final justo después de la comprobación de
- * existencia y antes del renombrado. Comprueba que nunca se sobrescribe, esté vacío o no.
- * EN: Reproduces the race: another process creates the final file right after the existence check and
- * before the rename. Verifies it is never overwritten, whether empty or not.
- */
-async function assertRaceFilePreserved(foreignContent: string): Promise<void> {
-  const f = workspaceFixture();
-  await f.documents.initialize();
-
-  f.documents.createDocument("carrera.md", "# Contenido de la migración", null, true);
-  const plan = await inspectMigration(detectMigrationCandidates(f.documents), f.root);
-  assert.equal(plan[0].hasCollision, false);
-
-  const entries = (f.root as unknown as { entries: Map<string, WorkspaceFileHandle> }).entries;
-  const foreignFile: WorkspaceFileHandle = {
-    kind: "file",
-    name: "carrera.md",
-    getFile: async () => ({ name: "carrera.md", text: async () => foreignContent } as unknown as File),
-    createWritable: async () => { throw new Error("Must not be called"); },
-    isSameEntry: async () => false,
-  };
-
-  const originalGetFileHandle = f.root.getFileHandle.bind(f.root);
-  let injected = false;
-  f.root.getFileHandle = async (name: string, options?: { create?: boolean }) => {
-    const handle = await originalGetFileHandle(name, options);
-    // ES: El archivo ajeno aparece después de la comprobación de existencia, durante el temporal
-    // EN: The foreign file appears after the existence check, during the temp-file phase
-    if (options?.create && name.startsWith(".kallosmd-migration-") && !injected) {
-      injected = true;
-      entries.set("carrera.md", foreignFile);
-    }
-    return handle;
-  };
-
-  const result = await executeMigration(plan, f.root, f.documents);
-  assert.equal(result.ok, false);
-  assert.equal(result.succeeded.length, 0);
-  assert.equal(result.failed.length, 1);
-  assert.match(result.failed[0].error, /already exists/i);
-  assert.equal(result.failed[0].partialContent, undefined);
-
-  // ES: El reintento tampoco sustituye el archivo ajeno
-  // EN: The retry does not replace the foreign file either
-  f.root.getFileHandle = originalGetFileHandle;
-  const retryResult = await executeMigration(plan, f.root, f.documents, { authorizedPartials: {} });
-  assert.equal(retryResult.ok, false);
-  assert.match(retryResult.failed[0].error, /already exists/i);
-
-  const current = entries.get("carrera.md");
-  assert.ok(current);
-  assert.equal(await (await current.getFile()).text(), foreignContent);
-  // ES: No quedan temporales de la migración en el destino
-  // EN: No migration temp files are left behind in the destination
-  assert.equal([...entries.keys()].some(key => key.startsWith(".kallosmd-migration-")), false);
-}
-
-test("regression 10: a non-empty file created during the race window is never overwritten", async () => {
-  await assertRaceFilePreserved("# Archivo ajeno creado en carrera");
-});
-
-test("regression 12: an empty file created during the race window is never treated as our own", async () => {
-  await assertRaceFilePreserved("");
 });
 
 test("regression 11: permission errors while searching a collision suffix are propagated", async () => {

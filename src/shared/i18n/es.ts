@@ -244,7 +244,6 @@ export const es = {
     exportAlternativeHint: "Si tu navegador no admite carpetas directas, puedes descargar tus documentos como respaldo.",
     retry: "Reintentar pendientes",
     permissionError: "Se denegó el permiso de escritura en la carpeta. Tus documentos se conservan intactos en el navegador.",
-    unsafeMove: "Esta carpeta permite sustituir archivos al moverlos. No se trasladó el documento; conserva su copia en el navegador o descarga un respaldo portable.",
   },
   dropOverlay: {
     titleHtml: "Suelta tu archivo <strong>.md</strong> para abrirlo",

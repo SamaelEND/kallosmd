@@ -164,27 +164,29 @@ test("executes migration, writes subfolders, verifies content, and protects draf
   assert.equal(f.documents.documents.some(d => d.id === doc.id), true);
 });
 
-test("handles partial failures, reporting succeeded, failed and pending separately, allowing retry", async () => {
+test("reports partial failures and preserves the browser original when an empty disk file blocks retry", async () => {
   const f = workspaceFixture();
   await f.documents.initialize();
 
   const doc1 = f.documents.createDocument("ok.md", "Contenido 1", null, true);
   const doc2 = f.documents.createDocument("fallo.md", "Contenido 2", null, true);
 
-  // ES: Simular fallo de escritura solo para el contenido de fallo.md; la creación usa temporales
-  // únicos y el nombre final no se reclama durante la escritura.
-  // EN: Simulate a write failure only for fallo.md content; creation uses unique temp files and the
-  // final name is not claimed while writing.
+  // ES: Simular fallo de escritura únicamente para fallo.md.
+  // EN: Simulate a write failure only for fallo.md.
+  let shouldFail = true;
   const originalGetFileHandle = f.root.getFileHandle.bind(f.root);
   f.root.getFileHandle = async (name: string, options?: { create?: boolean }) => {
     const handle = await originalGetFileHandle(name, options);
-    if (options?.create && name.startsWith(".kallosmd-migration-")) {
+    if (options?.create && name === "fallo.md") {
       const originalCreate = handle.createWritable.bind(handle);
       handle.createWritable = async (opts?: { mode?: "exclusive" }) => {
         const writer = await originalCreate(opts);
         return {
           write: async (chunk: string) => {
-            if (chunk === "Contenido 2") throw new Error("Disk full simulation");
+            if (chunk === "Contenido 2" && shouldFail) {
+              shouldFail = false;
+              throw new Error("Disk full simulation");
+            }
             await writer.write(chunk);
           },
           close: () => writer.close(),
@@ -211,10 +213,13 @@ test("handles partial failures, reporting succeeded, failed and pending separate
   // EN: Retry after resolving failure
   f.root.getFileHandle = originalGetFileHandle;
   const pendingPlan = plan.filter(p => result.failed.some(f => f.id === p.candidate.id));
-  const retryResult = await executeMigration(pendingPlan, f.root, f.documents);
-  assert.equal(retryResult.ok, true);
-  assert.equal(retryResult.succeeded.length, 1);
-  assert.equal(retryResult.succeeded[0].title, "fallo.md");
+  const authorizedPartials = Object.fromEntries(result.failed
+    .filter(f => f.partialContent !== undefined)
+    .map(f => [f.id, f.partialContent!]));
+  const retryResult = await executeMigration(pendingPlan, f.root, f.documents, { authorizedPartials });
+  assert.equal(retryResult.ok, false);
+  assert.equal(retryResult.succeeded.length, 0);
+  assert.equal(f.documents.documents.some(doc => doc.id === doc2.id), true);
 });
 
 test("retireLegacyDocuments deletes verified documents but protects concurrent edits and reports backup state", async () => {

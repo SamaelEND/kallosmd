@@ -246,7 +246,6 @@ export const en: TranslationSchema = {
     exportAlternativeHint: "If your browser does not support direct folders, you can download your documents as backup.",
     retry: "Retry pending",
     permissionError: "Write permission was denied for destination folder. Your documents remain intact in the browser.",
-    unsafeMove: "This folder can replace files when moving them. The document was not transferred; keep its browser copy or download a portable backup.",
   },
   dropOverlay: {
     titleHtml: "Drop your <strong>.md</strong> file to open it",
